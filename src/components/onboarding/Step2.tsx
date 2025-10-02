@@ -5,12 +5,16 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOnboardingStore } from '@/stores/onboardingStore';
-import { User, Mail, Lock, Eye, EyeOff, Check, X, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { User, Mail, Lock, Eye, EyeOff, Check, X, ArrowLeft, Loader2 } from 'lucide-react';
 
 export const Step2 = () => {
   const { userData, setStep, updateUserData } = useOnboardingStore();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [processing, setProcessing] = useState(false);
   
   const [formData, setFormData] = useState({
     displayName: userData.displayName,
@@ -59,7 +63,7 @@ export const Step2 = () => {
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const nameError = validateName(formData.displayName);
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
@@ -73,8 +77,41 @@ export const Step2 = () => {
       return;
     }
 
+    // Save user data to store
     updateUserData(formData);
-    setStep(3);
+
+    try {
+      setProcessing(true);
+
+      // Create Stripe checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          email: formData.email,
+          displayName: formData.displayName,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        // Open Stripe Checkout in new tab
+        window.open(data.url, '_blank');
+        
+        toast({
+          title: "Checkout opened",
+          description: "Complete your payment in the new tab to continue.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error creating checkout:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create checkout session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const isValid = !validateName(formData.displayName) && 
@@ -262,10 +299,17 @@ export const Step2 = () => {
 
         <Button
           onClick={handleContinue}
-          disabled={!isValid}
+          disabled={!isValid || processing}
           className="w-full mt-8 text-lg py-6 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-300"
         >
-          CONTINUE
+          {processing ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Opening Checkout...
+            </>
+          ) : (
+            'CONTINUE TO PAYMENT'
+          )}
         </Button>
 
         <p className="text-sm text-muted-foreground text-center mt-6">
