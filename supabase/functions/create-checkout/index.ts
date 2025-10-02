@@ -28,6 +28,18 @@ serve(async (req) => {
     
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      
+      // Cancel any existing subscriptions to avoid currency conflicts
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'all',
+      });
+      
+      for (const subscription of subscriptions.data) {
+        if (subscription.status === 'active' || subscription.status === 'trialing') {
+          await stripe.subscriptions.cancel(subscription.id);
+        }
+      }
     }
 
     // Create checkout session
