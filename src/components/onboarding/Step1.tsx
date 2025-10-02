@@ -32,8 +32,8 @@ export const Step1 = () => {
         <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-primary/50" />
         <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-primary/50" />
 
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <div className="order-2 md:order-1">
+        <div className="grid md:grid-cols-2 gap-8 items-start">
+          <div className="order-2 md:order-1 space-y-6">
             <div className="space-y-6 text-lg leading-relaxed">
               <p className="text-foreground/90">
                 At precisely <span className="text-primary font-semibold">8:45 PM</span>, Phileas Fogg made an extraordinary wager with his fellow Reform Club members: he would travel around the world in exactly <span className="text-primary font-semibold">80 days</span>.
@@ -46,19 +46,15 @@ export const Step1 = () => {
               <p className="text-foreground/90">
                 But there's a twist—in 2084, we're not traveling alone. Thousands of adventurers like you will contribute to this journey through fitness activities.
               </p>
+            </div>
 
-              <div className="bg-primary/10 border border-primary/30 rounded-lg p-6 my-6">
-                <h3 className="text-xl font-bold mb-3 text-primary">Your Challenge:</h3>
-                <ul className="space-y-2 text-foreground/90">
-                  <li>• Complete your <span className="font-semibold">OWN journey</span> around the world at your own pace</li>
-                  <li>• Help the community during <span className="font-semibold">raid events</span> when Detective Fix strikes</li>
-                  <li>• Track your progress through <span className="font-semibold">80 narrative days</span></li>
-                </ul>
-              </div>
-
-              <p className="text-xl font-bold text-primary text-center">
-                Will you join the expedition?
-              </p>
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-3 text-primary">Your Challenge:</h3>
+              <ul className="space-y-2 text-foreground/90">
+                <li>• Complete your <span className="font-semibold">OWN journey</span> around the world at your own pace</li>
+                <li>• Help the community during <span className="font-semibold">raid events</span> when Detective Fix strikes</li>
+                <li>• Track your progress through <span className="font-semibold">80 narrative days</span></li>
+              </ul>
             </div>
           </div>
 
@@ -73,7 +69,7 @@ export const Step1 = () => {
               <img 
                 src={foggPortrait} 
                 alt="Phileas Fogg" 
-                className="relative rounded-lg border-2 border-primary/50 shadow-lg"
+                className="relative rounded-lg border-2 border-primary/50 shadow-lg w-full"
               />
             </motion.div>
           </div>
@@ -83,8 +79,12 @@ export const Step1 = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="mt-12 text-center"
+          className="mt-8 text-center space-y-6"
         >
+          <p className="text-xl font-bold text-primary">
+            Will you join the expedition?
+          </p>
+
           <Button
             onClick={handleAccept}
             size="lg"
