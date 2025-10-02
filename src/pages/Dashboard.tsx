@@ -18,6 +18,7 @@ import { useRaidStore } from '@/stores/raidStore';
 import { EnergyReserveCard } from '@/components/dashboard/EnergyReserveCard';
 import { ChallengeCard } from '@/components/dashboard/ChallengeCard';
 import { ActivityLogger } from '@/components/ActivityLogger';
+import { EnergyDeployment } from '@/components/EnergyDeployment';
 import { 
   Plus, 
   Globe, 
@@ -39,6 +40,7 @@ const Dashboard = () => {
   const raidStore = useRaidStore();
   
   const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
+  const [deploymentOpen, setDeploymentOpen] = useState(false);
   
   // Apply energy decay on mount and hourly
   useEffect(() => {
@@ -59,8 +61,7 @@ const Dashboard = () => {
     : 0;
 
   const handleDeploy = () => {
-    console.log('Deploy energy');
-    // TODO: Open deploy modal
+    setDeploymentOpen(true);
   };
 
   const handleCharge = (type: string) => {
@@ -362,6 +363,12 @@ const Dashboard = () => {
       <ActivityLogger
         open={activityLoggerOpen}
         onOpenChange={setActivityLoggerOpen}
+      />
+      
+      {/* Energy Deployment Modal */}
+      <EnergyDeployment
+        open={deploymentOpen}
+        onClose={() => setDeploymentOpen(false)}
       />
     </div>
   );
