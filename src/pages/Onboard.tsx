@@ -3,6 +3,7 @@ import { useOnboardingStore } from '@/stores/onboardingStore';
 import { Step1 } from '@/components/onboarding/Step1';
 import { Step2 } from '@/components/onboarding/Step2';
 import { Step3 } from '@/components/onboarding/Step3';
+import { Step4 } from '@/components/onboarding/Step4';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Progress } from '@/components/ui/progress';
@@ -30,6 +31,8 @@ const Onboard = () => {
             <Step3 />
           </Elements>
         );
+      case 4:
+        return <Step4 />;
       default:
         return <Step1 />;
     }
