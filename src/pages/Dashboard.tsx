@@ -17,7 +17,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { EnergyReserveCard } from '@/components/dashboard/EnergyReserveCard';
 import { ChallengeCard } from '@/components/dashboard/ChallengeCard';
-import { ActivityLogger, ActivityFormData } from '@/components/ActivityLogger';
+import { ActivityLogger } from '@/components/ActivityLogger';
 import { 
   Plus, 
   Globe, 
@@ -57,12 +57,6 @@ const Dashboard = () => {
   const daysRemaining = trialEndDate 
     ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
-
-  const handleActivitySubmit = (data: ActivityFormData) => {
-    console.log('Activity logged:', data);
-    // TODO: Process activity and charge energy
-    setActivityLoggerOpen(false);
-  };
 
   const handleDeploy = () => {
     console.log('Deploy energy');
@@ -368,7 +362,6 @@ const Dashboard = () => {
       <ActivityLogger
         open={activityLoggerOpen}
         onOpenChange={setActivityLoggerOpen}
-        onSubmit={handleActivitySubmit}
       />
     </div>
   );
