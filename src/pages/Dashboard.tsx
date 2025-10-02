@@ -1,134 +1,377 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Map, Trophy, TrendingUp, Zap, Target, Calendar } from "lucide-react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useJourneyStore } from '@/stores/journeyStore';
+import { useEnergyStore } from '@/stores/energyStore';
+import { useUserStore } from '@/stores/userStore';
+import { useRaidStore } from '@/stores/raidStore';
+import { EnergyReserveCard } from '@/components/dashboard/EnergyReserveCard';
+import { ChallengeCard } from '@/components/dashboard/ChallengeCard';
+import { ActivityLogger, ActivityFormData } from '@/components/ActivityLogger';
+import { 
+  Plus, 
+  Globe, 
+  Users, 
+  User, 
+  MapPin, 
+  Calendar,
+  Ruler,
+  Clock,
+  AlertCircle,
+  Sparkles
+} from 'lucide-react';
 
-export default function Dashboard() {
-  const stats = [
-    { label: "Total Distance", value: "2,847 km", icon: Map, color: "text-primary" },
-    { label: "World Progress", value: "7.1%", icon: Target, color: "text-success" },
-    { label: "Current Rank", value: "#1,247", icon: Trophy, color: "text-warning" },
-    { label: "Active Streak", value: "12 days", icon: Calendar, color: "text-secondary" },
-  ];
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const journey = useJourneyStore();
+  const energyStore = useEnergyStore();
+  const userStore = useUserStore();
+  const raidStore = useRaidStore();
+  
+  const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
+  
+  // Apply energy decay on mount and hourly
+  useEffect(() => {
+    energyStore.applyDecay();
+    const interval = setInterval(() => {
+      energyStore.applyDecay();
+    }, 60 * 60 * 1000); // 1 hour
 
-  const recentActivities = [
-    { date: "2084-10-02", type: "Running", distance: "8.5 km", time: "42:30" },
-    { date: "2084-10-01", type: "Cycling", distance: "25.3 km", time: "1:15:22" },
-    { date: "2084-09-30", type: "Walking", distance: "5.2 km", time: "58:12" },
-  ];
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentLeg = journey.legs[journey.currentLeg];
+  const subscription = userStore.subscription;
+  
+  const trialEndDate = subscription?.trialEnd ? new Date(subscription.trialEnd) : null;
+  const daysRemaining = trialEndDate 
+    ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  const handleActivitySubmit = (data: ActivityFormData) => {
+    console.log('Activity logged:', data);
+    // TODO: Process activity and charge energy
+    setActivityLoggerOpen(false);
+  };
+
+  const handleDeploy = () => {
+    console.log('Deploy energy');
+    // TODO: Open deploy modal
+  };
+
+  const handleCharge = (type: string) => {
+    console.log('Charge', type);
+    setActivityLoggerOpen(true);
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-heading mb-2 text-glow-cyan">Command Center</h1>
-        <p className="text-muted-foreground">Your journey around the world in real-time</p>
-      </div>
+    <div className="min-h-screen bg-background pb-20 lg:pb-0">
+      {/* Top Bar */}
+      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-primary/20">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <button 
+              onClick={() => navigate('/')}
+              className="text-lg font-bold hover:text-primary transition-colors"
+            >
+              Around the World in 80 Ways
+            </button>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="p-6 hover:border-primary transition-smooth hover:glow-cyan">
-              <stat.icon className={`w-8 h-8 mb-3 ${stat.color}`} />
-              <div className="text-2xl font-mono mb-1">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
+            {/* Journey Status */}
+            <Card className="px-4 py-2 border-primary/30 bg-primary/5 hidden md:block">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  {currentLeg?.from} → {currentLeg?.to}
+                </p>
+                <p className="text-xl font-bold">DAY {journey.currentDay} OF 80</p>
+                <Progress value={(journey.currentDay / 80) * 100} className="h-1 mt-1" />
+              </div>
             </Card>
-          </motion.div>
-        ))}
+
+            {/* Right Side */}
+            <div className="flex items-center gap-4">
+              {/* Subscription Badge */}
+              {subscription?.status === 'trialing' && (
+                <Badge className="bg-orange-500/20 text-orange-400 border-orange-400/50 px-3 py-1 hidden md:flex">
+                  🎟️ TRIAL: {daysRemaining} DAYS LEFT
+                </Badge>
+              )}
+
+              {/* User Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-card border-primary/30 z-[100]">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    Subscription
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    Log Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Journey Progress */}
-        <Card className="lg:col-span-2 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-heading">Journey Progress</h2>
-            <Button variant="outline" size="sm">View Map</Button>
-          </div>
-          <div className="space-y-4">
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* LEFT COLUMN - Energy Reserves */}
+          <div className="lg:col-span-3 space-y-6">
             <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>London → Paris</span>
-                <span className="font-mono">344 / 344 km</span>
+              <h2 className="text-2xl font-bold mb-2">YOUR ENERGY RESERVES</h2>
+              <p className="text-muted-foreground text-sm mb-4">Power for Fogg's Journey</p>
+              
+              <div className="space-y-4">
+                <EnergyReserveCard
+                  type="nautical"
+                  current={energyStore.nautical.current}
+                  max={energyStore.nautical.max}
+                  lastUpdated={energyStore.nautical.lastUpdated}
+                  onCharge={() => handleCharge('nautical')}
+                />
+                <EnergyReserveCard
+                  type="terrestrial"
+                  current={energyStore.terrestrial.current}
+                  max={energyStore.terrestrial.max}
+                  lastUpdated={energyStore.terrestrial.lastUpdated}
+                  onCharge={() => handleCharge('terrestrial')}
+                />
+                <EnergyReserveCard
+                  type="transport"
+                  current={energyStore.transport.current}
+                  max={energyStore.transport.max}
+                  lastUpdated={energyStore.transport.lastUpdated}
+                  onCharge={() => handleCharge('transport')}
+                />
+                <EnergyReserveCard
+                  type="strength"
+                  current={energyStore.strength.current}
+                  max={energyStore.strength.max}
+                  lastUpdated={energyStore.strength.lastUpdated}
+                  onCharge={() => handleCharge('strength')}
+                />
               </div>
-              <Progress value={100} className="h-2" />
-              <div className="text-xs text-success mt-1">✓ Stage Complete</div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Paris → Marseille</span>
-                <span className="font-mono">503 / 775 km</span>
-              </div>
-              <Progress value={65} className="h-2" />
-              <div className="text-xs text-muted-foreground mt-1">65% Complete</div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Marseille → Rome</span>
-                <span className="font-mono">0 / 521 km</span>
-              </div>
-              <Progress value={0} className="h-2" />
-              <div className="text-xs text-muted-foreground mt-1">Locked</div>
-            </div>
-          </div>
-        </Card>
 
-        {/* Quick Actions */}
-        <Card className="p-6">
-          <h2 className="text-2xl font-heading mb-6">Quick Actions</h2>
-          <div className="space-y-3">
-            <Button className="w-full justify-start glow-cyan" variant="outline">
-              <TrendingUp className="mr-2" />
-              Log Activity
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <Trophy className="mr-2" />
-              Join Stage
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <Zap className="mr-2" />
-              Use Booster
-            </Button>
+              <Button
+                onClick={() => setActivityLoggerOpen(true)}
+                className="w-full mt-6 text-lg py-6 bg-lime-400 text-black hover:bg-lime-500"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                LOG ACTIVITY
+              </Button>
+            </div>
           </div>
-        </Card>
 
-        {/* Recent Activities */}
-        <Card className="lg:col-span-3 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-heading">Recent Activities</h2>
-            <Button variant="outline" size="sm">View All</Button>
+          {/* CENTER COLUMN - Expedition Status */}
+          <div className="lg:col-span-6 space-y-6">
+            {/* Current Challenge */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4">ACTIVE CHALLENGE</h2>
+              {currentLeg && journey.currentChallenge && (
+                <ChallengeCard
+                  title={currentLeg.narrative.title}
+                  from={currentLeg.from}
+                  to={currentLeg.to}
+                  requiredEnergy={currentLeg.requiredEnergy}
+                  currentProgress={journey.currentChallenge.currentProgress}
+                  onDeploy={handleDeploy}
+                />
+              )}
+            </div>
+
+            {/* Journey Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card className="p-4 text-center border-primary/30">
+                <MapPin className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <p className="text-xs text-muted-foreground">Location</p>
+                <p className="text-lg font-bold">{currentLeg?.from}</p>
+              </Card>
+              <Card className="p-4 text-center border-primary/30">
+                <Calendar className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <p className="text-xs text-muted-foreground">Day</p>
+                <p className="text-lg font-bold">{journey.currentDay} / 80</p>
+              </Card>
+              <Card className="p-4 text-center border-primary/30">
+                <Ruler className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <p className="text-xs text-muted-foreground">Distance</p>
+                <p className="text-lg font-bold">
+                  {journey.totalDistance.toLocaleString()} km
+                </p>
+              </Card>
+            </div>
+
+            {/* Story Updates */}
+            <div>
+              <h2 className="text-xl font-bold mb-4">RECENT TRANSMISSIONS</h2>
+              <Card className="p-4 border-primary/30 max-h-60 overflow-y-auto">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold">Fogg</span>
+                        <span className="text-xs text-muted-foreground">2h ago</span>
+                      </div>
+                      <p className="text-sm text-foreground/90">"We depart at 8:45 PM sharp."</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-green-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold">Passepartout</span>
+                        <span className="text-xs text-muted-foreground">2h ago</span>
+                      </div>
+                      <p className="text-sm text-foreground/90">"All supplies loaded, Monsieur!"</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold">System</span>
+                        <span className="text-xs text-muted-foreground">3h ago</span>
+                      </div>
+                      <p className="text-sm text-foreground/90">Journey initialized</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-heading">Date</th>
-                  <th className="text-left py-3 px-4 font-heading">Type</th>
-                  <th className="text-left py-3 px-4 font-heading">Distance</th>
-                  <th className="text-left py-3 px-4 font-heading">Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentActivities.map((activity, index) => (
-                  <tr key={index} className="border-b border-border hover:bg-muted/50 transition-smooth">
-                    <td className="py-3 px-4 font-mono text-sm">{activity.date}</td>
-                    <td className="py-3 px-4">{activity.type}</td>
-                    <td className="py-3 px-4 font-mono">{activity.distance}</td>
-                    <td className="py-3 px-4 font-mono text-sm">{activity.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* RIGHT COLUMN - Challenges & Events */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Daily Mission */}
+            <div>
+              <h2 className="text-xl font-bold mb-4">DAILY MISSION</h2>
+              <Card className="p-6 border-primary/30 bg-card/80">
+                <div className="text-center space-y-3">
+                  <Clock className="h-12 w-12 mx-auto text-primary" />
+                  <h3 className="font-bold text-lg">THE DAILY CONSTITUTIONAL</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Complete any 30-minute activity
+                  </p>
+                  <div className="pt-3 border-t border-muted">
+                    <p className="text-xs text-muted-foreground mb-1">Reward</p>
+                    <p className="text-sm font-semibold">+100 XP, Supply Cache</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Progress</p>
+                    <Progress value={0} className="h-2" />
+                    <p className="text-xs mt-1">0 / 1</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Resets in: 8h 23m</p>
+                </div>
+              </Card>
+            </div>
+
+            {/* Raid Event */}
+            <div>
+              <h2 className="text-xl font-bold mb-4">RAID EVENTS</h2>
+              {raidStore.activeRaid ? (
+                <motion.div
+                  animate={{ borderColor: ['#ff4444', '#ff0000', '#ff4444'] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Card className="p-6 border-2 border-red-400 bg-red-400/5">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-400" />
+                        <h3 className="font-bold">RAID EVENT ACTIVE!</h3>
+                      </div>
+                      {/* Raid details would go here */}
+                    </div>
+                  </Card>
+                </motion.div>
+              ) : (
+                <Card className="p-6 border-muted bg-muted/5">
+                  <div className="text-center space-y-2">
+                    <p className="text-muted-foreground">No Active Raid Event</p>
+                    <p className="text-sm text-muted-foreground">Next raid starts soon</p>
+                  </div>
+                </Card>
+              )}
+            </div>
           </div>
-        </Card>
+        </div>
       </div>
+
+      {/* Quick Actions Bar - Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-card/95 backdrop-blur border-t border-primary/20 p-4 z-40">
+        <div className="grid grid-cols-4 gap-2">
+          <Button
+            variant="ghost"
+            className="flex-col h-auto py-3"
+            onClick={() => setActivityLoggerOpen(true)}
+          >
+            <Plus className="h-5 w-5 mb-1" />
+            <span className="text-xs">LOG</span>
+          </Button>
+          <Button
+            variant="ghost"
+            className="flex-col h-auto py-3"
+            onClick={() => navigate('/map')}
+          >
+            <Globe className="h-5 w-5 mb-1" />
+            <span className="text-xs">MAP</span>
+          </Button>
+          <Button
+            variant="ghost"
+            className="flex-col h-auto py-3"
+            onClick={() => navigate('/raids')}
+          >
+            <Users className="h-5 w-5 mb-1" />
+            <span className="text-xs">RAIDS</span>
+          </Button>
+          <Button
+            variant="ghost"
+            className="flex-col h-auto py-3"
+            onClick={() => navigate('/profile')}
+          >
+            <User className="h-5 w-5 mb-1" />
+            <span className="text-xs">PROFILE</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Activity Logger Modal */}
+      <ActivityLogger
+        open={activityLoggerOpen}
+        onOpenChange={setActivityLoggerOpen}
+        onSubmit={handleActivitySubmit}
+      />
     </div>
   );
-}
+};
+
+export default Dashboard;
