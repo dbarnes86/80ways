@@ -68,6 +68,32 @@ export default function MapPage() {
       <HolographicCard glow="cyan" className="p-4 mb-8">
         <div className="aspect-[21/9] w-full relative">
           <svg viewBox="0 0 100 60" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+            {/* Simplified world map continents */}
+            <g opacity={0.15} fill="none" stroke="hsl(187 100% 50%)" strokeWidth={0.3}>
+              {/* North America */}
+              <path d="M5,12 L8,10 L12,8 L18,7 L22,8 L25,10 L28,9 L30,11 L28,14 L30,16 L28,18 L26,20 L24,22 L22,26 L20,30 L18,32 L16,30 L14,28 L12,24 L10,20 L8,18 L6,16 L5,14 Z" />
+              {/* South America */}
+              <path d="M22,34 L24,32 L26,34 L28,36 L30,40 L30,44 L28,48 L26,50 L24,52 L22,50 L20,46 L20,42 L20,38 L22,34 Z" />
+              {/* Europe */}
+              <path d="M44,10 L46,8 L48,9 L50,8 L52,9 L54,10 L52,12 L54,14 L52,16 L50,18 L48,16 L46,14 L44,12 Z" />
+              {/* Africa */}
+              <path d="M44,20 L48,18 L52,18 L56,20 L58,24 L60,28 L60,32 L58,36 L56,40 L54,44 L52,46 L50,44 L48,40 L46,36 L44,32 L44,28 L42,24 L44,20 Z" />
+              {/* Asia */}
+              <path d="M54,8 L58,6 L62,5 L66,4 L70,5 L74,6 L78,5 L82,6 L86,8 L90,10 L92,12 L94,14 L92,16 L90,18 L88,20 L86,22 L82,24 L78,22 L74,20 L70,18 L66,16 L62,14 L58,12 L56,10 Z" />
+              {/* India subcontinent */}
+              <path d="M66,20 L70,22 L72,26 L74,30 L72,34 L70,36 L68,34 L66,30 L64,26 L66,22 Z" />
+              {/* Southeast Asia / Indonesia */}
+              <path d="M78,26 L80,24 L82,26 L84,28 L86,26 L88,28 L90,30 L88,32 L86,30 L84,32 L82,30 L80,28 Z" />
+              {/* Australia */}
+              <path d="M82,38 L86,36 L90,36 L94,38 L96,40 L96,44 L94,46 L90,48 L86,46 L84,44 L82,42 L82,38 Z" />
+              {/* Japan */}
+              <path d="M88,12 L90,10 L92,12 L90,14 L88,12 Z" />
+              {/* UK / British Isles */}
+              <path d="M45,11 L46,10 L47,11 L46,13 L45,12 Z" />
+              {/* Greenland */}
+              <path d="M30,4 L34,3 L38,4 L36,7 L32,7 L30,5 Z" />
+            </g>
+
             {/* Grid */}
             {Array.from({ length: 11 }).map((_, i) => (
               <line
@@ -76,8 +102,8 @@ export default function MapPage() {
                 y1={0}
                 x2={i * 10}
                 y2={60}
-                stroke="hsl(187 100% 50% / 0.06)"
-                strokeWidth={0.2}
+                stroke="hsl(187 100% 50% / 0.04)"
+                strokeWidth={0.15}
               />
             ))}
             {Array.from({ length: 7 }).map((_, i) => (
@@ -87,8 +113,8 @@ export default function MapPage() {
                 y1={i * 10}
                 x2={100}
                 y2={i * 10}
-                stroke="hsl(187 100% 50% / 0.06)"
-                strokeWidth={0.2}
+                stroke="hsl(187 100% 50% / 0.04)"
+                strokeWidth={0.15}
               />
             ))}
 
