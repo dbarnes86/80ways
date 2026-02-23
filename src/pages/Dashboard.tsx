@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { HolographicCard } from '@/components/ui/holographic-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { CyberpunkProgress } from '@/components/ui/cyberpunk-progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,7 +92,7 @@ const Dashboard = () => {
                   {currentLeg?.from} → {currentLeg?.to}
                 </p>
                 <p className="text-xl font-bold">DAY {journey.currentDay} OF 80</p>
-                <Progress value={(journey.currentDay / 80) * 100} className="h-1 mt-1" />
+                <CyberpunkProgress value={journey.currentDay} max={80} segments={8} glow="cyan" size="sm" animated={false} className="mt-1" />
               </div>
             </HolographicCard>
 
@@ -284,7 +284,7 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Progress</p>
-                    <Progress value={0} className="h-2" />
+                    <CyberpunkProgress value={0} max={1} segments={5} glow="purple" size="sm" />
                     <p className="text-xs mt-1">0 / 1</p>
                   </div>
                   <p className="text-xs text-muted-foreground">Resets in: 8h 23m</p>

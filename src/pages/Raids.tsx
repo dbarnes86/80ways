@@ -1,8 +1,8 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Sword, Users, Target, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HolographicCard } from "@/components/ui/holographic-card";
+import { CyberpunkProgress } from "@/components/ui/cyberpunk-progress";
+import { Sword, Users, Target, Clock, AlertCircle, Flame, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Raids() {
@@ -14,6 +14,7 @@ export default function Raids() {
     participants: 5847,
     timeLeft: "2 days 14 hours",
     reward: "Exclusive Alpine Badge + 1000 pts",
+    urgency: "high" as const,
   };
 
   const upcomingRaids = [
@@ -47,76 +48,104 @@ export default function Raids() {
         <p className="text-muted-foreground">Join forces for epic collective challenges</p>
       </div>
 
-      {/* Active Raid */}
-      <Card className="p-8 mb-8 border-primary glow-purple">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <Badge className="mb-3 glow-cyan">ACTIVE RAID</Badge>
-            <h2 className="text-3xl font-heading mb-2">{activeRaid.name}</h2>
-            <p className="text-muted-foreground max-w-2xl">{activeRaid.description}</p>
-          </div>
-          <Sword className="w-12 h-12 text-primary" />
-        </div>
+      {/* Active Raid — dramatic card */}
+      <motion.div
+        animate={{
+          boxShadow: [
+            "0 0 20px hsl(0 100% 63% / 0.15)",
+            "0 0 40px hsl(0 100% 63% / 0.25)",
+            "0 0 20px hsl(0 100% 63% / 0.15)",
+          ],
+        }}
+        transition={{ duration: 3, repeat: Infinity }}
+        className="rounded-lg mb-8"
+      >
+        <HolographicCard glow="magenta" className="p-8 border-2 border-destructive/30">
+          {/* Urgency banner */}
+          <motion.div
+            animate={{ opacity: [1, 0.6, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="flex items-center gap-2 mb-6"
+          >
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            <Badge className="bg-destructive/20 text-destructive border-destructive/40 uppercase tracking-widest text-xs">
+              <Flame className="w-3 h-3 mr-1" /> Active Raid — Ends Soon
+            </Badge>
+          </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
-          <div className="text-center">
-            <Target className="w-8 h-8 text-primary mx-auto mb-2" />
-            <div className="text-2xl font-mono mb-1">{activeRaid.goal.toLocaleString()} km</div>
-            <div className="text-sm text-muted-foreground">Goal</div>
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-3xl font-heading mb-2 text-glow-magenta">{activeRaid.name}</h2>
+              <p className="text-muted-foreground max-w-2xl">{activeRaid.description}</p>
+            </div>
+            <motion.div
+              animate={{ rotate: [0, -10, 10, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              <Sword className="w-12 h-12 text-secondary" />
+            </motion.div>
           </div>
-          <div className="text-center">
-            <Users className="w-8 h-8 text-secondary mx-auto mb-2" />
-            <div className="text-2xl font-mono mb-1">{activeRaid.participants.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Participants</div>
-          </div>
-          <div className="text-center">
-            <Clock className="w-8 h-8 text-warning mx-auto mb-2" />
-            <div className="text-2xl font-mono mb-1">{activeRaid.timeLeft}</div>
-            <div className="text-sm text-muted-foreground">Time Remaining</div>
-          </div>
-        </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between text-sm mb-2">
-            <span>Progress</span>
-            <span className="font-mono">{activeRaid.current.toLocaleString()} / {activeRaid.goal.toLocaleString()} km</span>
-          </div>
-          <Progress value={progress} className="h-3 glow-cyan" />
-          <div className="text-sm text-muted-foreground mt-1">{progress.toFixed(1)}% Complete</div>
-        </div>
-
-        <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/30 mb-6">
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">Raid Reward</div>
-            <div className="font-heading">{activeRaid.reward}</div>
-          </div>
-          <Button className="glow-cyan">Contribute Now</Button>
-        </div>
-
-        {/* Top Contributors */}
-        <div>
-          <h3 className="font-heading mb-4">Recent Contributors</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {recentContributors.map((contributor, index) => (
-              <motion.div
-                key={contributor.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-muted/30 rounded-lg p-3 text-center hover:bg-muted/50 transition-smooth"
-              >
-                <div className="text-3xl mb-2">{contributor.avatar}</div>
-                <div className="text-sm font-heading mb-1">{contributor.name}</div>
-                <div className="text-xs text-muted-foreground font-mono">+{contributor.contribution} km</div>
-              </motion.div>
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            {[
+              { icon: Target, label: "Goal", value: `${activeRaid.goal.toLocaleString()} km`, color: "text-primary" },
+              { icon: Users, label: "Warriors", value: activeRaid.participants.toLocaleString(), color: "text-secondary" },
+              { icon: Clock, label: "Remaining", value: activeRaid.timeLeft, color: "text-warning" },
+            ].map((stat) => (
+              <HolographicCard key={stat.label} glow="none" corners={false} scanLines={false} animated={false} className="p-4 text-center bg-muted/20">
+                <stat.icon className={`w-6 h-6 mx-auto mb-2 ${stat.color}`} />
+                <div className="text-xl font-mono mb-1">{stat.value}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</div>
+              </HolographicCard>
             ))}
           </div>
-        </div>
-      </Card>
+
+          {/* Progress */}
+          <div className="mb-6">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="font-mono text-secondary">{activeRaid.current.toLocaleString()} / {activeRaid.goal.toLocaleString()} km</span>
+              <span className="font-mono text-muted-foreground">{progress.toFixed(1)}%</span>
+            </div>
+            <CyberpunkProgress value={activeRaid.current} max={activeRaid.goal} segments={20} glow="magenta" size="lg" />
+          </div>
+
+          {/* Reward + CTA */}
+          <div className="flex items-center justify-between p-4 rounded-lg border border-secondary/30 bg-secondary/5">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Raid Reward</div>
+              <div className="font-heading text-secondary">{activeRaid.reward}</div>
+            </div>
+            <Button className="glow-magenta bg-secondary text-secondary-foreground hover:bg-secondary/90">
+              Contribute Now <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+
+          {/* Contributors */}
+          <div className="mt-6">
+            <h3 className="font-heading mb-4 text-sm uppercase tracking-wider text-muted-foreground">Top Contributors</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {recentContributors.map((c, i) => (
+                <motion.div
+                  key={c.name}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="bg-muted/20 rounded-lg p-3 text-center border border-border hover:border-secondary/40 transition-smooth"
+                >
+                  <div className="text-3xl mb-2">{c.avatar}</div>
+                  <div className="text-sm font-heading mb-1">{c.name}</div>
+                  <div className="text-xs text-muted-foreground font-mono">+{c.contribution} km</div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </HolographicCard>
+      </motion.div>
 
       {/* Upcoming Raids */}
       <div>
-        <h2 className="text-2xl font-heading mb-4">Upcoming Raids</h2>
+        <h2 className="text-2xl font-heading mb-4">Incoming Raids</h2>
         <div className="grid md:grid-cols-2 gap-6">
           {upcomingRaids.map((raid, index) => (
             <motion.div
@@ -125,25 +154,25 @@ export default function Raids() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="p-6 hover:border-primary transition-smooth">
-                <Badge variant="secondary" className="mb-3">UPCOMING</Badge>
-                <h3 className="text-xl font-heading mb-2">{raid.name}</h3>
-                <div className="space-y-2 mb-4">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Starts: </span>
+              <HolographicCard glow="cyan" className="p-6">
+                <Badge variant="secondary" className="mb-3 uppercase tracking-widest text-xs">Upcoming</Badge>
+                <h3 className="text-xl font-heading mb-3">{raid.name}</h3>
+                <div className="space-y-2 mb-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Starts</span>
                     <span className="font-mono">{raid.startDate}</span>
                   </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Goal: </span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Goal</span>
                     <span className="font-mono">{raid.goal.toLocaleString()} km</span>
                   </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Reward: </span>
-                    <span className="text-primary">{raid.reward}</span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Reward</span>
+                    <span className="text-primary font-heading">{raid.reward}</span>
                   </div>
                 </div>
                 <Button variant="outline" className="w-full">Set Reminder</Button>
-              </Card>
+              </HolographicCard>
             </motion.div>
           ))}
         </div>
