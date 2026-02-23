@@ -1,103 +1,182 @@
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Lock, MapPin } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
+import { HolographicCard } from '@/components/ui/holographic-card';
+import { LocationCard } from '@/components/map/LocationCard';
+import { useJourneyStore } from '@/stores/journeyStore';
+import { JOURNEY_LEGS } from '@/data/journeyLegs';
+import { MapPin, Globe, Compass } from 'lucide-react';
+
+// Simple city coordinates mapped to a 0-100 viewBox for the SVG path
+const CITY_POINTS: Record<string, { x: number; y: number }> = {
+  'London': { x: 48, y: 22 },
+  'London Port': { x: 49, y: 23 },
+  'Paris': { x: 50, y: 25 },
+  'Suez': { x: 57, y: 38 },
+  'Bombay': { x: 70, y: 42 },
+  'Calcutta': { x: 76, y: 38 },
+  'Hong Kong': { x: 84, y: 40 },
+  'Yokohama': { x: 92, y: 28 },
+  'San Francisco': { x: 12, y: 28 },
+  'New York': { x: 26, y: 26 },
+  'Liverpool': { x: 47, y: 21 },
+};
 
 export default function MapPage() {
-  const stages = [
-    { name: "London", country: "England", distance: 0, status: "start", lat: 51.5074, lng: -0.1278 },
-    { name: "Paris", country: "France", distance: 344, status: "complete", lat: 48.8566, lng: 2.3522 },
-    { name: "Marseille", country: "France", distance: 775, status: "active", lat: 43.2965, lng: 5.3698 },
-    { name: "Rome", country: "Italy", distance: 521, status: "locked", lat: 41.9028, lng: 12.4964 },
-    { name: "Athens", country: "Greece", distance: 1053, status: "locked", lat: 37.9838, lng: 23.7275 },
-    { name: "Istanbul", country: "Turkey", distance: 1057, status: "locked", lat: 41.0082, lng: 28.9784 },
-  ];
+  const journey = useJourneyStore();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "complete":
-        return "border-success bg-success/20";
-      case "active":
-        return "border-primary bg-primary/20 glow-cyan";
-      case "locked":
-        return "border-muted bg-muted/20";
-      default:
-        return "border-primary bg-primary/20";
-    }
-  };
+  // Build stages from JOURNEY_LEGS data
+  const stages = JOURNEY_LEGS.map((leg) => ({
+    name: leg.to,
+    country: leg.from + ' → ' + leg.to,
+    distance: leg.distance,
+    status: (leg.legNumber === 0 ? 'start' : leg.status) as 'complete' | 'active' | 'locked' | 'start',
+    legNumber: leg.legNumber,
+    narrative: leg.narrative.title,
+  }));
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "complete":
-        return <CheckCircle className="w-5 h-5 text-success" />;
-      case "active":
-        return <MapPin className="w-5 h-5 text-primary animate-pulse" />;
-      case "locked":
-        return <Lock className="w-5 h-5 text-muted-foreground" />;
-      default:
-        return <MapPin className="w-5 h-5 text-primary" />;
-    }
-  };
+  // Calculate path progress
+  const completedLegs = JOURNEY_LEGS.filter((l) => (l.status as string) === 'complete').length;
+  const totalDistance = JOURNEY_LEGS.reduce((sum, l) => sum + l.distance, 0);
+  const coveredDistance = JOURNEY_LEGS.slice(0, completedLegs + 1).reduce((sum, l) => sum + l.distance, 0);
+
+  // Build SVG path points
+  const pathCities = JOURNEY_LEGS.map((leg) => CITY_POINTS[leg.to] || CITY_POINTS[leg.from]).filter(Boolean);
+
+  const pathD = pathCities
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ');
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-heading mb-2 text-glow-cyan">Journey Map</h1>
-        <p className="text-muted-foreground">Chart your course around the world</p>
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-heading font-bold text-glow-cyan flex items-center gap-3">
+            <Globe className="w-8 h-8 text-primary" />
+            EXPEDITION MAP
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {coveredDistance.toLocaleString()} / {totalDistance.toLocaleString()} km traversed
+          </p>
+        </div>
+        <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
+          <Compass className="w-4 h-4 text-primary" />
+          <span>Day {journey.currentDay} of 80</span>
+        </div>
       </div>
 
-      {/* Map Visualization Placeholder */}
-      <Card className="p-8 mb-8 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/50">
-        <div className="aspect-video rounded-lg bg-card border border-border flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" />
-          <div className="relative z-10 text-center">
-            <MapPin className="w-16 h-16 text-primary mx-auto mb-4 glow-cyan" />
-            <p className="text-xl font-heading text-muted-foreground">Interactive Map Coming Soon</p>
-            <p className="text-sm text-muted-foreground mt-2">Track your journey in real-time</p>
-          </div>
-        </div>
-      </Card>
+      {/* SVG Map Visualization */}
+      <HolographicCard glow="cyan" className="p-4 mb-8">
+        <div className="aspect-[21/9] w-full relative">
+          <svg viewBox="0 0 100 60" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+            {/* Grid */}
+            {Array.from({ length: 11 }).map((_, i) => (
+              <line
+                key={`vg-${i}`}
+                x1={i * 10}
+                y1={0}
+                x2={i * 10}
+                y2={60}
+                stroke="hsl(187 100% 50% / 0.06)"
+                strokeWidth={0.2}
+              />
+            ))}
+            {Array.from({ length: 7 }).map((_, i) => (
+              <line
+                key={`hg-${i}`}
+                x1={0}
+                y1={i * 10}
+                x2={100}
+                y2={i * 10}
+                stroke="hsl(187 100% 50% / 0.06)"
+                strokeWidth={0.2}
+              />
+            ))}
 
-      {/* Stages List */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-heading mb-4">Journey Stages</h2>
+            {/* Full path (dim) */}
+            <path d={pathD} fill="none" stroke="hsl(187 100% 50% / 0.15)" strokeWidth={0.4} strokeDasharray="1 1" />
+
+            {/* Completed path (bright) */}
+            {completedLegs > 0 && (
+              <motion.path
+                d={pathCities
+                  .slice(0, completedLegs + 1)
+                  .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+                  .join(' ')}
+                fill="none"
+                stroke="hsl(187 100% 50%)"
+                strokeWidth={0.5}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 2, ease: 'easeInOut' }}
+              />
+            )}
+
+            {/* City dots */}
+            {pathCities.map((p, i) => {
+                  const currentLeg = JOURNEY_LEGS[i];
+                  const legStatus = currentLeg.status as string;
+                  const isComplete = legStatus === 'complete' || legStatus === 'start';
+                  const isActive = legStatus === 'active';
+                  const isLocked = legStatus === 'locked';
+
+              return (
+                <g key={i}>
+                  {isActive && (
+                    <motion.circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={2}
+                      fill="none"
+                      stroke="hsl(187 100% 50%)"
+                      strokeWidth={0.2}
+                      animate={{ r: [1.5, 3, 1.5], opacity: [0.8, 0, 0.8] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  )}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={isActive ? 1.2 : 0.8}
+                    fill={isComplete ? 'hsl(84 81% 44%)' : isActive ? 'hsl(187 100% 50%)' : 'hsl(240 20% 30%)'}
+                  />
+                  <text
+                    x={p.x}
+                    y={p.y - 2}
+                    textAnchor="middle"
+                    fill={isLocked ? 'hsl(0 0% 40%)' : 'hsl(0 0% 80%)'}
+                    fontSize={1.8}
+                    fontFamily="var(--font-mono)"
+                  >
+                    {currentLeg.to}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </HolographicCard>
+
+      {/* Journey Stages */}
+      <h2 className="text-2xl font-heading font-bold mb-4 flex items-center gap-2">
+        <MapPin className="w-5 h-5 text-primary" />
+        JOURNEY LEGS
+      </h2>
+      <div className="space-y-3">
         {stages.map((stage, index) => (
           <motion.div
-            key={stage.name}
-            initial={{ opacity: 0, x: -20 }}
+            key={stage.legNumber}
+            initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: index * 0.06 }}
           >
-            <Card className={`p-6 transition-smooth ${getStatusColor(stage.status)}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-card border-2 border-current flex items-center justify-center">
-                    {getStatusIcon(stage.status)}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-heading">{stage.name}</h3>
-                    <p className="text-sm text-muted-foreground">{stage.country}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  {stage.distance > 0 && (
-                    <div className="text-xl font-mono mb-1">{stage.distance} km</div>
-                  )}
-                  <Badge
-                    variant={
-                      stage.status === "complete"
-                        ? "default"
-                        : stage.status === "active"
-                        ? "default"
-                        : "secondary"
-                    }
-                    className={stage.status === "active" ? "glow-cyan" : ""}
-                  >
-                    {stage.status === "start" ? "Starting Point" : stage.status.toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
-            </Card>
+            <LocationCard
+              name={stage.name}
+              country={stage.country}
+              distance={stage.distance}
+              status={stage.status}
+              legNumber={stage.legNumber}
+              narrative={stage.narrative}
+            />
           </motion.div>
         ))}
       </div>
