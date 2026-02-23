@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { HolographicCard } from '@/components/ui/holographic-card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +12,7 @@ import {
 import { useJourneyStore } from '@/stores/journeyStore';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useUserStore } from '@/stores/userStore';
+import { useRaidStore } from '@/stores/raidStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { JourneyHero } from '@/components/dashboard/JourneyHero';
 import { EnergyRow } from '@/components/dashboard/EnergyRow';
@@ -17,17 +20,19 @@ import { ActiveChallenge } from '@/components/dashboard/ActiveChallenge';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
-import { Plus, User } from 'lucide-react';
+import { Plus, User, ChevronDown, Clock, AlertCircle, Sparkles } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const journey = useJourneyStore();
   const energyStore = useEnergyStore();
   const userStore = useUserStore();
+  const raidStore = useRaidStore();
   const { signOut } = useAuth();
 
   const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
   const [deploymentOpen, setDeploymentOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Apply energy decay on mount and hourly
   useEffect(() => {
@@ -97,6 +102,90 @@ const Dashboard = () => {
               strength: energyStore.strength,
             }}
           />
+        </div>
+
+        {/* 4. Collapsible secondary info */}
+        <div className="mb-6">
+          <button
+            onClick={() => setMoreOpen(!moreOpen)}
+            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span>MORE</span>
+            <motion.div animate={{ rotate: moreOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </motion.div>
+          </button>
+
+          <AnimatePresence>
+            {moreOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden space-y-3 pt-2"
+              >
+                {/* Daily Mission */}
+                <HolographicCard glow="purple" corners={false} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-4 h-4 text-accent" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-heading font-bold">DAILY CONSTITUTIONAL</p>
+                      <p className="text-[10px] text-muted-foreground">Complete any 30-min activity</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[10px] font-mono text-accent">0/1</p>
+                      <p className="text-[9px] text-muted-foreground">Resets 8h</p>
+                    </div>
+                  </div>
+                </HolographicCard>
+
+                {/* Raid Alert */}
+                {raidStore.activeRaid ? (
+                  <HolographicCard glow="magenta" className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="w-4 h-4 text-destructive" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-heading font-bold text-destructive">RAID ACTIVE</p>
+                        <p className="text-[10px] text-muted-foreground">Join the defense!</p>
+                      </div>
+                    </div>
+                  </HolographicCard>
+                ) : (
+                  <HolographicCard glow="none" corners={false} className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-muted/10 border border-muted flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-heading font-bold text-muted-foreground">NO ACTIVE RAID</p>
+                        <p className="text-[10px] text-muted-foreground">Next raid coming soon</p>
+                      </div>
+                    </div>
+                  </HolographicCard>
+                )}
+
+                {/* Latest Transmission */}
+                <HolographicCard glow="cyan" corners={false} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-heading font-bold">LATEST TRANSMISSION</p>
+                      <p className="text-[10px] text-muted-foreground italic truncate">
+                        "We depart at 8:45 PM sharp." — Fogg
+                      </p>
+                    </div>
+                  </div>
+                </HolographicCard>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

@@ -1,0 +1,9 @@
+{
+  "appId": "app.lovable.cf8eb65ae34d4150a0be870759e0032c",
+  "appName": "atw80ways",
+  "webDir": "dist",
+  "server": {
+    "url": "https://cf8eb65a-e34d-4150-a0be-870759e0032c.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  }
+}
