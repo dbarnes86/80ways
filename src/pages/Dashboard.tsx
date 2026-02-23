@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { HolographicCard } from '@/components/ui/holographic-card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CyberpunkProgress } from '@/components/ui/cyberpunk-progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,363 +10,112 @@ import {
 import { useJourneyStore } from '@/stores/journeyStore';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useUserStore } from '@/stores/userStore';
-import { useRaidStore } from '@/stores/raidStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { EnergyPod } from '@/components/dashboard/EnergyPod';
-import { ChallengeCard } from '@/components/dashboard/ChallengeCard';
+import { JourneyHero } from '@/components/dashboard/JourneyHero';
+import { EnergyRow } from '@/components/dashboard/EnergyRow';
+import { ActiveChallenge } from '@/components/dashboard/ActiveChallenge';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
-import { 
-  Plus, 
-  Globe, 
-  Users, 
-  User, 
-  MapPin, 
-  Calendar,
-  Ruler,
-  Clock,
-  AlertCircle,
-  Sparkles
-} from 'lucide-react';
+import { JOURNEY_LEGS } from '@/data/journeyLegs';
+import { Plus, User } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const journey = useJourneyStore();
   const energyStore = useEnergyStore();
   const userStore = useUserStore();
-  const raidStore = useRaidStore();
   const { signOut } = useAuth();
-  
+
   const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
   const [deploymentOpen, setDeploymentOpen] = useState(false);
-  
+
   // Apply energy decay on mount and hourly
   useEffect(() => {
     energyStore.applyDecay();
-    const interval = setInterval(() => {
-      energyStore.applyDecay();
-    }, 60 * 60 * 1000); // 1 hour
-
+    const interval = setInterval(() => energyStore.applyDecay(), 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const currentLeg = journey.legs[journey.currentLeg];
-  const subscription = userStore.subscription;
-  
-  const trialEndDate = subscription?.trialEnd ? new Date(subscription.trialEnd) : null;
-  const daysRemaining = trialEndDate 
-    ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : 0;
-
-  const handleDeploy = () => {
-    setDeploymentOpen(true);
-  };
-
-  const handleCharge = (type: string) => {
-    console.log('Charge', type);
-    setActivityLoggerOpen(true);
-  };
+  const currentLeg = JOURNEY_LEGS[journey.currentLeg] || JOURNEY_LEGS[0];
 
   return (
-    <div className="min-h-screen bg-background pb-20 lg:pb-0">
-      {/* Top Bar */}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Minimal top bar */}
       <div className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-primary/20">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <button 
-              onClick={() => navigate('/')}
-              className="text-lg font-bold hover:text-primary transition-colors"
-            >
-              Around the World in 80 Ways
-            </button>
-
-            {/* Journey Status */}
-            <HolographicCard glow="cyan" corners={false} scanLines={false} animated={false} className="px-4 py-2 bg-primary/5 hidden md:block">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  {currentLeg?.from} → {currentLeg?.to}
-                </p>
-                <p className="text-xl font-bold">DAY {journey.currentDay} OF 80</p>
-                <CyberpunkProgress value={journey.currentDay} max={80} segments={8} glow="cyan" size="sm" animated={false} className="mt-1" />
-              </div>
-            </HolographicCard>
-
-            {/* Right Side */}
-            <div className="flex items-center gap-4">
-              {/* Subscription Badge */}
-              {subscription?.status === 'trialing' && (
-                <Badge className="bg-orange-500/20 text-orange-400 border-orange-400/50 px-3 py-1 hidden md:flex">
-                  🎟️ TRIAL: {daysRemaining} DAYS LEFT
-                </Badge>
-              )}
-
-              {/* User Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-card border-primary/30 z-[100]">
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    Subscription
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { signOut(); navigate('/login'); }}>
-                    Log Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* LEFT COLUMN - Energy Reserves */}
-          <div className="lg:col-span-3 space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">YOUR ENERGY RESERVES</h2>
-              <p className="text-muted-foreground text-sm mb-4">Power for Fogg's Journey</p>
-              
-              <div className="space-y-4">
-                <EnergyPod
-                  type="nautical"
-                  current={energyStore.nautical.current}
-                  max={energyStore.nautical.max}
-                  lastUpdated={energyStore.nautical.lastUpdated}
-                  onCharge={() => handleCharge('nautical')}
-                />
-                <EnergyPod
-                  type="terrestrial"
-                  current={energyStore.terrestrial.current}
-                  max={energyStore.terrestrial.max}
-                  lastUpdated={energyStore.terrestrial.lastUpdated}
-                  onCharge={() => handleCharge('terrestrial')}
-                />
-                <EnergyPod
-                  type="transport"
-                  current={energyStore.transport.current}
-                  max={energyStore.transport.max}
-                  lastUpdated={energyStore.transport.lastUpdated}
-                  onCharge={() => handleCharge('transport')}
-                />
-                <EnergyPod
-                  type="strength"
-                  current={energyStore.strength.current}
-                  max={energyStore.strength.max}
-                  lastUpdated={energyStore.strength.lastUpdated}
-                  onCharge={() => handleCharge('strength')}
-                />
-              </div>
-
-              <Button
-                onClick={() => setActivityLoggerOpen(true)}
-                className="w-full mt-6 text-lg py-6 bg-lime-400 text-black hover:bg-lime-500"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                LOG ACTIVITY
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm font-heading font-bold tracking-wider hover:text-primary transition-colors"
+          >
+            ATW80
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                <User className="h-4 w-4" />
               </Button>
-            </div>
-          </div>
-
-          {/* CENTER COLUMN - Expedition Status */}
-          <div className="lg:col-span-6 space-y-6">
-            {/* Current Challenge */}
-            <div>
-              <h2 className="text-2xl font-bold mb-4">ACTIVE CHALLENGE</h2>
-              {currentLeg && journey.currentChallenge && (
-                <ChallengeCard
-                  title={currentLeg.narrative.title}
-                  from={currentLeg.from}
-                  to={currentLeg.to}
-                  requiredEnergy={currentLeg.requiredEnergy}
-                  currentProgress={journey.currentChallenge.currentProgress}
-                  onDeploy={handleDeploy}
-                />
-              )}
-            </div>
-
-            {/* Journey Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              <HolographicCard glow="cyan" className="p-4 text-center">
-                <MapPin className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <p className="text-xs text-muted-foreground">Location</p>
-                <p className="text-lg font-bold">{currentLeg?.from}</p>
-              </HolographicCard>
-              <HolographicCard glow="purple" className="p-4 text-center">
-                <Calendar className="h-6 w-6 mx-auto mb-2 text-accent" />
-                <p className="text-xs text-muted-foreground">Day</p>
-                <p className="text-lg font-bold">{journey.currentDay} / 80</p>
-              </HolographicCard>
-              <HolographicCard glow="magenta" className="p-4 text-center">
-                <Ruler className="h-6 w-6 mx-auto mb-2 text-secondary" />
-                <p className="text-xs text-muted-foreground">Distance</p>
-                <p className="text-lg font-bold">
-                  {journey.totalDistance.toLocaleString()} km
-                </p>
-              </HolographicCard>
-            </div>
-
-            {/* Story Updates */}
-            <div>
-              <h2 className="text-xl font-bold mb-4">RECENT TRANSMISSIONS</h2>
-              <HolographicCard glow="cyan" className="p-4 max-h-60 overflow-y-auto">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">Fogg</span>
-                        <span className="text-xs text-muted-foreground">2h ago</span>
-                      </div>
-                      <p className="text-sm text-foreground/90">"We depart at 8:45 PM sharp."</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
-                      <User className="h-4 w-4 text-success" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">Passepartout</span>
-                        <span className="text-xs text-muted-foreground">2h ago</span>
-                      </div>
-                      <p className="text-sm text-foreground/90">"All supplies loaded, Monsieur!"</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">System</span>
-                        <span className="text-xs text-muted-foreground">3h ago</span>
-                      </div>
-                      <p className="text-sm text-foreground/90">Journey initialized</p>
-                    </div>
-                  </div>
-                </div>
-              </HolographicCard>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN - Challenges & Events */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Daily Mission */}
-            <div>
-              <h2 className="text-xl font-bold mb-4">DAILY MISSION</h2>
-              <HolographicCard glow="purple" className="p-6">
-                <div className="text-center space-y-3">
-                  <Clock className="h-12 w-12 mx-auto text-accent" />
-                  <h3 className="font-bold text-lg">THE DAILY CONSTITUTIONAL</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Complete any 30-minute activity
-                  </p>
-                  <div className="pt-3 border-t border-muted">
-                    <p className="text-xs text-muted-foreground mb-1">Reward</p>
-                    <p className="text-sm font-semibold">+100 XP, Supply Cache</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Progress</p>
-                    <CyberpunkProgress value={0} max={1} segments={5} glow="purple" size="sm" />
-                    <p className="text-xs mt-1">0 / 1</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Resets in: 8h 23m</p>
-                </div>
-              </HolographicCard>
-            </div>
-
-            {/* Raid Event */}
-            <div>
-              <h2 className="text-xl font-bold mb-4">RAID EVENTS</h2>
-              {raidStore.activeRaid ? (
-                <motion.div
-                  animate={{ borderColor: ['#ff4444', '#ff0000', '#ff4444'] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <HolographicCard glow="magenta" className="p-6 border-2 border-destructive/40">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-destructive" />
-                        <h3 className="font-bold">RAID EVENT ACTIVE!</h3>
-                      </div>
-                    </div>
-                  </HolographicCard>
-                </motion.div>
-              ) : (
-                <HolographicCard glow="none" className="p-6">
-                  <div className="text-center space-y-2">
-                    <p className="text-muted-foreground">No Active Raid Event</p>
-                    <p className="text-sm text-muted-foreground">Next raid starts soon</p>
-                  </div>
-                </HolographicCard>
-              )}
-            </div>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 bg-card border-primary/30 z-[100]">
+              <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { signOut(); navigate('/login'); }}>Log Out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Quick Actions Bar - Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-card/95 backdrop-blur border-t border-primary/20 p-4 z-40">
-        <div className="grid grid-cols-4 gap-2">
+      {/* Main content — centered single column */}
+      <div className="flex-1 container mx-auto px-4 max-w-md pb-28">
+        {/* 1. Journey Hero Ring */}
+        <JourneyHero
+          currentDay={journey.currentDay}
+          totalDays={80}
+          from={currentLeg.from}
+          to={currentLeg.to}
+          narrativeTitle={currentLeg.narrative.title}
+        />
+
+        {/* 2. Active Challenge */}
+        {currentLeg && (
+          <div className="mb-6">
+            <ActiveChallenge
+              requiredEnergy={currentLeg.requiredEnergy}
+              currentProgress={journey.currentChallenge?.currentProgress ?? 0}
+              onDeploy={() => setDeploymentOpen(true)}
+            />
+          </div>
+        )}
+
+        {/* 3. Energy Reserves */}
+        <div className="mb-6">
+          <p className="text-[10px] font-mono text-muted-foreground tracking-widest mb-2">ENERGY RESERVES</p>
+          <EnergyRow
+            reserves={{
+              nautical: energyStore.nautical,
+              terrestrial: energyStore.terrestrial,
+              transport: energyStore.transport,
+              strength: energyStore.strength,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* 4. Sticky LOG ACTIVITY button */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
+        <div className="max-w-md mx-auto">
           <Button
-            variant="ghost"
-            className="flex-col h-auto py-3"
             onClick={() => setActivityLoggerOpen(true)}
+            className="w-full text-lg py-7 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.4)] font-heading tracking-wider"
           >
-            <Plus className="h-5 w-5 mb-1" />
-            <span className="text-xs">LOG</span>
-          </Button>
-          <Button
-            variant="ghost"
-            className="flex-col h-auto py-3"
-            onClick={() => navigate('/map')}
-          >
-            <Globe className="h-5 w-5 mb-1" />
-            <span className="text-xs">MAP</span>
-          </Button>
-          <Button
-            variant="ghost"
-            className="flex-col h-auto py-3"
-            onClick={() => navigate('/raids')}
-          >
-            <Users className="h-5 w-5 mb-1" />
-            <span className="text-xs">RAIDS</span>
-          </Button>
-          <Button
-            variant="ghost"
-            className="flex-col h-auto py-3"
-            onClick={() => navigate('/profile')}
-          >
-            <User className="h-5 w-5 mb-1" />
-            <span className="text-xs">PROFILE</span>
+            <Plus className="mr-2 h-5 w-5" />
+            LOG ACTIVITY
           </Button>
         </div>
       </div>
 
-      {/* Activity Logger Modal */}
-      <ActivityLogger
-        open={activityLoggerOpen}
-        onOpenChange={setActivityLoggerOpen}
-      />
-      
-      {/* Energy Deployment Modal */}
-      <EnergyDeployment
-        open={deploymentOpen}
-        onClose={() => setDeploymentOpen(false)}
-      />
+      {/* Modals */}
+      <ActivityLogger open={activityLoggerOpen} onOpenChange={setActivityLoggerOpen} />
+      <EnergyDeployment open={deploymentOpen} onClose={() => setDeploymentOpen(false)} />
     </div>
   );
 };
