@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
+import { HolographicCard } from '@/components/ui/holographic-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -15,6 +15,7 @@ import { useJourneyStore } from '@/stores/journeyStore';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useUserStore } from '@/stores/userStore';
 import { useRaidStore } from '@/stores/raidStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { EnergyReserveCard } from '@/components/dashboard/EnergyReserveCard';
 import { ChallengeCard } from '@/components/dashboard/ChallengeCard';
 import { ActivityLogger } from '@/components/ActivityLogger';
@@ -38,6 +39,7 @@ const Dashboard = () => {
   const energyStore = useEnergyStore();
   const userStore = useUserStore();
   const raidStore = useRaidStore();
+  const { signOut } = useAuth();
   
   const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
   const [deploymentOpen, setDeploymentOpen] = useState(false);
@@ -84,7 +86,7 @@ const Dashboard = () => {
             </button>
 
             {/* Journey Status */}
-            <Card className="px-4 py-2 border-primary/30 bg-primary/5 hidden md:block">
+            <HolographicCard glow="cyan" corners={false} scanLines={false} animated={false} className="px-4 py-2 bg-primary/5 hidden md:block">
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">
                   {currentLeg?.from} → {currentLeg?.to}
@@ -92,7 +94,7 @@ const Dashboard = () => {
                 <p className="text-xl font-bold">DAY {journey.currentDay} OF 80</p>
                 <Progress value={(journey.currentDay / 80) * 100} className="h-1 mt-1" />
               </div>
-            </Card>
+            </HolographicCard>
 
             {/* Right Side */}
             <div className="flex items-center gap-4">
@@ -120,7 +122,7 @@ const Dashboard = () => {
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     Subscription
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { signOut(); navigate('/login'); }}>
                     Log Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -199,29 +201,29 @@ const Dashboard = () => {
 
             {/* Journey Stats */}
             <div className="grid grid-cols-3 gap-4">
-              <Card className="p-4 text-center border-primary/30">
+              <HolographicCard glow="cyan" className="p-4 text-center">
                 <MapPin className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <p className="text-xs text-muted-foreground">Location</p>
                 <p className="text-lg font-bold">{currentLeg?.from}</p>
-              </Card>
-              <Card className="p-4 text-center border-primary/30">
-                <Calendar className="h-6 w-6 mx-auto mb-2 text-primary" />
+              </HolographicCard>
+              <HolographicCard glow="purple" className="p-4 text-center">
+                <Calendar className="h-6 w-6 mx-auto mb-2 text-accent" />
                 <p className="text-xs text-muted-foreground">Day</p>
                 <p className="text-lg font-bold">{journey.currentDay} / 80</p>
-              </Card>
-              <Card className="p-4 text-center border-primary/30">
-                <Ruler className="h-6 w-6 mx-auto mb-2 text-primary" />
+              </HolographicCard>
+              <HolographicCard glow="magenta" className="p-4 text-center">
+                <Ruler className="h-6 w-6 mx-auto mb-2 text-secondary" />
                 <p className="text-xs text-muted-foreground">Distance</p>
                 <p className="text-lg font-bold">
                   {journey.totalDistance.toLocaleString()} km
                 </p>
-              </Card>
+              </HolographicCard>
             </div>
 
             {/* Story Updates */}
             <div>
               <h2 className="text-xl font-bold mb-4">RECENT TRANSMISSIONS</h2>
-              <Card className="p-4 border-primary/30 max-h-60 overflow-y-auto">
+              <HolographicCard glow="cyan" className="p-4 max-h-60 overflow-y-auto">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
@@ -236,8 +238,8 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center flex-shrink-0">
-                      <User className="h-4 w-4 text-green-400" />
+                    <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-success" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -260,7 +262,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-              </Card>
+              </HolographicCard>
             </div>
           </div>
 
@@ -269,9 +271,9 @@ const Dashboard = () => {
             {/* Daily Mission */}
             <div>
               <h2 className="text-xl font-bold mb-4">DAILY MISSION</h2>
-              <Card className="p-6 border-primary/30 bg-card/80">
+              <HolographicCard glow="purple" className="p-6">
                 <div className="text-center space-y-3">
-                  <Clock className="h-12 w-12 mx-auto text-primary" />
+                  <Clock className="h-12 w-12 mx-auto text-accent" />
                   <h3 className="font-bold text-lg">THE DAILY CONSTITUTIONAL</h3>
                   <p className="text-sm text-muted-foreground">
                     Complete any 30-minute activity
@@ -287,7 +289,7 @@ const Dashboard = () => {
                   </div>
                   <p className="text-xs text-muted-foreground">Resets in: 8h 23m</p>
                 </div>
-              </Card>
+              </HolographicCard>
             </div>
 
             {/* Raid Event */}
@@ -298,23 +300,22 @@ const Dashboard = () => {
                   animate={{ borderColor: ['#ff4444', '#ff0000', '#ff4444'] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <Card className="p-6 border-2 border-red-400 bg-red-400/5">
+                  <HolographicCard glow="magenta" className="p-6 border-2 border-destructive/40">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-red-400" />
+                        <AlertCircle className="h-5 w-5 text-destructive" />
                         <h3 className="font-bold">RAID EVENT ACTIVE!</h3>
                       </div>
-                      {/* Raid details would go here */}
                     </div>
-                  </Card>
+                  </HolographicCard>
                 </motion.div>
               ) : (
-                <Card className="p-6 border-muted bg-muted/5">
+                <HolographicCard glow="none" className="p-6">
                   <div className="text-center space-y-2">
                     <p className="text-muted-foreground">No Active Raid Event</p>
                     <p className="text-sm text-muted-foreground">Next raid starts soon</p>
                   </div>
-                </Card>
+                </HolographicCard>
               )}
             </div>
           </div>
