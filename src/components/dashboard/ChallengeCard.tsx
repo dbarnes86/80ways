@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { CyberpunkProgress } from '@/components/ui/cyberpunk-progress';
 import { Ship } from 'lucide-react';
 
 interface ChallengeCardProps {
@@ -79,11 +79,7 @@ export const ChallengeCard = ({
 
         {/* Progress */}
         <div className="space-y-2">
-          <Progress value={percentage} className="h-4" />
-          <div className="flex justify-between text-sm font-mono">
-            <span className={energyColor}>{currentProgress.toFixed(1)} / {requiredEnergy.amount} kWh</span>
-            <span className="text-muted-foreground">{percentage.toFixed(0)}%</span>
-          </div>
+          <CyberpunkProgress value={currentProgress} max={requiredEnergy.amount} segments={15} glow="cyan" size="lg" showLabel />
         </div>
 
         {/* Optimal Activities */}

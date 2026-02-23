@@ -1,5 +1,5 @@
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HolographicCard } from "@/components/ui/holographic-card";
 import { Calendar, TrendingUp, Download } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -20,6 +20,13 @@ export default function ActivityHistory() {
     avgPace: "5:02 /km",
   };
 
+  const statItems = [
+    { label: "Total Activities", value: stats.totalActivities, glow: "cyan" as const },
+    { label: "Total Distance", value: stats.totalDistance, glow: "purple" as const },
+    { label: "Total Time", value: stats.totalTime, glow: "magenta" as const },
+    { label: "Average Pace", value: stats.avgPace, glow: "cyan" as const },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -29,53 +36,33 @@ export default function ActivityHistory() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="p-6 hover:border-primary transition-smooth">
-            <div className="text-2xl font-mono mb-1">{stats.totalActivities}</div>
-            <div className="text-sm text-muted-foreground">Total Activities</div>
-          </Card>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="p-6 hover:border-primary transition-smooth">
-            <div className="text-2xl font-mono mb-1">{stats.totalDistance}</div>
-            <div className="text-sm text-muted-foreground">Total Distance</div>
-          </Card>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="p-6 hover:border-primary transition-smooth">
-            <div className="text-2xl font-mono mb-1">{stats.totalTime}</div>
-            <div className="text-sm text-muted-foreground">Total Time</div>
-          </Card>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="p-6 hover:border-primary transition-smooth">
-            <div className="text-2xl font-mono mb-1">{stats.avgPace}</div>
-            <div className="text-sm text-muted-foreground">Average Pace</div>
-          </Card>
-        </motion.div>
+        {statItems.map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+            <HolographicCard glow={s.glow} className="p-6">
+              <div className="text-2xl font-mono mb-1">{s.value}</div>
+              <div className="text-sm text-muted-foreground">{s.label}</div>
+            </HolographicCard>
+          </motion.div>
+        ))}
       </div>
 
       {/* Filters and Export */}
-      <Card className="p-6 mb-6">
+      <HolographicCard glow="none" corners={false} scanLines={false} className="p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm">
-              <Calendar className="w-4 h-4 mr-2" />
-              This Week
-            </Button>
+            <Button variant="outline" size="sm"><Calendar className="w-4 h-4 mr-2" />This Week</Button>
             <Button variant="outline" size="sm">This Month</Button>
             <Button variant="outline" size="sm">This Year</Button>
             <Button variant="outline" size="sm">All Time</Button>
           </div>
-          <Button variant="outline" size="sm" className="glow-cyan">
-            <Download className="w-4 h-4 mr-2" />
-            Export Data
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />Export Data
           </Button>
         </div>
-      </Card>
+      </HolographicCard>
 
       {/* Activities Table */}
-      <Card className="p-6">
+      <HolographicCard glow="cyan" className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-heading">Recent Activities</h2>
           <TrendingUp className="w-6 h-6 text-success" />
@@ -84,12 +71,12 @@ export default function ActivityHistory() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 font-heading">Date</th>
-                <th className="text-left py-3 px-4 font-heading">Activity</th>
-                <th className="text-left py-3 px-4 font-heading">Distance</th>
-                <th className="text-left py-3 px-4 font-heading">Duration</th>
-                <th className="text-left py-3 px-4 font-heading">Pace</th>
-                <th className="text-left py-3 px-4 font-heading">Calories</th>
+                <th className="text-left py-3 px-4 font-heading text-sm text-muted-foreground">Date</th>
+                <th className="text-left py-3 px-4 font-heading text-sm text-muted-foreground">Activity</th>
+                <th className="text-left py-3 px-4 font-heading text-sm text-muted-foreground">Distance</th>
+                <th className="text-left py-3 px-4 font-heading text-sm text-muted-foreground">Duration</th>
+                <th className="text-left py-3 px-4 font-heading text-sm text-muted-foreground">Pace</th>
+                <th className="text-left py-3 px-4 font-heading text-sm text-muted-foreground">Calories</th>
               </tr>
             </thead>
             <tbody>
@@ -99,11 +86,11 @@ export default function ActivityHistory() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="border-b border-border hover:bg-muted/50 transition-smooth cursor-pointer"
+                  className="border-b border-border hover:bg-primary/5 transition-smooth cursor-pointer"
                 >
                   <td className="py-4 px-4 font-mono text-sm">{activity.date}</td>
                   <td className="py-4 px-4">
-                    <span className="px-2 py-1 rounded bg-primary/20 text-primary text-sm">
+                    <span className="px-2 py-1 rounded bg-primary/20 text-primary text-sm font-heading">
                       {activity.type}
                     </span>
                   </td>
@@ -116,7 +103,7 @@ export default function ActivityHistory() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </HolographicCard>
     </div>
   );
 }

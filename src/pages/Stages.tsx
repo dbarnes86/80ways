@@ -1,38 +1,14 @@
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HolographicCard } from "@/components/ui/holographic-card";
 import { Trophy, Clock, Users, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Stages() {
   const stages = [
-    {
-      id: 1,
-      name: "London Sprint",
-      distance: 5,
-      time: "24:00",
-      participants: 2847,
-      status: "active",
-      prize: "500 pts",
-    },
-    {
-      id: 2,
-      name: "Paris Marathon",
-      distance: 42.2,
-      time: "3:30:00",
-      participants: 1523,
-      status: "upcoming",
-      prize: "2000 pts",
-    },
-    {
-      id: 3,
-      name: "Alpine Challenge",
-      distance: 100,
-      time: "8:00:00",
-      participants: 456,
-      status: "upcoming",
-      prize: "5000 pts",
-    },
+    { id: 1, name: "London Sprint", distance: 5, time: "24:00", participants: 2847, status: "active", prize: "500 pts" },
+    { id: 2, name: "Paris Marathon", distance: 42.2, time: "3:30:00", participants: 1523, status: "upcoming", prize: "2000 pts" },
+    { id: 3, name: "Alpine Challenge", distance: 100, time: "8:00:00", participants: 456, status: "upcoming", prize: "5000 pts" },
   ];
 
   const leaderboard = [
@@ -61,10 +37,13 @@ export default function Stages() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className={`p-6 hover:border-primary transition-smooth ${stage.status === 'active' ? 'glow-cyan border-primary' : ''}`}>
+              <HolographicCard
+                glow={stage.status === "active" ? "cyan" : "none"}
+                className="p-6"
+              >
                 <div className="flex items-start justify-between mb-4">
-                  <Trophy className={`w-8 h-8 ${stage.status === 'active' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <Badge variant={stage.status === 'active' ? 'default' : 'secondary'}>
+                  <Trophy className={`w-8 h-8 ${stage.status === "active" ? "text-primary" : "text-muted-foreground"}`} />
+                  <Badge variant={stage.status === "active" ? "default" : "secondary"}>
                     {stage.status.toUpperCase()}
                   </Badge>
                 </div>
@@ -88,21 +67,21 @@ export default function Stages() {
                     <span className="text-muted-foreground">Prize: </span>
                     <span className="font-mono text-primary">{stage.prize}</span>
                   </div>
-                  <Button size="sm" variant={stage.status === 'active' ? 'default' : 'outline'}>
-                    {stage.status === 'active' ? 'Join Now' : 'View Details'}
+                  <Button size="sm" variant={stage.status === "active" ? "default" : "outline"}>
+                    {stage.status === "active" ? "Join Now" : "View Details"}
                   </Button>
                 </div>
-              </Card>
+              </HolographicCard>
             </motion.div>
           ))}
         </div>
       </div>
 
       {/* Leaderboard */}
-      <Card className="p-6">
+      <HolographicCard glow="purple" className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-heading">Global Leaderboard</h2>
-          <Badge className="glow-purple">Season 1</Badge>
+          <Badge className="bg-accent/20 text-accent border-accent/40">Season 1</Badge>
         </div>
         <div className="space-y-2">
           {leaderboard.map((entry, index) => (
@@ -112,31 +91,27 @@ export default function Stages() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
               className={`flex items-center gap-4 p-4 rounded-lg transition-smooth ${
-                index < 3 ? 'bg-gradient-to-r from-primary/10 to-transparent border border-primary/30' : 'bg-muted/30'
-              } hover:bg-muted/50`}
+                index < 3 ? "bg-gradient-to-r from-primary/10 to-transparent border border-primary/20" : "bg-muted/20"
+              } hover:bg-muted/40`}
             >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-mono font-bold ${
-                index === 0 ? 'bg-warning text-warning-foreground glow-magenta' :
-                index === 1 ? 'bg-muted-foreground/30' :
-                index === 2 ? 'bg-warning/50' :
-                'bg-muted'
+                index === 0 ? "bg-warning text-warning-foreground glow-magenta" :
+                index === 1 ? "bg-muted-foreground/30" :
+                index === 2 ? "bg-warning/50" :
+                "bg-muted"
               }`}>
                 #{entry.rank}
               </div>
               <div className="text-2xl">{entry.avatar}</div>
               <div className="flex-1">
                 <div className="font-heading">{entry.name}</div>
-                <div className="text-sm text-muted-foreground font-mono">
-                  {entry.distance.toLocaleString()} km
-                </div>
+                <div className="text-sm text-muted-foreground font-mono">{entry.distance.toLocaleString()} km</div>
               </div>
-              <div className="text-right font-mono text-sm text-muted-foreground">
-                {entry.time}
-              </div>
+              <div className="text-right font-mono text-sm text-muted-foreground">{entry.time}</div>
             </motion.div>
           ))}
         </div>
-      </Card>
+      </HolographicCard>
     </div>
   );
 }
