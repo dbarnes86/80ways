@@ -55,7 +55,7 @@ export const useEnergyStore = create<EnergyStore>()(
         
         (['nautical', 'terrestrial', 'transport', 'strength'] as const).forEach((type) => {
           const reserve = state[type];
-          const hoursSince = (now.getTime() - reserve.lastUpdated.getTime()) / (1000 * 60 * 60);
+          const hoursSince = (now.getTime() - new Date(reserve.lastUpdated).getTime()) / (1000 * 60 * 60);
           const decayAmount = reserve.current * reserve.decayRate * (hoursSince / 24);
           
           newState[type] = {
