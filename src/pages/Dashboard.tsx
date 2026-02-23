@@ -16,7 +16,7 @@ import { useEnergyStore } from '@/stores/energyStore';
 import { useUserStore } from '@/stores/userStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { EnergyReserveCard } from '@/components/dashboard/EnergyReserveCard';
+import { EnergyPod } from '@/components/dashboard/EnergyPod';
 import { ChallengeCard } from '@/components/dashboard/ChallengeCard';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
@@ -142,28 +142,28 @@ const Dashboard = () => {
               <p className="text-muted-foreground text-sm mb-4">Power for Fogg's Journey</p>
               
               <div className="space-y-4">
-                <EnergyReserveCard
+                <EnergyPod
                   type="nautical"
                   current={energyStore.nautical.current}
                   max={energyStore.nautical.max}
                   lastUpdated={energyStore.nautical.lastUpdated}
                   onCharge={() => handleCharge('nautical')}
                 />
-                <EnergyReserveCard
+                <EnergyPod
                   type="terrestrial"
                   current={energyStore.terrestrial.current}
                   max={energyStore.terrestrial.max}
                   lastUpdated={energyStore.terrestrial.lastUpdated}
                   onCharge={() => handleCharge('terrestrial')}
                 />
-                <EnergyReserveCard
+                <EnergyPod
                   type="transport"
                   current={energyStore.transport.current}
                   max={energyStore.transport.max}
                   lastUpdated={energyStore.transport.lastUpdated}
                   onCharge={() => handleCharge('transport')}
                 />
-                <EnergyReserveCard
+                <EnergyPod
                   type="strength"
                   current={energyStore.strength.current}
                   max={energyStore.strength.max}
