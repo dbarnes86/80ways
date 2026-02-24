@@ -161,12 +161,17 @@ export default function Landing() {
               In 2084, it's YOUR turn—start your own journey, progress at your own pace, 
               and join community raid events.
             </p>
-            <Link to="/onboard">
-              <Button size="lg" className="text-lg px-12 py-6 h-auto glow-cyan hover:scale-105 transition-smooth">
-                START THE JOURNEY
-                <ArrowRight className="ml-3 w-6 h-6" />
-              </Button>
-            </Link>
+            <div className="flex flex-col items-center gap-4">
+              <Link to="/onboard">
+                <Button size="lg" className="text-lg px-12 py-6 h-auto glow-cyan hover:scale-105 transition-smooth">
+                  START THE JOURNEY
+                  <ArrowRight className="ml-3 w-6 h-6" />
+                </Button>
+              </Link>
+              <Link to="/login" className="text-sm text-muted-foreground hover:text-primary transition-colors font-mono">
+                Already an adventurer? Sign in
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>

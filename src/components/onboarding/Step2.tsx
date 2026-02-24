@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,15 +8,17 @@ import { Label } from '@/components/ui/label';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { purchasePlan, type PurchasePlan } from '@/services/purchaseService';
 import { User, Mail, Lock, Eye, EyeOff, Check, X, ArrowLeft, Loader2, Crown, Sparkles } from 'lucide-react';
 
 export const Step2 = () => {
   const { userData, setStep, updateUserData } = useOnboardingStore();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'yearly' | 'trial' | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PurchasePlan | null>(null);
   
   const [formData, setFormData] = useState({
     displayName: userData.displayName,
@@ -64,7 +67,7 @@ export const Step2 = () => {
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const handleContinue = async (plan: 'yearly' | 'trial') => {
+  const handleContinue = async (plan: PurchasePlan) => {
     const nameError = validateName(formData.displayName);
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
@@ -84,30 +87,47 @@ export const Step2 = () => {
     try {
       setProcessing(true);
 
-      // TODO: Replace with native IAP when running in Capacitor
-      // For now, trigger Stripe checkout
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          email: formData.email,
-          displayName: formData.displayName,
-          plan, // pass plan type to edge function
+      // First sign up the user
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { display_name: formData.displayName },
         },
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
-      if (data?.url) {
-        window.open(data.url, '_blank');
+      // Then initiate purchase
+      const result = await purchasePlan(plan, {
+        email: formData.email,
+        displayName: formData.displayName,
+      });
+
+      if (result.success) {
+        // Native IAP succeeded — go to dashboard
+        toast({
+          title: "Welcome aboard!",
+          description: "Your expedition begins now.",
+        });
+        navigate('/dashboard');
+      } else if (result.error === 'redirect') {
+        // Stripe fallback (web) — checkout opened in new tab
         toast({
           title: "Checkout opened",
           description: "Complete your payment in the new tab to continue.",
         });
+      } else if (result.error === 'cancelled') {
+        // User cancelled — do nothing
+      } else {
+        throw new Error(result.error || 'Purchase failed');
       }
     } catch (error: any) {
-      console.error('Error creating checkout:', error);
+      console.error('Error during signup/purchase:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create checkout session. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
