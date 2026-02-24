@@ -16,44 +16,44 @@ export const Step1 = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-4xl mx-auto"
+      className="max-w-4xl mx-auto pb-8"
     >
-      <div className="text-center mb-8">
-        <h2 className="text-3xl md:text-4xl font-bold mb-2 text-glow">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl md:text-4xl font-bold mb-2 text-glow">
           The Reform Club, London
         </h2>
-        <p className="text-muted-foreground text-lg">October 2, 2084</p>
+        <p className="text-muted-foreground text-base md:text-lg">October 2, 2084</p>
       </div>
 
-      <Card className="p-8 md:p-12 border-primary/20 bg-card/50 backdrop-blur relative overflow-hidden">
+      <Card className="p-5 md:p-12 border-primary/20 bg-card/50 backdrop-blur relative overflow-hidden">
         {/* Victorian corner ornaments */}
-        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-primary/50" />
-        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-primary/50" />
-        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-primary/50" />
-        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-primary/50" />
+        <div className="absolute top-0 left-0 w-12 h-12 md:w-16 md:h-16 border-t-2 border-l-2 border-primary/50" />
+        <div className="absolute top-0 right-0 w-12 h-12 md:w-16 md:h-16 border-t-2 border-r-2 border-primary/50" />
+        <div className="absolute bottom-0 left-0 w-12 h-12 md:w-16 md:h-16 border-b-2 border-l-2 border-primary/50" />
+        <div className="absolute bottom-0 right-0 w-12 h-12 md:w-16 md:h-16 border-b-2 border-r-2 border-primary/50" />
 
-        <div className="grid md:grid-cols-2 gap-8 items-start">
-          <div className="order-2 md:order-1 space-y-6">
-            <div className="space-y-6 text-lg leading-relaxed">
+        <div className="grid md:grid-cols-2 gap-6 items-start">
+          <div className="order-2 md:order-1 space-y-4">
+            <div className="space-y-4 text-base leading-relaxed">
               <p className="text-foreground/90">
-                At precisely <span className="text-primary font-semibold">8:45 PM</span>, Phileas Fogg made an extraordinary wager with his fellow Reform Club members: he would travel around the world in exactly <span className="text-primary font-semibold">80 days</span>.
+                At precisely <span className="text-primary font-semibold">8:45 PM</span>, Phileas Fogg made an extraordinary wager: travel around the world in exactly <span className="text-primary font-semibold">80 days</span>.
               </p>
               
               <p className="text-foreground/90">
-                The stakes? <span className="text-primary font-semibold">£20,000</span> (adjusted for inflation: <span className="text-primary font-semibold">2 million credits</span>).
+                The stakes? <span className="text-primary font-semibold">£20,000</span> (<span className="text-primary font-semibold">2 million credits</span>).
               </p>
 
               <p className="text-foreground/90">
-                But there's a twist—in 2084, we're not traveling alone. Thousands of adventurers like you will contribute to this journey through fitness activities.
+                In 2084, thousands of adventurers like you will contribute through fitness activities.
               </p>
             </div>
 
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold mb-3 text-primary">Your Challenge:</h3>
-              <ul className="space-y-2 text-foreground/90">
-                <li>• Complete your <span className="font-semibold">OWN journey</span> around the world at your own pace</li>
-                <li>• Help the community during <span className="font-semibold">raid events</span> when Detective Fix strikes</li>
-                <li>• Track your progress through <span className="font-semibold">80 narrative days</span></li>
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+              <h3 className="text-lg font-bold mb-2 text-primary">Your Challenge:</h3>
+              <ul className="space-y-1.5 text-sm text-foreground/90">
+                <li>• Complete your <span className="font-semibold">OWN journey</span> at your own pace</li>
+                <li>• Help during <span className="font-semibold">raid events</span> when Detective Fix strikes</li>
+                <li>• Track progress through <span className="font-semibold">80 narrative days</span></li>
               </ul>
             </div>
           </div>
@@ -69,7 +69,7 @@ export const Step1 = () => {
               <img 
                 src={foggPortrait} 
                 alt="Phileas Fogg" 
-                className="relative rounded-lg border-2 border-primary/50 shadow-lg w-full"
+                className="relative rounded-lg border-2 border-primary/50 shadow-lg w-full max-h-[250px] md:max-h-none object-cover"
               />
             </motion.div>
           </div>
@@ -79,16 +79,16 @@ export const Step1 = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="mt-8 text-center space-y-6"
+          className="mt-6 text-center"
         >
-          <p className="text-xl font-bold text-primary">
+          <p className="text-lg font-bold text-primary mb-4">
             Will you join the expedition?
           </p>
 
           <Button
             onClick={handleAccept}
             size="lg"
-            className="text-xl px-12 py-6 bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all duration-300 shadow-lg shadow-primary/50"
+            className="text-lg px-8 py-5 bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all duration-300 shadow-lg shadow-primary/50"
           >
             I ACCEPT THE CHALLENGE
           </Button>

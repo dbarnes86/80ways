@@ -1,14 +1,67 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, User, Zap, Users, Globe, Shield, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import foggPortrait from "@/assets/fogg-portrait.jpg";
 import passepartoutPortrait from "@/assets/passepartout-portrait.jpg";
 import fixPortrait from "@/assets/fix-portrait.jpg";
 import aoudaPortrait from "@/assets/aouda-portrait.jpg";
+import riftLogo from "@/assets/rift-logo.png";
+
+type SplashPhase = "rift" | "title" | "done";
 
 export default function Landing() {
+  const [splashPhase, setSplashPhase] = useState<SplashPhase>("rift");
+
+  useEffect(() => {
+    // RIFT logo: fade in 0.8s, hold 1.5s, fade out 0.8s = ~3.1s
+    const titleTimer = setTimeout(() => setSplashPhase("title"), 3100);
+    // Title: fade in 0.8s, hold 2s, then show full page
+    const doneTimer = setTimeout(() => setSplashPhase("done"), 6000);
+    return () => {
+      clearTimeout(titleTimer);
+      clearTimeout(doneTimer);
+    };
+  }, []);
+
+  // Splash sequence
+  if (splashPhase !== "done") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <AnimatePresence mode="wait">
+          {splashPhase === "rift" && (
+            <motion.div
+              key="rift"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8 }}
+              className="flex flex-col items-center"
+            >
+              <img src={riftLogo} alt="RIFT" className="w-40 h-auto invert" />
+            </motion.div>
+          )}
+          {splashPhase === "title" && (
+            <motion.div
+              key="title"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-center"
+            >
+              <h1 className="text-5xl md:text-7xl font-heading text-glow-cyan uppercase leading-tight">
+                Around the World<br />in 80 Ways
+              </h1>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
   const howItWorks = [
     {
       icon: User,
@@ -81,7 +134,12 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+      className="min-h-screen"
+    >
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20" />
@@ -105,7 +163,7 @@ export default function Landing() {
             </p>
             <Link to="/onboard">
               <Button size="lg" className="text-lg px-12 py-6 h-auto glow-cyan hover:scale-105 transition-smooth">
-                BEGIN YOUR EXPEDITION
+                START THE JOURNEY
                 <ArrowRight className="ml-3 w-6 h-6" />
               </Button>
             </Link>
@@ -258,6 +316,6 @@ export default function Landing() {
           </div>
         </div>
       </footer>
-    </div>
+    </motion.div>
   );
 }

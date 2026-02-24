@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { User, Mail, Lock, Eye, EyeOff, Check, X, ArrowLeft, Loader2 } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, Check, X, ArrowLeft, Loader2, Crown, Sparkles } from 'lucide-react';
 
 export const Step2 = () => {
   const { userData, setStep, updateUserData } = useOnboardingStore();
@@ -15,6 +15,7 @@ export const Step2 = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'yearly' | 'trial' | null>(null);
   
   const [formData, setFormData] = useState({
     displayName: userData.displayName,
@@ -63,7 +64,7 @@ export const Step2 = () => {
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const handleContinue = async () => {
+  const handleContinue = async (plan: 'yearly' | 'trial') => {
     const nameError = validateName(formData.displayName);
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
@@ -77,26 +78,26 @@ export const Step2 = () => {
       return;
     }
 
-    // Save user data to store
     updateUserData(formData);
+    setSelectedPlan(plan);
 
     try {
       setProcessing(true);
 
-      // Create Stripe checkout session
+      // TODO: Replace with native IAP when running in Capacitor
+      // For now, trigger Stripe checkout
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           email: formData.email,
           displayName: formData.displayName,
+          plan, // pass plan type to edge function
         },
       });
 
       if (error) throw error;
 
       if (data?.url) {
-        // Open Stripe Checkout in new tab
         window.open(data.url, '_blank');
-        
         toast({
           title: "Checkout opened",
           description: "Complete your payment in the new tab to continue.",
@@ -111,6 +112,7 @@ export const Step2 = () => {
       });
     } finally {
       setProcessing(false);
+      setSelectedPlan(null);
     }
   };
 
@@ -125,35 +127,35 @@ export const Step2 = () => {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto"
+      className="max-w-2xl mx-auto pb-8"
     >
       <Button
         variant="ghost"
         onClick={() => setStep(1)}
-        className="mb-6 text-muted-foreground hover:text-foreground"
+        className="mb-4 text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
 
-      <div className="text-center mb-8">
-        <h2 className="text-3xl md:text-4xl font-bold mb-2 text-glow">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl md:text-4xl font-bold mb-2 text-glow">
           REGISTER AS AN ADVENTURER
         </h2>
-        <p className="text-muted-foreground text-lg">Join Fogg's crew and begin your journey</p>
+        <p className="text-muted-foreground text-base md:text-lg">Join Fogg's crew and begin your journey</p>
       </div>
 
-      <Card className="p-8 md:p-12 border-primary/20 bg-card/50 backdrop-blur relative overflow-hidden">
+      <Card className="p-6 md:p-10 border-primary/20 bg-card/50 backdrop-blur relative overflow-hidden mb-6">
         {/* Victorian corner ornaments */}
-        <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-primary/50" />
-        <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-primary/50" />
-        <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-primary/50" />
-        <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-primary/50" />
+        <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-primary/50" />
+        <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-primary/50" />
+        <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-primary/50" />
+        <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-primary/50" />
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Display Name */}
           <div>
-            <Label htmlFor="displayName" className="text-lg mb-2 flex items-center gap-2">
+            <Label htmlFor="displayName" className="text-base mb-1.5 flex items-center gap-2">
               <User className="h-4 w-4 text-primary" />
               Your Name
             </Label>
@@ -163,7 +165,7 @@ export const Step2 = () => {
                 value={formData.displayName}
                 onChange={(e) => handleChange('displayName', e.target.value)}
                 placeholder="Enter your adventurer name"
-                className="bg-background/50 border-primary/30 focus:border-primary text-lg pr-10"
+                className="bg-background/50 border-primary/30 focus:border-primary text-base pr-10"
               />
               {formData.displayName && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -182,9 +184,9 @@ export const Step2 = () => {
 
           {/* Email */}
           <div>
-            <Label htmlFor="email" className="text-lg mb-2 flex items-center gap-2">
+            <Label htmlFor="email" className="text-base mb-1.5 flex items-center gap-2">
               <Mail className="h-4 w-4 text-primary" />
-              Electronic Mail
+              Email
             </Label>
             <div className="relative">
               <Input
@@ -193,7 +195,7 @@ export const Step2 = () => {
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 placeholder="your.email@example.com"
-                className="bg-background/50 border-primary/30 focus:border-primary text-lg pr-10"
+                className="bg-background/50 border-primary/30 focus:border-primary text-base pr-10"
               />
               {formData.email && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -212,9 +214,9 @@ export const Step2 = () => {
 
           {/* Password */}
           <div>
-            <Label htmlFor="password" className="text-lg mb-2 flex items-center gap-2">
+            <Label htmlFor="password" className="text-base mb-1.5 flex items-center gap-2">
               <Lock className="h-4 w-4 text-primary" />
-              Secret Passphrase
+              Password
             </Label>
             <div className="relative">
               <Input
@@ -223,7 +225,7 @@ export const Step2 = () => {
                 value={formData.password}
                 onChange={(e) => handleChange('password', e.target.value)}
                 placeholder="Create a secure password"
-                className="bg-background/50 border-primary/30 focus:border-primary text-lg pr-10"
+                className="bg-background/50 border-primary/30 focus:border-primary text-base pr-10"
               />
               <button
                 type="button"
@@ -237,88 +239,98 @@ export const Step2 = () => {
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}
             
-            {/* Password Requirements */}
             {formData.password && (
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  {formData.password.length >= 8 ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <X className="h-4 w-4 text-red-500" />
-                  )}
-                  <span className={formData.password.length >= 8 ? 'text-green-500' : 'text-muted-foreground'}>
-                    Minimum 8 characters
-                  </span>
+              <div className="mt-2 space-y-1.5">
+                <div className="flex items-center gap-2 text-xs">
+                  {formData.password.length >= 8 ? <Check className="h-3.5 w-3.5 text-green-500" /> : <X className="h-3.5 w-3.5 text-red-500" />}
+                  <span className={formData.password.length >= 8 ? 'text-green-500' : 'text-muted-foreground'}>8+ characters</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {/\d/.test(formData.password) ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <X className="h-4 w-4 text-red-500" />
-                  )}
-                  <span className={/\d/.test(formData.password) ? 'text-green-500' : 'text-muted-foreground'}>
-                    At least one number
-                  </span>
+                <div className="flex items-center gap-2 text-xs">
+                  {/\d/.test(formData.password) ? <Check className="h-3.5 w-3.5 text-green-500" /> : <X className="h-3.5 w-3.5 text-red-500" />}
+                  <span className={/\d/.test(formData.password) ? 'text-green-500' : 'text-muted-foreground'}>Number</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <X className="h-4 w-4 text-red-500" />
-                  )}
-                  <span className={/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'text-green-500' : 'text-muted-foreground'}>
-                    At least one special character
-                  </span>
+                <div className="flex items-center gap-2 text-xs">
+                  {/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? <Check className="h-3.5 w-3.5 text-green-500" /> : <X className="h-3.5 w-3.5 text-red-500" />}
+                  <span className={/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'text-green-500' : 'text-muted-foreground'}>Special character</span>
                 </div>
-                
-                {/* Strength Meter */}
-                <div className="mt-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm text-muted-foreground">Strength:</span>
-                    <span className={`text-sm font-semibold ${
-                      passwordStrength.label === 'Strong' ? 'text-green-500' :
-                      passwordStrength.label === 'Moderate' ? 'text-yellow-500' : 'text-red-500'
-                    }`}>
-                      {passwordStrength.label}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-300 ${passwordStrength.color}`}
-                      style={{ 
-                        width: passwordStrength.label === 'Strong' ? '100%' : 
-                               passwordStrength.label === 'Moderate' ? '66%' : '33%' 
-                      }}
-                    />
-                  </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
+                  <div 
+                    className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                    style={{ 
+                      width: passwordStrength.label === 'Strong' ? '100%' : 
+                             passwordStrength.label === 'Moderate' ? '66%' : '33%' 
+                    }}
+                  />
                 </div>
               </div>
             )}
           </div>
         </div>
-
-        <Button
-          onClick={handleContinue}
-          disabled={!isValid || processing}
-          className="w-full mt-8 text-lg py-6 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-300"
-        >
-          {processing ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Opening Checkout...
-            </>
-          ) : (
-            'CONTINUE TO PAYMENT'
-          )}
-        </Button>
-
-        <p className="text-sm text-muted-foreground text-center mt-6">
-          By continuing, you agree to our{' '}
-          <a href="/terms" className="text-primary hover:underline">Terms of Service</a>
-          {' '}and{' '}
-          <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
-        </p>
       </Card>
+
+      {/* Pricing Options */}
+      <div className="space-y-4">
+        {/* Primary: $29.99/year */}
+        <Card 
+          className="p-6 border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-transparent relative overflow-hidden cursor-pointer hover:border-primary transition-colors"
+          onClick={() => isValid && !processing && handleContinue('yearly')}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Crown className="h-5 w-5 text-primary" />
+            <span className="text-xs font-mono text-primary uppercase tracking-wider">Recommended</span>
+          </div>
+          <div className="flex items-baseline justify-between mb-2">
+            <h3 className="text-xl font-bold">Full Expedition Pass</h3>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">$29.99</div>
+              <div className="text-xs text-muted-foreground">/year</div>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Unlock everything. Start your adventure today.</p>
+          <Button
+            disabled={!isValid || processing}
+            className="w-full py-5 text-base bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleContinue('yearly');
+            }}
+          >
+            {processing && selectedPlan === 'yearly' ? (
+              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
+            ) : (
+              'CONTINUE TO PAYMENT'
+            )}
+          </Button>
+        </Card>
+
+        {/* Secondary: $19.99/year with 7-day trial */}
+        <button
+          disabled={!isValid || processing}
+          onClick={() => handleContinue('trial')}
+          className="w-full text-center py-4 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          {processing && selectedPlan === 'trial' ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+            </span>
+          ) : (
+            <span className="flex flex-col items-center gap-1">
+              <span className="text-sm">No thanks, I want to check it out first</span>
+              <span className="text-xs flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                7-day free trial · then $19.99/year
+              </span>
+            </span>
+          )}
+        </button>
+      </div>
+
+      <p className="text-xs text-muted-foreground text-center mt-4">
+        By continuing, you agree to our{' '}
+        <a href="/terms" className="text-primary hover:underline">Terms</a>
+        {' & '}
+        <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+      </p>
     </motion.div>
   );
 };
