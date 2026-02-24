@@ -29,6 +29,7 @@ const Dashboard = () => {
   const userStore = useUserStore();
   const raidStore = useRaidStore();
   const { signOut } = useAuth();
+  const narrativeDay = 1; // TODO: wire to seasonStore once season is active
 
   const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
   const [deploymentOpen, setDeploymentOpen] = useState(false);
@@ -73,7 +74,7 @@ const Dashboard = () => {
       <div className="flex-1 container mx-auto px-4 max-w-md pb-28">
         {/* 1. Journey Hero Ring */}
         <JourneyHero
-          currentDay={journey.currentDay}
+          currentDay={narrativeDay}
           totalDays={80}
           from={currentLeg.from}
           to={currentLeg.to}

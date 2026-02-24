@@ -60,7 +60,7 @@ export default function MapPage() {
         </div>
         <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
           <Compass className="w-4 h-4 text-primary" />
-          <span>Day {journey.currentDay} of 80</span>
+          <span>Day 1 of 80</span>
         </div>
       </div>
 
