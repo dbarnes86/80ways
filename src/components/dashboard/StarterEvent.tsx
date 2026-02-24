@@ -106,27 +106,6 @@ export const StarterEvent = () => {
         )}
       </div>
 
-      {/* Player Level */}
-      <div className="bg-card/30 border border-border/30 rounded-lg p-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-mono text-muted-foreground">LEVEL {level}</span>
-          <span className="text-xs font-heading text-foreground/70">{levelName}</span>
-        </div>
-        <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-primary rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${levelInfo.progress * 100}%` }}
-            transition={{ duration: 0.8 }}
-          />
-        </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-[10px] font-mono text-muted-foreground">{xp} XP</span>
-          <span className="text-[10px] font-mono text-muted-foreground">
-            {levelInfo.xpInLevel}/{levelInfo.xpForNext}
-          </span>
-        </div>
-      </div>
     </motion.div>
   );
 };

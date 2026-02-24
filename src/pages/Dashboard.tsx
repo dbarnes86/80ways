@@ -9,14 +9,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useJourneyStore } from '@/stores/journeyStore';
 import { useEnergyStore } from '@/stores/energyStore';
-import { useUserStore } from '@/stores/userStore';
 import { useRaidStore } from '@/stores/raidStore';
+import { useProgressionStore } from '@/stores/progressionStore';
+import { useSeasonStore } from '@/stores/seasonStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { JourneyHero } from '@/components/dashboard/JourneyHero';
 import { EnergyRow } from '@/components/dashboard/EnergyRow';
 import { ActiveChallenge } from '@/components/dashboard/ActiveChallenge';
+import { StarterEvent } from '@/components/dashboard/StarterEvent';
+import { SeasonJoinPrompt } from '@/components/dashboard/SeasonJoinPrompt';
+import { PlayerLevelBar } from '@/components/dashboard/PlayerLevelBar';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
@@ -24,16 +27,24 @@ import { Plus, User, ChevronDown, Clock, AlertCircle, Sparkles } from 'lucide-re
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const journey = useJourneyStore();
   const energyStore = useEnergyStore();
-  const userStore = useUserStore();
   const raidStore = useRaidStore();
-  const { signOut } = useAuth();
-  const narrativeDay = 1; // TODO: wire to seasonStore once season is active
+  const { canJoinMainJourney, level } = useProgressionStore();
+  const seasonStore = useSeasonStore();
+  const { user, signOut } = useAuth();
 
   const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
   const [deploymentOpen, setDeploymentOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Fetch season + progression on mount
+  useEffect(() => {
+    seasonStore.fetchActiveSeason();
+    if (user?.id) {
+      useProgressionStore.getState().syncFromDB(user.id);
+      seasonStore.fetchParticipation(user.id);
+    }
+  }, [user?.id]);
 
   // Apply energy decay on mount and hourly
   useEffect(() => {
@@ -42,7 +53,15 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const currentLeg = JOURNEY_LEGS[journey.currentLeg] || JOURNEY_LEGS[0];
+  const hasJoinedSeason = !!seasonStore.participation;
+  const currentLeg = hasJoinedSeason
+    ? JOURNEY_LEGS[seasonStore.participation!.currentLeg] || JOURNEY_LEGS[0]
+    : JOURNEY_LEGS[0];
+
+  // Phase logic: starter → join prompt → main journey
+  const showStarterEvent = !canJoinMainJourney;
+  const showJoinPrompt = canJoinMainJourney && !hasJoinedSeason;
+  const showMainJourney = canJoinMainJourney && hasJoinedSeason;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -72,27 +91,50 @@ const Dashboard = () => {
 
       {/* Main content — centered single column */}
       <div className="flex-1 container mx-auto px-4 max-w-md pb-28">
-        {/* 1. Journey Hero Ring */}
-        <JourneyHero
-          currentDay={narrativeDay}
-          totalDays={80}
-          from={currentLeg.from}
-          to={currentLeg.to}
-          narrativeTitle={currentLeg.narrative.title}
-        />
 
-        {/* 2. Active Challenge */}
-        {currentLeg && (
+        {/* Player Level Bar — always visible */}
+        <div className="mt-4 mb-6">
+          <PlayerLevelBar />
+        </div>
+
+        {/* Phase 1: Starter Event (pre-Level 3) */}
+        {showStarterEvent && (
           <div className="mb-6">
-            <ActiveChallenge
-              requiredEnergy={currentLeg.requiredEnergy}
-              currentProgress={journey.currentChallenge?.currentProgress ?? 0}
-              onDeploy={() => setDeploymentOpen(true)}
-            />
+            <StarterEvent />
           </div>
         )}
 
-        {/* 3. Energy Reserves */}
+        {/* Phase 2: Season Join Prompt (Level 3+ but hasn't joined) */}
+        {showJoinPrompt && (
+          <div className="mb-6">
+            <SeasonJoinPrompt onJoin={() => user?.id && seasonStore.joinSeason(user.id)} />
+          </div>
+        )}
+
+        {/* Phase 3: Main Journey */}
+        {showMainJourney && (
+          <>
+            {/* Journey Hero Ring */}
+            <JourneyHero
+              currentDay={seasonStore.narrativeDay}
+              totalDays={80}
+              from={currentLeg.from}
+              to={currentLeg.to}
+              narrativeTitle={currentLeg.narrative.title}
+            />
+
+            {/* Active Challenge */}
+            <div className="mb-6">
+              <ActiveChallenge
+                requiredEnergy={currentLeg.requiredEnergy}
+                currentProgress={seasonStore.participation?.legProgress ?? 0}
+                onDeploy={() => setDeploymentOpen(true)}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Energy Reserves — always visible */}
         <div className="mb-6">
           <p className="text-[10px] font-mono text-muted-foreground tracking-widest mb-2">ENERGY RESERVES</p>
           <EnergyRow
@@ -105,7 +147,7 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* 4. Collapsible secondary info */}
+        {/* Collapsible secondary info */}
         <div className="mb-6">
           <button
             onClick={() => setMoreOpen(!moreOpen)}
@@ -190,7 +232,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 4. Sticky LOG ACTIVITY button */}
+      {/* Sticky LOG ACTIVITY button */}
       <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
         <div className="max-w-md mx-auto">
           <Button
