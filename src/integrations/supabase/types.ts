@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      energy_deployments: {
+        Row: {
+          amount: number
+          deployed_at: string
+          effective_amount: number
+          efficiency: number
+          energy_type: string
+          id: string
+          leg_id: string
+          season_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          deployed_at?: string
+          effective_amount: number
+          efficiency?: number
+          energy_type: string
+          id?: string
+          leg_id: string
+          season_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          deployed_at?: string
+          effective_amount?: number
+          efficiency?: number
+          energy_type?: string
+          id?: string
+          leg_id?: string
+          season_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energy_deployments_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_progression: {
+        Row: {
+          created_at: string
+          id: string
+          level: number
+          starter_event_completed: boolean
+          starter_event_progress: number
+          total_activities: number
+          total_energy_generated: number
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: number
+          starter_event_completed?: boolean
+          starter_event_progress?: number
+          total_activities?: number
+          total_energy_generated?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number
+          starter_event_completed?: boolean
+          starter_event_progress?: number
+          total_activities?: number
+          total_energy_generated?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -38,6 +121,95 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      season_participation: {
+        Row: {
+          created_at: string
+          current_leg: number
+          id: string
+          joined_at: string
+          joined_at_leg: number
+          leg_progress: number
+          season_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_leg?: number
+          id?: string
+          joined_at?: string
+          joined_at_leg?: number
+          leg_progress?: number
+          season_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_leg?: number
+          id?: string
+          joined_at?: string
+          joined_at_leg?: number
+          leg_progress?: number
+          season_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_participation_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          current_global_leg: number
+          description: string | null
+          end_date: string
+          id: string
+          name: string
+          season_number: number
+          start_date: string
+          status: string
+          total_distance_km: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_global_leg?: number
+          description?: string | null
+          end_date: string
+          id?: string
+          name: string
+          season_number: number
+          start_date: string
+          status?: string
+          total_distance_km?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_global_leg?: number
+          description?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          season_number?: number
+          start_date?: string
+          status?: string
+          total_distance_km?: number
+          updated_at?: string
         }
         Relationships: []
       }

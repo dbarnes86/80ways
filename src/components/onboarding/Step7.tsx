@@ -13,36 +13,8 @@ export const Step7 = () => {
   const navigate = useNavigate();
 
   const handleEmbark = () => {
-    const journeyId = crypto.randomUUID();
-
-    // Initialize journey with all legs
-    useJourneyStore.getState().startJourney(journeyId);
-
-    // Set legs data
-    const legs = JOURNEY_LEGS.map((leg, index) => ({
-      ...leg,
-      id: leg.id,
-      legNumber: leg.legNumber,
-      from: leg.from,
-      to: leg.to,
-      distance: leg.distance,
-      requiredEnergy: leg.requiredEnergy,
-      narrative: leg.narrative,
-      progress: 0,
-      status: (index === 0 ? 'active' : 'locked') as 'active' | 'locked' | 'completed',
-    }));
-
-    useJourneyStore.setState({
-      legs,
-      currentLeg: 0,
-      currentChallenge: {
-        legId: JOURNEY_LEGS[0].id,
-        requiredEnergy: JOURNEY_LEGS[0].requiredEnergy,
-        currentProgress: 0,
-        deploymentsCount: 0,
-        startedAt: new Date(),
-      },
-    });
+    // Initialize first challenge
+    useJourneyStore.getState().startChallenge(0);
 
     // Save user onboarding data
     useUserStore.getState().setUser({

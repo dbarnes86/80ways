@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useJourneyStore } from '@/stores/journeyStore';
 import { useUserStore } from '@/stores/userStore';
+import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { toast } from '@/hooks/use-toast';
 
 interface EnergyDeploymentProps {
@@ -72,9 +73,8 @@ const getEfficiency = (reserveType: EnergyType, challengeType: EnergyType): numb
 export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
   const currentChallenge = useJourneyStore((state) => state.currentChallenge);
   const currentLeg = useJourneyStore((state) => state.currentLeg);
-  const legs = useJourneyStore((state) => state.legs);
   const updateProgress = useJourneyStore((state) => state.updateProgress);
-  const completeLeg = useJourneyStore((state) => state.completeLeg);
+  const completeChallenge = useJourneyStore((state) => state.completeChallenge);
   
   const energyReserves = {
     nautical: useEnergyStore((state) => state.nautical),
@@ -103,6 +103,7 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
     }
   }, [open]);
 
+  const legs = JOURNEY_LEGS;
   if (!currentChallenge || !legs[currentLeg]) return null;
 
   const challengeType = currentChallenge.requiredEnergy.type as EnergyType;
@@ -172,7 +173,7 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
 
       if (isComplete) {
         setTimeout(() => {
-          completeLeg();
+          completeChallenge();
           useUserStore.getState().updateStats({
             totalActivities: useUserStore.getState().stats.totalActivities + 1,
           });
