@@ -201,7 +201,7 @@ const Dashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-heading font-bold text-destructive">RAID: {activeRaid.name.toUpperCase()}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {(raidTotals[activeRaid.key]?.total ?? 0).toFixed(0)} / {activeRaid.goalKwh} kWh · ends in {formatTimeLeft(activeRaid.end)}
+                      Fix has {Math.max(0, activeRaid.goalKwh - (raidTotals[activeRaid.key]?.total ?? 0)).toFixed(0)} HP left · ends in {formatTimeLeft(activeRaid.end)}
                     </p>
                   </div>
                 </div>

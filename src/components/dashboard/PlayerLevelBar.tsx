@@ -23,8 +23,8 @@ export const PlayerLevelBar = () => {
           </div>
           <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full animate-fade-up"
-              style={{ boxShadow: '0 0 6px hsl(var(--primary) / 0.4)' }}
+              className="h-full bg-primary rounded-full transition-[width] duration-700 ease-out"
+              style={{ width: `${levelInfo.progress * 100}%`, boxShadow: '0 0 6px hsl(var(--primary) / 0.4)' }}
             />
           </div>
           <div className="flex justify-between mt-0.5">

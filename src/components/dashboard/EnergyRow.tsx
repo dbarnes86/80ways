@@ -34,8 +34,8 @@ export const EnergyRow = ({ reserves }: EnergyRowProps) => {
             {/* Mini bar */}
             <div className="h-1.5 rounded-full bg-muted/40 mt-1.5 overflow-hidden">
               <div
-                className={`h-full rounded-full ${c.bar} animate-fade-up`}
-                style={{ boxShadow: pct > 0 ? `0 0 6px hsl(var(--primary) / 0.4)` : 'none' }}
+                className={`h-full rounded-full ${c.bar} transition-[width] duration-700 ease-out`}
+                style={{ width: `${pct}%`, boxShadow: pct > 0 ? `0 0 6px hsl(var(--primary) / 0.4)` : 'none' }}
               />
             </div>
             <p className="text-[10px] font-mono text-muted-foreground mt-1">
