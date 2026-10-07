@@ -108,7 +108,7 @@ export const LocationCard = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono text-muted-foreground">
-                  LEG {String(legNumber).padStart(2, '0')}
+                  LEG {String(legNumber + 1).padStart(2, '0')}
                 </span>
                 <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${config.badgeClass}`}>
                   {config.badge}

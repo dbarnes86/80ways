@@ -24,7 +24,7 @@ export const Navbar = () => {
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/map", icon: Map, label: "Map" },
-    { to: "/stages", icon: Trophy, label: "Stages" },
+    { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
     { to: "/raids", icon: Sword, label: "Raids" },
     { to: "/activity-history", icon: BookOpen, label: "Logbook" },
     { to: "/store", icon: ShoppingBag, label: "Store" },
@@ -54,7 +54,7 @@ export const Navbar = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
-            <NavLink to="/" className="flex items-center gap-2.5 group">
+            <NavLink to={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
               <motion.div
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_15px_hsl(187_100%_50%/0.4)] transition-shadow duration-300 group-hover:shadow-[0_0_25px_hsl(187_100%_50%/0.6)]"
@@ -72,7 +72,7 @@ export const Navbar = () => {
             </NavLink>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-0.5">
+            <div className={`${user ? 'hidden lg:flex' : 'hidden'} items-center gap-0.5`}>
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
@@ -117,15 +117,21 @@ export const Navbar = () => {
                 </Button>
               )}
 
+              {!user && (
+                <NavLink to="/login" className="text-sm font-mono text-muted-foreground hover:text-primary transition-colors">
+                  Sign in
+                </NavLink>
+              )}
+
               {/* Mobile Menu Button */}
-              <Button
+              {user && <Button
                 variant="ghost"
                 size="icon"
                 className="lg:hidden h-8 w-8"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
+              </Button>}
             </div>
           </div>
         </div>
@@ -133,7 +139,7 @@ export const Navbar = () => {
 
       {/* Mobile Navigation */}
       <AnimatePresence>
-        {mobileMenuOpen && (
+        {user && mobileMenuOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}

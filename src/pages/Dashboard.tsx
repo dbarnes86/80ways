@@ -1,18 +1,13 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { HolographicCard } from '@/components/ui/holographic-card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useEnergyStore } from '@/stores/energyStore';
-import { useRaidStore } from '@/stores/raidStore';
 import { useProgressionStore } from '@/stores/progressionStore';
-import { useSeasonStore } from '@/stores/seasonStore';
+import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
+import { useActivityStore } from '@/stores/activityStore';
+import { useUserStore } from '@/stores/userStore';
+import { useRaidStore } from '@/stores/raidStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { JourneyHero } from '@/components/dashboard/JourneyHero';
 import { EnergyRow } from '@/components/dashboard/EnergyRow';
@@ -23,212 +18,225 @@ import { PlayerLevelBar } from '@/components/dashboard/PlayerLevelBar';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
-import { Plus, User, ChevronDown, Clock, AlertCircle, Sparkles } from 'lucide-react';
+import { DAILY_MISSION, ENERGY_TYPES } from '@/data/gameConstants';
+import { formatTimeLeft, getRaidSchedule, getRaidStatus } from '@/data/raids';
+import { computeStreak, getPlayerNarrativeDay, toDayKey } from '@/lib/gameEngine';
+import { Plus, Clock, AlertCircle, Sparkles, Flame, ShieldOff, Trophy, Loader2 } from 'lucide-react';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const energyStore = useEnergyStore();
-  const raidStore = useRaidStore();
-  const { canJoinMainJourney, level } = useProgressionStore();
-  const seasonStore = useSeasonStore();
-  const { user, signOut } = useAuth();
+  const energy = useEnergyStore();
+  const { canJoinMainJourney } = useProgressionStore();
+  const season = useSeasonStore();
+  const hasJoined = useSeasonStore(selectHasJoined);
+  const activities = useActivityStore((s) => s.activities);
+  const lastDailyMission = useUserStore((s) => s.lastDailyMission);
+  const decayFrozenUntil = useUserStore((s) => s.effects.decayInhibitorUntil);
+  const raidTotals = useRaidStore((s) => s.totals);
+  const { user } = useAuth();
 
   const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
   const [deploymentOpen, setDeploymentOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
 
-  // Fetch season + progression on mount
-  useEffect(() => {
-    seasonStore.fetchActiveSeason();
-    if (user?.id) {
-      useProgressionStore.getState().syncFromDB(user.id);
-      seasonStore.fetchParticipation(user.id);
-    }
-  }, [user?.id]);
-
-  // Apply energy decay on mount and hourly
-  useEffect(() => {
-    energyStore.applyDecay();
-    const interval = setInterval(() => energyStore.applyDecay(), 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const hasJoinedSeason = !!seasonStore.participation;
-  const currentLeg = hasJoinedSeason
-    ? JOURNEY_LEGS[seasonStore.participation!.currentLeg] || JOURNEY_LEGS[0]
-    : JOURNEY_LEGS[0];
+  const participation = hasJoined ? season.participation : null;
+  const journeyDone = participation?.status === 'completed';
+  const currentLeg = JOURNEY_LEGS[participation?.currentLeg ?? 0] ?? JOURNEY_LEGS[0];
+  const legFraction = participation ? participation.legProgress / currentLeg.requiredEnergy.amount : 0;
+  const hasEnergy = ENERGY_TYPES.some((t) => energy[t].current >= 0.1);
 
   // Phase logic: starter → join prompt → main journey
   const showStarterEvent = !canJoinMainJourney;
-  const showJoinPrompt = canJoinMainJourney && !hasJoinedSeason;
-  const showMainJourney = canJoinMainJourney && hasJoinedSeason;
+  const showJoinPrompt = canJoinMainJourney && !hasJoined;
+  const showMainJourney = canJoinMainJourney && hasJoined;
+
+  const today = toDayKey(new Date());
+  const dailyDone = lastDailyMission === today;
+  const streak = computeStreak(activities.map((a) => a.timestamp));
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+
+  const raids = season.activeSeason ? getRaidSchedule(season.activeSeason.startDate, season.activeSeason.endDate) : [];
+  const activeRaid = raids.find((r) => getRaidStatus(r) === 'active');
+  const nextRaid = raids.find((r) => getRaidStatus(r) === 'upcoming');
+
+  const daysLeft = season.activeSeason
+    ? Math.max(0, Math.ceil((season.activeSeason.endDate.getTime() - Date.now()) / 86_400_000))
+    : null;
+
+  const frozen = decayFrozenUntil && new Date(decayFrozenUntil) > new Date();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Minimal top bar */}
-      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-primary/20">
-        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-          <button
-            onClick={() => navigate('/')}
-            className="text-sm font-heading font-bold tracking-wider hover:text-primary transition-colors"
-          >
-            ATW80
-          </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                <User className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 bg-card border-primary/30 z-[100]">
-              <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/profile')}>Settings</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { signOut(); navigate('/login'); }}>Log Out</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Main content — centered single column */}
+    <div className="bg-background flex flex-col">
       <div className="flex-1 container mx-auto px-4 max-w-md pb-28">
-
-        {/* Player Level Bar — always visible */}
         <div className="mt-4 mb-6">
           <PlayerLevelBar />
         </div>
 
-        {/* Phase 1: Starter Event (pre-Level 3) */}
+        {/* Phase 1: Lift Off starter event */}
         {showStarterEvent && (
           <div className="mb-6">
             <StarterEvent />
           </div>
         )}
 
-        {/* Phase 2: Season Join Prompt (Level 3+ but hasn't joined) */}
+        {/* Phase 2: Board the season */}
         {showJoinPrompt && (
           <div className="mb-6">
-            <SeasonJoinPrompt onJoin={() => user?.id && seasonStore.joinSeason(user.id)} />
+            {season.loaded ? (
+              season.activeSeason ? (
+                <SeasonJoinPrompt onJoin={() => (user ? season.joinSeason(user.id) : Promise.resolve({ error: 'Not signed in' }))} />
+              ) : (
+                <div className="border border-border rounded-xl p-5 text-center text-sm text-muted-foreground">
+                  Couldn't reach the shipping office to find this season. Check your connection and refresh.
+                </div>
+              )
+            ) : (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Phase 3: Main Journey */}
-        {showMainJourney && (
+        {/* Phase 3: The journey */}
+        {showMainJourney && participation && (
           <>
-            {/* Journey Hero Ring */}
             <JourneyHero
-              currentDay={seasonStore.narrativeDay}
+              currentDay={getPlayerNarrativeDay(participation.currentLeg, legFraction, journeyDone)}
               totalDays={80}
-              from={currentLeg.from}
-              to={currentLeg.to}
-              narrativeTitle={currentLeg.narrative.title}
+              from={journeyDone ? 'London' : currentLeg.from}
+              to={journeyDone ? 'London' : currentLeg.to}
+              legLabel={journeyDone ? 'JOURNEY COMPLETE' : `LEG ${participation.currentLeg + 1} OF ${JOURNEY_LEGS.length}`}
+              seasonNote={daysLeft !== null ? `${daysLeft} days left in ${season.activeSeason?.name ?? 'the season'}` : undefined}
             />
 
-            {/* Active Challenge */}
             <div className="mb-6">
-              <ActiveChallenge
-                requiredEnergy={currentLeg.requiredEnergy}
-                currentProgress={seasonStore.participation?.legProgress ?? 0}
-                onDeploy={() => setDeploymentOpen(true)}
-              />
+              {journeyDone ? (
+                <HolographicCard glow="magenta" className="p-5 text-center space-y-2">
+                  <Trophy className="w-8 h-8 text-secondary mx-auto" />
+                  <p className="font-heading font-bold text-lg">Wager won</p>
+                  <p className="text-sm text-muted-foreground">
+                    You've made it around the world. Keep charging for raids and climb the leaderboard until the season closes.
+                  </p>
+                  <Link to="/leaderboard" className="text-sm text-primary hover:underline">See the leaderboard</Link>
+                </HolographicCard>
+              ) : (
+                <ActiveChallenge
+                  title={currentLeg.narrative.title}
+                  description={currentLeg.narrative.description}
+                  requiredEnergy={currentLeg.requiredEnergy}
+                  currentProgress={participation.legProgress}
+                  canDeploy={hasEnergy}
+                  onDeploy={() => setDeploymentOpen(true)}
+                />
+              )}
             </div>
           </>
         )}
 
-        {/* Energy Reserves — always visible */}
+        {/* Energy Reserves */}
         <div className="mb-6">
-          <p className="text-[10px] font-mono text-muted-foreground tracking-widest mb-2">ENERGY RESERVES</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-mono text-muted-foreground tracking-widest">ENERGY RESERVES</p>
+            <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+              {frozen ? (
+                <>
+                  <ShieldOff className="w-3 h-3 text-accent" />
+                  <span className="text-accent">Decay frozen {formatTimeLeft(new Date(decayFrozenUntil!))}</span>
+                </>
+              ) : (
+                '−5% / day'
+              )}
+            </p>
+          </div>
           <EnergyRow
             reserves={{
-              nautical: energyStore.nautical,
-              terrestrial: energyStore.terrestrial,
-              transport: energyStore.transport,
-              strength: energyStore.strength,
+              nautical: energy.nautical,
+              terrestrial: energy.terrestrial,
+              transport: energy.transport,
+              strength: energy.strength,
             }}
           />
         </div>
 
-        {/* Collapsible secondary info */}
-        <div className="mb-6">
-          <button
-            onClick={() => setMoreOpen(!moreOpen)}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span>MORE</span>
-            <motion.div animate={{ rotate: moreOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown className="w-3.5 h-3.5" />
-            </motion.div>
-          </button>
+        {/* Secondary info */}
+        <div className="space-y-3">
+          <HolographicCard glow="purple" corners={false} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-heading font-bold">{DAILY_MISSION.name.toUpperCase()}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {DAILY_MISSION.description} · +{DAILY_MISSION.xpReward} XP, +{DAILY_MISSION.creditReward} credits
+                </p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className={`text-[10px] font-mono ${dailyDone ? 'text-success' : 'text-accent'}`}>{dailyDone ? '1/1 ✓' : '0/1'}</p>
+                <p className="text-[9px] text-muted-foreground">Resets {formatTimeLeft(midnight)}</p>
+              </div>
+            </div>
+          </HolographicCard>
 
-          <AnimatePresence>
-            {moreOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden space-y-3 pt-2"
-              >
-                {/* Daily Mission */}
-                <HolographicCard glow="purple" corners={false} className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
-                      <Clock className="w-4 h-4 text-accent" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold">DAILY CONSTITUTIONAL</p>
-                      <p className="text-[10px] text-muted-foreground">Complete any 30-min activity</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-[10px] font-mono text-accent">0/1</p>
-                      <p className="text-[9px] text-muted-foreground">Resets 8h</p>
-                    </div>
+          {streak > 0 && (
+            <HolographicCard glow="none" corners={false} className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-secondary/10 border border-secondary/30 flex items-center justify-center flex-shrink-0">
+                  <Flame className="w-4 h-4 text-secondary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-heading font-bold">{streak}-DAY STREAK</p>
+                  <p className="text-[10px] text-muted-foreground">Log something every day to keep it going</p>
+                </div>
+              </div>
+            </HolographicCard>
+          )}
+
+          <Link to="/raids" className="block">
+            {activeRaid ? (
+              <HolographicCard glow="magenta" className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-4 h-4 text-destructive" />
                   </div>
-                </HolographicCard>
-
-                {/* Raid Alert */}
-                {raidStore.activeRaid ? (
-                  <HolographicCard glow="magenta" className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center flex-shrink-0">
-                        <AlertCircle className="w-4 h-4 text-destructive" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-heading font-bold text-destructive">RAID ACTIVE</p>
-                        <p className="text-[10px] text-muted-foreground">Join the defense!</p>
-                      </div>
-                    </div>
-                  </HolographicCard>
-                ) : (
-                  <HolographicCard glow="none" corners={false} className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-muted/10 border border-muted flex items-center justify-center flex-shrink-0">
-                        <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-heading font-bold text-muted-foreground">NO ACTIVE RAID</p>
-                        <p className="text-[10px] text-muted-foreground">Next raid coming soon</p>
-                      </div>
-                    </div>
-                  </HolographicCard>
-                )}
-
-                {/* Latest Transmission */}
-                <HolographicCard glow="cyan" corners={false} className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold">LATEST TRANSMISSION</p>
-                      <p className="text-[10px] text-muted-foreground italic truncate">
-                        "We depart at 8:45 PM sharp." — Fogg
-                      </p>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-heading font-bold text-destructive">RAID: {activeRaid.name.toUpperCase()}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {(raidTotals[activeRaid.key]?.total ?? 0).toFixed(0)} / {activeRaid.goalKwh} kWh · ends in {formatTimeLeft(activeRaid.end)}
+                    </p>
                   </div>
-                </HolographicCard>
-              </motion.div>
+                </div>
+              </HolographicCard>
+            ) : (
+              <HolographicCard glow="none" corners={false} className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-muted/10 border border-muted flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-heading font-bold text-muted-foreground">NO ACTIVE RAID</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {nextRaid ? `${nextRaid.name} in ${formatTimeLeft(nextRaid.start)}` : 'No more raids this season'}
+                    </p>
+                  </div>
+                </div>
+              </HolographicCard>
             )}
-          </AnimatePresence>
+          </Link>
+
+          <HolographicCard glow="cyan" corners={false} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-heading font-bold">LATEST TRANSMISSION</p>
+                <p className="text-[11px] text-muted-foreground italic">
+                  {showMainJourney && !journeyDone ? currentLeg.narrative.departureQuote : JOURNEY_LEGS[0].narrative.departureQuote}
+                </p>
+              </div>
+            </div>
+          </HolographicCard>
         </div>
       </div>
 
@@ -245,7 +253,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Modals */}
       <ActivityLogger open={activityLoggerOpen} onOpenChange={setActivityLoggerOpen} />
       <EnergyDeployment open={deploymentOpen} onClose={() => setDeploymentOpen(false)} />
     </div>

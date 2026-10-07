@@ -180,7 +180,7 @@ export function getLevelFromXP(xp: number): { level: number; name: string; xpFor
     name: LEVEL_NAMES[level - 1] || 'Unknown',
     xpForNext,
     xpInLevel,
-    progress: Math.min(1, xpInLevel / xpForNext),
+    progress: xpForNext > 0 ? Math.min(1, xpInLevel / xpForNext) : 1,
   };
 }
 
@@ -195,3 +195,62 @@ export function getDeploymentEfficiency(
   if (ENERGY_RELATIONS[challengeType]?.includes(energyType)) return DEPLOYMENT_EFFICIENCY.related;
   return DEPLOYMENT_EFFICIENCY.unrelated;
 }
+
+// ─── Energy Types ───────────────────────────────────────────────
+export type EnergyType = 'nautical' | 'terrestrial' | 'transport' | 'strength';
+export type Intensity = 'light' | 'moderate' | 'vigorous';
+export const ENERGY_TYPES: EnergyType[] = ['nautical', 'terrestrial', 'transport', 'strength'];
+
+/** Logging an activity into its native reserve is 100% efficient, anything else 50%. */
+export const ACTIVITY_MATCH_EFFICIENCY = 1.0;
+export const ACTIVITY_MISMATCH_EFFICIENCY = 0.5;
+/** Each km covered adds this much base energy on top of time × intensity. */
+export const ENERGY_PER_KM = 0.1;
+export const KM_PER_MILE = 1.609344;
+
+/** Extra XP for charging the reserve that matches the activity. */
+export const XP_OPTIMAL_MATCH_BONUS = 10;
+
+// ─── Daily Mission ──────────────────────────────────────────────
+export const DAILY_MISSION = {
+  name: 'Daily Constitutional',
+  description: 'Complete any 30-minute activity',
+  minDuration: 30,
+  xpReward: 25,
+  creditReward: 15,
+} as const;
+
+// ─── Credits (in-game currency) ─────────────────────────────────
+export const CREDITS_PER_ACTIVITY = 5;
+export const CREDITS_STARTER_EVENT = 100;
+export const CREDITS_PER_LEG_BASE = 50;
+export const CREDITS_PER_LEG_STEP = 10; // + per leg number, later legs pay more
+export const CREDITS_JOURNEY_COMPLETE = 500;
+export const CREDITS_RAID_SUCCESS = 150;
+
+// ─── Boosters ───────────────────────────────────────────────────
+export type BoosterId = 'energyAmplifier' | 'multiCharge' | 'decayInhibitor';
+
+export const BOOSTERS: Record<BoosterId, { name: string; description: string; price: number; rarity: 'common' | 'rare' | 'epic' }> = {
+  energyAmplifier: {
+    name: 'Energy Amplifier',
+    description: 'Doubles the energy from one logged activity.',
+    price: 60,
+    rarity: 'common',
+  },
+  decayInhibitor: {
+    name: 'Decay Inhibitor',
+    description: 'Freezes reserve decay for 72 hours.',
+    price: 75,
+    rarity: 'rare',
+  },
+  multiCharge: {
+    name: 'Multi-Charge',
+    description: 'One logged activity also charges every other reserve at 25% of its output.',
+    price: 90,
+    rarity: 'epic',
+  },
+};
+
+export const DECAY_INHIBITOR_HOURS = 72;
+export const MULTI_CHARGE_SPILLOVER = 0.25;

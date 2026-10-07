@@ -1,22 +1,45 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, Users, Calendar, ArrowRight } from 'lucide-react';
+import { Globe, Map, Calendar, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSeasonStore } from '@/stores/seasonStore';
-import { useProgressionStore } from '@/stores/progressionStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 
 interface SeasonJoinProps {
-  onJoin: () => void;
+  onJoin: () => Promise<{ error?: string }>;
 }
 
 export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
-  const { activeSeason, narrativeDay, globalLeg } = useSeasonStore();
-  const { canJoinMainJourney } = useProgressionStore();
+  const { activeSeason, narrativeDay, getJoinLeg } = useSeasonStore();
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!activeSeason || !canJoinMainJourney) return null;
+  if (!activeSeason) return null;
 
-  const currentLegData = JOURNEY_LEGS[globalLeg];
+  const joinLeg = getJoinLeg();
+  const joinLegData = JOURNEY_LEGS[joinLeg];
   const isUpcoming = activeSeason.status === 'upcoming';
+  const isOver = activeSeason.status === 'completed';
+
+  const handleJoin = async () => {
+    setJoining(true);
+    setError(null);
+    const res = await onJoin();
+    if (res.error) setError(res.error);
+    setJoining(false);
+  };
+
+  if (isOver) {
+    return (
+      <div className="border border-border rounded-xl p-5 space-y-2 text-center">
+        <Globe className="w-6 h-6 text-muted-foreground mx-auto" />
+        <h3 className="font-heading font-bold">{activeSeason.name} has finished</h3>
+        <p className="text-sm text-muted-foreground">
+          The next expedition opens soon. Keep logging activities in the meantime, your reserves and XP carry over.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -31,17 +54,16 @@ export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
 
       <p className="text-sm text-muted-foreground">
         {isUpcoming
-          ? `Season ${activeSeason.seasonNumber} begins ${activeSeason.startDate.toLocaleDateString()}. Be ready!`
-          : `The expedition is on Day ${narrativeDay}/80. The crew is currently at ${currentLegData?.from || 'London'}.`
-        }
+          ? `Season ${activeSeason.seasonNumber} sets sail ${activeSeason.startDate.toLocaleDateString()}. Sign on now and you'll start in London.`
+          : `You're cleared for departure. The expedition is on day ${narrativeDay} of 80.`}
       </p>
 
-      {!isUpcoming && globalLeg > 0 && (
+      {!isUpcoming && joinLeg > 0 && (
         <div className="bg-card/50 rounded-lg p-3 text-xs text-foreground/70">
-          <p className="font-bold text-foreground/90 mb-1">Late Joiner Catch-Up</p>
+          <p className="font-bold text-foreground/90 mb-1">Catching up with the crew</p>
           <p>
-            You'll join the journey at <span className="text-primary font-semibold">{currentLegData?.from}</span> (Leg {globalLeg + 1}/{JOURNEY_LEGS.length}). 
-            Previous legs are recorded in the ship's log for you to read.
+            You'll join at <span className="text-primary font-semibold">{joinLegData?.from}</span> (leg {joinLeg + 1} of{' '}
+            {JOURNEY_LEGS.length}). Earlier legs are in the ship's log on the Map.
           </p>
         </div>
       )}
@@ -52,18 +74,17 @@ export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
           <span>Ends {activeSeason.endDate.toLocaleDateString()}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Users className="w-3 h-3" />
-          <span>{activeSeason.totalDistanceKm.toLocaleString()} km total</span>
+          <Map className="w-3 h-3" />
+          <span>{activeSeason.totalDistanceKm.toLocaleString()} km</span>
         </div>
       </div>
 
-      <Button
-        onClick={onJoin}
-        className="w-full gap-2"
-        size="lg"
-      >
-        {isUpcoming ? 'Register for Season' : 'Board the Expedition'}
-        <ArrowRight className="w-4 h-4" />
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <Button onClick={handleJoin} disabled={joining} className="w-full gap-2" size="lg">
+        {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+        {isUpcoming ? 'Sign on for the season' : 'Board the expedition'}
+        {!joining && <ArrowRight className="w-4 h-4" />}
       </Button>
     </motion.div>
   );

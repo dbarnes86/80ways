@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { flushPush, releaseLocalState, resetLocalGame } from '@/lib/gameSync';
 
 interface AuthContextType {
   user: User | null;
@@ -42,7 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    await flushPush();
+    releaseLocalState();
     await supabase.auth.signOut();
+    // The game is saved server-side; don't leave it on a shared device.
+    resetLocalGame();
   };
 
   return (

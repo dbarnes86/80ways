@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          activity_type: string
+          actual_energy: number
+          base_energy: number
+          booster_used: string | null
+          created_at: string
+          distance_km: number | null
+          duration_min: number
+          efficiency: number
+          id: string
+          intensity: string
+          notes: string | null
+          performed_at: string
+          target_energy_type: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          actual_energy: number
+          base_energy: number
+          booster_used?: string | null
+          created_at?: string
+          distance_km?: number | null
+          duration_min: number
+          efficiency: number
+          id: string
+          intensity: string
+          notes?: string | null
+          performed_at?: string
+          target_energy_type: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          actual_energy?: number
+          base_energy?: number
+          booster_used?: string | null
+          created_at?: string
+          distance_km?: number | null
+          duration_min?: number
+          efficiency?: number
+          id?: string
+          intensity?: string
+          notes?: string | null
+          performed_at?: string
+          target_energy_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       energy_deployments: {
         Row: {
           amount: number
@@ -61,6 +112,7 @@ export type Database = {
       player_progression: {
         Row: {
           created_at: string
+          game_state: Json
           id: string
           level: number
           starter_event_completed: boolean
@@ -73,6 +125,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          game_state?: Json
           id?: string
           level?: number
           starter_event_completed?: boolean
@@ -85,6 +138,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          game_state?: Json
           id?: string
           level?: number
           starter_event_completed?: boolean
@@ -123,6 +177,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      raid_contributions: {
+        Row: {
+          amount: number
+          contributed_at: string
+          effective_amount: number
+          energy_type: string
+          id: string
+          raid_key: string
+          season_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          contributed_at?: string
+          effective_amount: number
+          energy_type: string
+          id?: string
+          raid_key: string
+          season_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          contributed_at?: string
+          effective_amount?: number
+          energy_type?: string
+          id?: string
+          raid_key?: string
+          season_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raid_contributions_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       season_participation: {
         Row: {
@@ -218,7 +313,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_current_season: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["seasons"]["Row"][]
+      }
+      get_raid_top_contributors: {
+        Args: { p_season_id: string; p_raid_key: string; p_limit?: number }
+        Returns: { display_name: string; total: number; is_you: boolean }[]
+      }
+      get_raid_totals: {
+        Args: { p_season_id: string }
+        Returns: {
+          raid_key: string
+          total: number
+          participants: number
+          your_contribution: number
+        }[]
+      }
+      get_season_leaderboard: {
+        Args: { p_season_id: string; p_limit?: number }
+        Returns: {
+          rank: number
+          display_name: string
+          current_leg: number
+          leg_progress: number
+          status: string
+          xp: number
+          is_you: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

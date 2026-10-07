@@ -1,9 +1,15 @@
 import { motion } from 'framer-motion';
 import { HolographicCard } from '@/components/ui/holographic-card';
 import { LocationCard } from '@/components/map/LocationCard';
-import { useJourneyStore } from '@/stores/journeyStore';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
-import { MapPin, Globe, Compass } from 'lucide-react';
+import { ENERGY_THEME } from '@/data/energyTheme';
+import { getDistanceCovered, getPlayerNarrativeDay } from '@/lib/gameEngine';
+import { MapPin, Globe, Compass, Lock } from 'lucide-react';
+
+type LegStatus = 'complete' | 'active' | 'locked';
 
 // Simple city coordinates mapped to a 0-100 viewBox for the SVG path
 const CITY_POINTS: Record<string, { x: number; y: number }> = {
@@ -20,30 +26,62 @@ const CITY_POINTS: Record<string, { x: number; y: number }> = {
   'Liverpool': { x: 47, y: 21 },
 };
 
-export default function MapPage() {
-  const journey = useJourneyStore();
+type Point = { x: number; y: number };
 
-  // Build stages from JOURNEY_LEGS data
-  const stages = JOURNEY_LEGS.map((leg) => ({
+/** SVG path through the points; long eastward hops (the Pacific) wrap off the right edge and back in on the left. */
+function buildRoute(points: Point[]): string {
+  return points
+    .map((p, i) => {
+      if (i === 0) return `M ${p.x} ${p.y}`;
+      const prev = points[i - 1];
+      if (prev.x - p.x > 50) {
+        const midY = (prev.y + p.y) / 2;
+        return `L 100 ${midY} M 0 ${midY} L ${p.x} ${p.y}`;
+      }
+      return `L ${p.x} ${p.y}`;
+    })
+    .join(' ');
+}
+
+export default function MapPage() {
+  const season = useSeasonStore();
+  const hasJoined = useSeasonStore(selectHasJoined);
+  const participation = hasJoined ? season.participation : null;
+  const journeyDone = participation?.status === 'completed';
+  const currentLegIndex = participation?.currentLeg ?? 0;
+  const legFraction = participation
+    ? participation.legProgress / JOURNEY_LEGS[currentLegIndex].requiredEnergy.amount
+    : 0;
+  const [openLeg, setOpenLeg] = useState<number | null>(null);
+
+  const legStatus = (i: number): LegStatus => {
+    if (!participation) return 'locked';
+    if (journeyDone || i < currentLegIndex) return 'complete';
+    if (i === currentLegIndex) return 'active';
+    return 'locked';
+  };
+
+  const stages = JOURNEY_LEGS.map((leg, i) => ({
     name: leg.to,
     country: leg.from + ' → ' + leg.to,
     distance: leg.distance,
-    status: (leg.legNumber === 0 ? 'start' : leg.status) as 'complete' | 'active' | 'locked' | 'start',
+    status: legStatus(i),
     legNumber: leg.legNumber,
     narrative: leg.narrative.title,
   }));
 
-  // Calculate path progress
-  const completedLegs = JOURNEY_LEGS.filter((l) => (l.status as string) === 'complete').length;
+  const completedLegs = stages.filter((s) => s.status === 'complete').length;
   const totalDistance = JOURNEY_LEGS.reduce((sum, l) => sum + l.distance, 0);
-  const coveredDistance = JOURNEY_LEGS.slice(0, completedLegs + 1).reduce((sum, l) => sum + l.distance, 0);
+  const coveredDistance = participation ? getDistanceCovered(currentLegIndex, legFraction, journeyDone) : 0;
+  const day = participation ? getPlayerNarrativeDay(currentLegIndex, legFraction, journeyDone) : 1;
 
-  // Build SVG path points
-  const pathCities = JOURNEY_LEGS.map((leg) => CITY_POINTS[leg.to] || CITY_POINTS[leg.from]).filter(Boolean);
+  // Start in London, then each leg's destination.
+  const pathCities = [CITY_POINTS['London'], ...JOURNEY_LEGS.map((leg) => CITY_POINTS[leg.to])];
 
-  const pathD = pathCities
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-    .join(' ');
+  const pathD = buildRoute(pathCities);
+
+  const selected = openLeg !== null ? JOURNEY_LEGS[openLeg] : null;
+  const selectedStatus = openLeg !== null ? legStatus(openLeg) : 'locked';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -60,7 +98,7 @@ export default function MapPage() {
         </div>
         <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
           <Compass className="w-4 h-4 text-primary" />
-          <span>Day 1 of 80</span>
+          <span>Day {day} of 80</span>
         </div>
       </div>
 
@@ -124,10 +162,7 @@ export default function MapPage() {
             {/* Completed path (bright) */}
             {completedLegs > 0 && (
               <motion.path
-                d={pathCities
-                  .slice(0, completedLegs + 1)
-                  .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-                  .join(' ')}
+                d={buildRoute(pathCities.slice(0, completedLegs + 1))}
                 fill="none"
                 stroke="hsl(187 100% 50%)"
                 strokeWidth={0.5}
@@ -139,11 +174,14 @@ export default function MapPage() {
 
             {/* City dots */}
             {pathCities.map((p, i) => {
-                  const currentLeg = JOURNEY_LEGS[i];
-                  const legStatus = currentLeg.status as string;
-                  const isComplete = legStatus === 'complete' || legStatus === 'start';
-                  const isActive = legStatus === 'active';
-                  const isLocked = legStatus === 'locked';
+              // Dot 0 is the London origin; dot i is the destination of leg i-1.
+              const status: LegStatus | 'origin' = i === 0 ? 'origin' : legStatus(i - 1);
+              const isComplete = status === 'complete' || status === 'origin';
+              const isActive = status === 'active';
+              const isLocked = status === 'locked';
+              const label = i === 0 ? 'London' : JOURNEY_LEGS[i - 1].to;
+              // London appears twice (start and finish) and London Port sits on top of it; only label once.
+              const showLabel = i !== 1 && i !== pathCities.length - 1;
 
               return (
                 <g key={i}>
@@ -155,6 +193,7 @@ export default function MapPage() {
                       fill="none"
                       stroke="hsl(187 100% 50%)"
                       strokeWidth={0.2}
+                      initial={{ r: 1.5, opacity: 0.8 }}
                       animate={{ r: [1.5, 3, 1.5], opacity: [0.8, 0, 0.8] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
@@ -165,16 +204,18 @@ export default function MapPage() {
                     r={isActive ? 1.2 : 0.8}
                     fill={isComplete ? 'hsl(84 81% 44%)' : isActive ? 'hsl(187 100% 50%)' : 'hsl(240 20% 30%)'}
                   />
-                  <text
-                    x={p.x}
-                    y={p.y - 2}
-                    textAnchor="middle"
-                    fill={isLocked ? 'hsl(0 0% 40%)' : 'hsl(0 0% 80%)'}
-                    fontSize={1.8}
-                    fontFamily="var(--font-mono)"
-                  >
-                    {currentLeg.to}
-                  </text>
+                  {showLabel && (
+                    <text
+                      x={p.x}
+                      y={p.y - 2}
+                      textAnchor="middle"
+                      fill={isLocked ? 'hsl(0 0% 40%)' : 'hsl(0 0% 80%)'}
+                      fontSize={1.8}
+                      fontFamily="var(--font-mono)"
+                    >
+                      {label}
+                    </text>
+                  )}
                 </g>
               );
             })}
@@ -202,10 +243,52 @@ export default function MapPage() {
               status={stage.status}
               legNumber={stage.legNumber}
               narrative={stage.narrative}
+              onClick={() => setOpenLeg(index)}
             />
           </motion.div>
         ))}
       </div>
+
+      {!participation && (
+        <p className="text-sm text-muted-foreground mt-6 text-center">
+          Board the expedition from your dashboard to start unlocking legs.
+        </p>
+      )}
+
+      <Dialog open={openLeg !== null} onOpenChange={(o) => !o && setOpenLeg(null)}>
+        <DialogContent className="max-w-lg bg-background border-2 border-primary/50">
+          {selected && (
+            <>
+              <DialogHeader>
+                <p className="text-[10px] font-mono text-muted-foreground tracking-widest">
+                  LEG {String(selected.legNumber + 1).padStart(2, '0')} · DAY {selected.daysNarrative}
+                </p>
+                <DialogTitle className="text-xl font-heading">{selected.narrative.title}</DialogTitle>
+                <DialogDescription>
+                  {selected.from} → {selected.to} · {selected.distance.toLocaleString()} km ·{' '}
+                  {selected.requiredEnergy.amount} kWh{' '}
+                  <span className={ENERGY_THEME[selected.requiredEnergy.type].text}>
+                    {ENERGY_THEME[selected.requiredEnergy.type].label}
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+              {selectedStatus === 'locked' ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                  <Lock className="w-4 h-4" /> The log for this leg hasn't been written yet. Keep travelling.
+                </div>
+              ) : (
+                <div className="space-y-4 text-sm">
+                  <p className="italic text-muted-foreground">{selected.narrative.departureQuote}</p>
+                  <p className="leading-relaxed">{selected.narrative.description}</p>
+                  {selectedStatus === 'complete' && (
+                    <p className="italic text-primary">{selected.narrative.arrivalQuote}</p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
