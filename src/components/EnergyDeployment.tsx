@@ -6,6 +6,7 @@ import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { ENERGY_THEME } from '@/data/energyTheme';
 import { deployToLeg, type DeployResult } from '@/lib/gameActions';
 import { toast } from '@/components/toast';
+import { haptic } from '@/lib/native';
 import { Dialog, Button, SegmentedProgress, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 
 interface EnergyDeploymentProps {
@@ -36,7 +37,7 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
     try {
       const res = await deployToLeg(selection);
       setResult(res);
-      if (res.levelUp) toast({ title: `Level ${res.levelUp.level}!`, description: `You're now a ${res.levelUp.name}.` });
+      haptic(res.legCompleted ? 'success' : 'tap');
     } catch (err) {
       toast({
         title: 'Deployment failed',
@@ -101,6 +102,10 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
                   </span>
                 )}
               </div>
+
+              {result.levelUp && (
+                <p className="text-sm text-secondary">Level {result.levelUp.level}: {result.levelUp.name}</p>
+              )}
 
               {result.legCompleted ? (
                 <div className="space-y-4">

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useUserStore } from '@/stores/userStore';
-import { toast } from '@/components/toast';
+import { haptic } from '@/lib/native';
 import { logActivity, type LogActivityResult } from '@/lib/gameActions';
 import { calculateActivityEnergy, getNativeEnergyType } from '@/lib/gameEngine';
 import { ENERGY_THEME } from '@/data/energyTheme';
@@ -164,9 +164,7 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
         useMultiCharge: form.useMultiCharge,
       });
       setResult(res);
-      if (res.levelUp) {
-        toast({ title: `Level ${res.levelUp.level}!`, description: `You're now a ${res.levelUp.name}.` });
-      }
+      haptic(res.levelUp || res.starterCompleted ? 'success' : 'tap');
     } catch (err) {
       setErrors({ submit: err instanceof Error ? err.message : 'Something went wrong' });
     } finally {

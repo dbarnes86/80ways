@@ -44,7 +44,7 @@ export const StarterEvent = () => {
 
       {/* Narrative Quote */}
       <div className="bg-card/50 border border-border/50 rounded-lg p-4 italic text-sm text-foreground/80">
-        "{getNarrativeMessage()}"
+        {getNarrativeMessage()}
       </div>
 
       {/* Progress Ring */}

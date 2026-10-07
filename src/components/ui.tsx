@@ -21,6 +21,22 @@ import { X } from 'lucide-react'
 /** Join class names, skipping falsy ones. */
 export const cn = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ')
 
+/** Utility families a caller may override on a variant: background, text colour, border colour. */
+const OVERRIDABLE = [/^(hover:)?bg-/, /^(hover:)?text-(?!xs|sm|base|lg|xl|\d|\[)/, /^border-(?!\d|t-|b-|l-|r-|x-|y-)/]
+
+/**
+ * Drop variant classes that the caller's className overrides, so `<Button className="bg-secondary">`
+ * reliably wins without pulling in tailwind-merge.
+ */
+function withOverrides(variant: string, className?: string) {
+  if (!className) return variant
+  const given = className.split(/\s+/)
+  return variant
+    .split(/\s+/)
+    .filter((v) => !OVERRIDABLE.some((re) => re.test(v) && given.some((g) => re.test(g) && g.startsWith('hover:') === v.startsWith('hover:'))))
+    .join(' ')
+}
+
 // ─── Button ─────────────────────────────────────────────────────
 type ButtonVariant = 'default' | 'outline' | 'ghost' | 'secondary'
 type ButtonSize = 'default' | 'sm' | 'lg' | 'icon'
@@ -53,7 +69,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
-        BUTTON_VARIANTS[variant],
+        withOverrides(BUTTON_VARIANTS[variant], className),
         BUTTON_SIZES[size],
         className,
       )}
@@ -72,7 +88,7 @@ export function Badge({ className, variant = 'default', ...props }: HTMLAttribut
   }[variant]
   return (
     <span
-      className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold', styles, className)}
+      className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold', withOverrides(styles, className), className)}
       {...props}
     />
   )

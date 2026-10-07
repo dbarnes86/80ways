@@ -102,10 +102,10 @@ export default function MapPage() {
 
       {/* SVG Map Visualization */}
       <HoloCard glow="cyan" className="p-4 mb-8">
-        <div className="aspect-[21/9] w-full relative">
+        <div className="relative aspect-[5/3] w-full">
           <svg viewBox="0 0 100 60" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             {/* Simplified world map continents */}
-            <g opacity={0.15} fill="none" stroke="hsl(187 100% 50%)" strokeWidth={0.3}>
+            <g opacity={0.32} fill="hsl(187 100% 50% / 0.05)" stroke="hsl(187 100% 50%)" strokeWidth={0.3}>
               {/* North America */}
               <path d="M5,12 L8,10 L12,8 L18,7 L22,8 L25,10 L28,9 L30,11 L28,14 L30,16 L28,18 L26,20 L24,22 L22,26 L20,30 L18,32 L16,30 L14,28 L12,24 L10,20 L8,18 L6,16 L5,14 Z" />
               {/* South America */}
@@ -155,7 +155,7 @@ export default function MapPage() {
             ))}
 
             {/* Full path (dim) */}
-            <path d={pathD} fill="none" stroke="hsl(187 100% 50% / 0.15)" strokeWidth={0.4} strokeDasharray="1 1" />
+            <path d={pathD} fill="none" stroke="hsl(187 100% 50% / 0.3)" strokeWidth={0.45} strokeDasharray="1 1" />
 
             {/* Completed path (bright) */}
             {completedLegs > 0 && (
@@ -163,7 +163,8 @@ export default function MapPage() {
                 d={buildRoute(pathCities.slice(0, completedLegs + 1))}
                 fill="none"
                 stroke="hsl(187 100% 50%)"
-                strokeWidth={0.5}
+                strokeWidth={0.7}
+                style={{ filter: 'drop-shadow(0 0 1px hsl(187 100% 50%))' }}
               />
             )}
 
@@ -193,7 +194,7 @@ export default function MapPage() {
                   <circle
                     cx={p.x}
                     cy={p.y}
-                    r={isActive ? 1.2 : 0.8}
+                    r={isActive ? 1.4 : 1}
                     fill={isComplete ? 'hsl(84 81% 44%)' : isActive ? 'hsl(187 100% 50%)' : 'hsl(240 20% 30%)'}
                   />
                   {showLabel && (
@@ -202,7 +203,7 @@ export default function MapPage() {
                       y={p.y - 2}
                       textAnchor="middle"
                       fill={isLocked ? 'hsl(0 0% 40%)' : 'hsl(0 0% 80%)'}
-                      fontSize={1.8}
+                      fontSize={2.4}
                       fontFamily="var(--font-mono)"
                     >
                       {label}
