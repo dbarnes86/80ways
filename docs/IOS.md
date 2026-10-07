@@ -34,7 +34,8 @@ In Xcode:
 Apple Health needs a real iPhone with some workouts in Health (the simulator's Health app is
 empty). Sign in with Apple works in the simulator if it's signed into an Apple ID.
 
-Run `npm run cap:sync` again after any change to the web code. Xcode picks up the new bundle on the
+Run `npm run cap:sync` again after any change to the web code, and `npm ci` first whenever
+`package.json` changed (new native plugins, such as local notifications, need both). Xcode picks up the new bundle on the
 next Run.
 
 ## Testing purchases

@@ -37,13 +37,13 @@ Spend your energy to cross 11 legs and 35,310 km: the Channel, the Alps, the Sue
 BEAT DETECTIVE FIX
 Every couple of weeks Fix sabotages the expedition. The whole crew pools energy to bring him down in a raid boss battle. Land critical hits with the right energy, and everyone who fights shares the reward.
 
-KEEP IT GOING
-A daily mission, streaks, 14 achievements, levels and a season leaderboard. Reserves fade if you stop, so little and often wins.
+QUESTS EVERY DAY
+Three new quests every morning, weekly telegrams from Fogg, chests to open, levels, streaks and a passport stamp in every city. Reserves fade if you stop, so little and often wins.
 
 FREE TO START
-Lift Off, the starter event, is free. Membership unlocks the season expedition, raids and the leaderboard. Start with a free trial where available.
+Lift Off, daily quests and chests are free. The Season Pass unlocks the 80-day voyage, raids and the leaderboard. Start with a free trial where available.
 
-Membership is an auto-renewing subscription, monthly or yearly. Payment is charged to your Apple ID at confirmation. It renews unless cancelled at least 24 hours before the end of the period; manage or cancel in Settings › your name › Subscriptions.
+The Season Pass is an auto-renewing subscription, monthly or yearly. Payment is charged to your Apple ID at confirmation. It renews unless cancelled at least 24 hours before the end of the period; manage or cancel in Settings › your name › Subscriptions.
 
 Terms: https://80ways.co/terms
 Privacy: https://80ways.co/privacy
@@ -56,9 +56,9 @@ fitness,workout,adventure,running,cycling,steps,game,exercise,motivation,habit,c
 
 - Create a demo account (email and password) and paste it here. Log a couple of activities on it
   first so the reviewer sees the full loop.
-- "Membership is an auto-renewable subscription in the Membership group. Lift Off and activity
-  logging are free; the season expedition, raids and leaderboard need membership. Restore Purchases
-  is on the Membership screen."
+- "The Season Pass is an auto-renewable subscription in the Membership group. Lift Off, quests and
+  activity logging are free; the season voyage, raids and leaderboard need the pass. Restore
+  Purchases is on the Season Pass screen (Me → Season Pass)."
 - Sign in with Apple is the main sign-in; email is offered as well.
 - HealthKit: the app reads workouts only (type, start, duration, distance, energy) and turns them
   into game activities that charge the player's energy reserves. It never writes to Health and
@@ -83,10 +83,10 @@ Data **linked to the user**, used for **App Functionality** only. No tracking, n
 
 Subscription group **Membership**:
 
-| Reference name | Product ID | Duration |
-|---|---|---|
-| Monthly | com.atw80ways.membership.monthly | 1 month |
-| Annual | com.atw80ways.membership.annual | 1 year |
+| Reference name | Display name | Product ID | Duration |
+|---|---|---|---|
+| Monthly | Season Pass (monthly) | com.atw80ways.membership.monthly | 1 month |
+| Annual | Season Pass (yearly) | com.atw80ways.membership.annual | 1 year |
 
 Each needs a display name, a description and a review screenshot (use `resources/app-store/` or a
 capture of the Membership screen).
