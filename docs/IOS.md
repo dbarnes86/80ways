@@ -71,7 +71,14 @@ Set these on the Supabase project (Project Settings → Edge Functions → Secre
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Web checkout and its webhook |
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` | Web plans (Price ids) |
 | `STRIPE_TRIAL_DAYS` | Optional free trial on the web, e.g. `7` |
-| `APP_URL` | The web app's origin, e.g. `https://app.80ways.app` |
+| `APP_URL` | `https://80ways.co` (no trailing slash) |
+
+### Domain
+
+The app is served at **https://80ways.co** from the Cloudflare Pages project `80ways` (DNS on
+Cloudflare; `www` redirects to the apex). In Supabase → Authentication → URL Configuration set the
+Site URL to `https://80ways.co` and add `https://80ways.co/**` to the redirect URLs, so
+confirmation and password-reset emails land in the app.
 
 ### Stripe product (Auguris OÜ account)
 

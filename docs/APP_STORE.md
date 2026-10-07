@@ -16,9 +16,9 @@ Everything App Store Connect asks for, ready to paste. Screenshots are in `resou
 | Secondary category | Games › Adventure |
 | Age rating | 4+ (no objectionable content; answer "None" throughout the questionnaire) |
 | Price | Free, with in-app subscriptions |
-| Privacy Policy URL | https://YOUR-DOMAIN/privacy |
-| Terms of Use (EULA) | https://YOUR-DOMAIN/terms (add to the description too; Apple requires it for subscriptions) |
-| Support URL | https://YOUR-DOMAIN/ (or a support page) |
+| Privacy Policy URL | https://80ways.co/privacy |
+| Terms of Use (EULA) | https://80ways.co/terms (add to the description too; Apple requires it for subscriptions) |
+| Support URL | https://80ways.co/ (or a support page) |
 
 ## Promotional text (170)
 
@@ -45,8 +45,8 @@ Lift Off, the starter event, is free. Membership unlocks the season expedition, 
 
 Membership is an auto-renewing subscription, monthly or yearly. Payment is charged to your Apple ID at confirmation. It renews unless cancelled at least 24 hours before the end of the period; manage or cancel in Settings › your name › Subscriptions.
 
-Terms: https://YOUR-DOMAIN/terms
-Privacy: https://YOUR-DOMAIN/privacy
+Terms: https://80ways.co/terms
+Privacy: https://80ways.co/privacy
 
 ## Keywords (100)
 
