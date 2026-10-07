@@ -12,6 +12,7 @@ import { ACHIEVEMENTS } from "@/data/achievements";
 import { computeStreak, longestStreak } from "@/lib/gameEngine";
 import { schedulePush } from "@/lib/gameSync";
 import { DeleteAccount } from "@/features/DeleteAccount";
+import { HealthSetting } from "@/features/health";
 import { toast } from '@/components/toast';
 import { Button, Input, Badge, Switch, HoloCard, SegmentedProgress } from '@/components/ui';
 
@@ -228,6 +229,8 @@ export default function Profile() {
                   </Button>
                 </div>
               </div>
+
+              {user && <HealthSetting userId={user.id} />}
 
               <div className="flex items-center justify-between">
                 <div>

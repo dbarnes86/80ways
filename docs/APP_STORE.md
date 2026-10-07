@@ -28,8 +28,8 @@ A new season is under way. Log your workouts, charge your reserves and help the 
 
 In 1872, Phileas Fogg bet he could go round the world in 80 days. Now every run, ride, swim and lift you log moves him one step closer.
 
-LOG ANY WORKOUT
-Running, cycling, rowing, swimming, lifting, yoga and more. Each workout charges one of four energy reserves: Nautical, Terrestrial, Transport and Strength. Match the workout to the reserve for full power.
+YOUR WORKOUTS ARE THE FUEL
+Connect Apple Health and every run, ride, swim and session charges your reserves on its own: Nautical, Terrestrial, Transport and Strength. No logging. Your last week comes in the moment you connect, so you start with something in the tank.
 
 TRAVEL THE ROUTE
 Spend your energy to cross 11 legs and 35,310 km: the Channel, the Alps, the Suez Canal, the jungles of India, the Pacific, the American railroad and the final dash home. Every leg unlocks the next chapter of the story.
@@ -59,7 +59,11 @@ fitness,workout,adventure,running,cycling,steps,game,exercise,motivation,habit,c
 - "Membership is an auto-renewable subscription in the Membership group. Lift Off and activity
   logging are free; the season expedition, raids and leaderboard need membership. Restore Purchases
   is on the Membership screen."
-- The app does not read HealthKit. Activities are entered by the player.
+- Sign in with Apple is the main sign-in; email is offered as well.
+- HealthKit: the app reads workouts only (type, start, duration, distance, energy) and turns them
+  into game activities that charge the player's energy reserves. It never writes to Health and
+  Health data is not used for advertising or shared. To see it, sign in on a device with a few
+  workouts in Health and tap Connect Apple Health; players can also log activities by hand.
 
 ## App Privacy (nutrition label)
 
@@ -71,7 +75,7 @@ Data **linked to the user**, used for **App Functionality** only. No tracking, n
 | Contact Info › Name | Yes | Display name, shown on leaderboards |
 | Identifiers › User ID | Yes | Account id |
 | Purchases › Purchase History | Yes | Membership status only |
-| Fitness | Yes | Workouts the player logs (type, duration, distance) |
+| Health & Fitness › Fitness | Yes | Workouts read from Apple Health or logged by hand (type, duration, distance, calories) |
 | User Content › Other | Yes | Optional notes on activities |
 | Everything else | No | |
 

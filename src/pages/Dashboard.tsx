@@ -13,6 +13,7 @@ import { EnergyRow } from '@/components/dashboard/EnergyRow';
 import { ActiveChallenge } from '@/components/dashboard/ActiveChallenge';
 import { StarterEvent } from '@/components/dashboard/StarterEvent';
 import { SeasonJoinPrompt } from '@/components/dashboard/SeasonJoinPrompt';
+import { ConnectHealthCard } from '@/features/health';
 import { PlayerLevelBar } from '@/components/dashboard/PlayerLevelBar';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
@@ -70,6 +71,12 @@ const Dashboard = () => {
         <div className="mt-4 mb-6">
           <PlayerLevelBar />
         </div>
+
+        {user && (
+          <div className="mb-6 empty:hidden">
+            <ConnectHealthCard userId={user.id} />
+          </div>
+        )}
 
         {/* Phase 1: Lift Off starter event */}
         {showStarterEvent && (

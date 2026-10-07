@@ -15,7 +15,8 @@ integration on merge to `main`; Edge Functions deploy from `.github/workflows/de
 
 ## The game loop
 
-1. **Log a workout.** Duration × intensity (+0.1 kWh per km) charges one of four reserves:
+1. **Log a workout**, or let Apple Health bring it in (iPhone: `src/services/healthService.ts`,
+   mapping in `src/lib/healthImport.ts`). Duration × intensity (+0.1 kWh per km) charges one of four reserves:
    Nautical, Terrestrial, Transport, Strength. The native reserve charges at 100%, others at 50%.
    Reserves cap at 10 kWh and decay 5% a day.
 2. **Lift Off** (free). Fill a 5 kWh starter meter to reach level 3.
@@ -57,4 +58,5 @@ iOS: `npm run cap:sync && npx cap open ios`, then see `docs/IOS.md`.
 
 - Fill in `src/data/company.ts` (legal entity, support email) and the URLs in `docs/APP_STORE.md`.
 - Create Stripe prices and App Store products; set the secrets listed in `docs/IOS.md`.
+- Turn on the Apple provider in Supabase and set up SMTP (`docs/IOS.md`).
 - Point the Supabase GitHub integration at this repo so the migrations apply.

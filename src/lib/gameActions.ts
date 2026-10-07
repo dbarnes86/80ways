@@ -55,6 +55,8 @@ const withLevelTracking = <T>(fn: () => T): [T, Rewards['levelUp']] => {
 
 // ─── Log an activity ────────────────────────────────────────────
 export interface LogActivityInput {
+  /** Set for imported workouts so the same one can't be logged twice. */
+  id?: string;
   activityType: string;
   targetType: EnergyType;
   durationMin: number;
@@ -90,7 +92,7 @@ export function logActivity(input: LogActivityInput): LogActivityResult {
   });
 
   const activity: Activity = {
-    id: crypto.randomUUID(),
+    id: input.id ?? crypto.randomUUID(),
     timestamp: input.performedAt.toISOString(),
     activityType: input.activityType,
     targetEnergyType: input.targetType,

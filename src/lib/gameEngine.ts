@@ -35,6 +35,21 @@ export const ACTIVITY_CATALOG: Record<string, EnergyType> = {
   CrossFit: 'strength',
   Calisthenics: 'strength',
   Yoga: 'strength',
+  // Imported from Apple Health; not offered in the manual logger.
+  Paddling: 'nautical',
+  Surfing: 'nautical',
+  Dance: 'terrestrial',
+  Elliptical: 'terrestrial',
+  'Stair climbing': 'terrestrial',
+  'Team sports': 'terrestrial',
+  'Racket sports': 'terrestrial',
+  Workout: 'terrestrial',
+  Skating: 'transport',
+  Skiing: 'transport',
+  HIIT: 'strength',
+  Pilates: 'strength',
+  'Martial arts': 'strength',
+  Climbing: 'strength',
 };
 
 export const getNativeEnergyType = (activityType: string): EnergyType | undefined =>

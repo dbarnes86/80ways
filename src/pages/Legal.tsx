@@ -21,12 +21,20 @@ export function Privacy() {
       </p>
       <h2>What we collect</h2>
       <ul>
-        <li>Your email address and the display name you choose, to run your account.</li>
+        <li>Your email address and the display name you choose, to run your account. If you sign in with Apple, Apple may give us a private relay address instead of your real one.</li>
         <li>The activities you log (type, duration, distance, intensity, notes) and your game progress, to run the game.</li>
         <li>Your display name and journey position appear on the season leaderboard and raid contributor lists that other players see.</li>
         <li>If you subscribe, the payment provider (Stripe on the web, Apple on iPhone) handles your card. We only receive whether your membership is active and when it renews.</li>
+        <li>
+          On iPhone, if you connect Apple Health, we read your workouts (type, start time, duration, distance and calories) to turn them into
+          activities. We only read workouts, never write to Health, and you can turn access off any time in Settings, Health, Data Access &amp;
+          Devices.
+        </li>
       </ul>
-      <p>We do not sell your data, show ads, or read health data from your device.</p>
+      <p>
+        We do not sell your data or show ads, and data from Apple Health is never used for advertising, marketing or shared with anyone else.
+        It is used only to run the game.
+      </p>
       <h2>Where it lives</h2>
       <p>Account and game data are stored with Supabase. Payments are processed by Stripe or Apple under their own privacy policies.</p>
       <h2>Your choices</h2>
