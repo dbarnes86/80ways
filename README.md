@@ -1,73 +1,44 @@
-# Welcome to your Lovable project
+# Around the World in 80 Ways
 
-## Project info
+A fitness game that follows Phileas Fogg's route round the world. Real workouts charge energy reserves; players spend that energy to move their expedition from London to London across 11 legs in a 180-day season, and team up in community raids against Detective Fix.
 
-**URL**: https://lovable.dev/projects/cf8eb65a-e34d-4150-a0be-870759e0032c
+Built with Vite, React, TypeScript, Tailwind/shadcn, zustand and Supabase (via Lovable Cloud). Capacitor wraps it for iOS/Android.
 
-## How can I edit this code?
+## The game loop
 
-There are several ways of editing your application.
+1. **Log an activity.** Duration × intensity (+0.1 kWh per km) charges one of four reserves: Nautical, Terrestrial, Transport, Strength. The activity's native reserve charges at 100%, any other at 50%. Reserves cap at 10 kWh and decay 5% a day.
+2. **Lift Off.** New players fill a 5 kWh starter meter. Completing it awards 150 XP, enough for level 3, which unlocks the season.
+3. **Board the season.** Late joiners start at the leg the season calendar has reached.
+4. **Deploy energy** to the current leg. Matching reserves count 100%, related ones 75%, the rest 50%. Nothing is wasted past what the leg needs.
+5. **Raids** run for 72 hours every 14 days. Everyone pools energy towards a goal; beating it pays credits to every contributor.
+6. **Credits** come from activities, the daily mission, legs and raids, and buy boosters (Energy Amplifier, Multi-Charge, Decay Inhibitor).
 
-**Use Lovable**
+Rules live in `src/data/gameConstants.ts`, `src/data/journeyLegs.ts`, `src/data/raids.ts` and `src/lib/gameEngine.ts`. Player actions (log, deploy, raid, buy) are in `src/lib/gameActions.ts`.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/cf8eb65a-e34d-4150-a0be-870759e0032c) and start prompting.
+## Data and sync
 
-Changes made via Lovable will be committed automatically to this repo.
+Local zustand stores drive the UI so everything responds instantly. `src/lib/gameSync.ts` mirrors them to Supabase:
 
-**Use your preferred IDE**
+| Table / RPC | Holds |
+|---|---|
+| `player_progression` | XP, starter event, totals, plus `game_state` (reserves, credits, boosters) |
+| `season_participation` | Current leg and progress per season |
+| `activities` | Activity history |
+| `energy_deployments`, `raid_contributions` | Spend history |
+| `get_current_season()` | Marks seasons active/completed by date and opens the next 180-day season when one ends |
+| `get_season_leaderboard()`, `get_raid_totals()`, `get_raid_top_contributors()` | Cross-player aggregates |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If the server is unreachable the game keeps working locally and syncs on the next load.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Running locally
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+npm run dev      # http://localhost:8080
+npm test         # game rule unit tests
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+`.env` needs `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and `VITE_SUPABASE_PROJECT_ID`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/cf8eb65a-e34d-4150-a0be-870759e0032c) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Database changes are in `supabase/migrations/`. Apply new migrations to the project (Lovable Cloud, or `supabase db push`) before shipping the client that uses them.

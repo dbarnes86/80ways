@@ -46,6 +46,11 @@ export const useOnboardingStore = create<OnboardingStore>()(
     }),
     {
       name: 'onboarding-storage',
+      // Never write the password to localStorage.
+      partialize: (state) => ({
+        currentStep: state.currentStep,
+        userData: { ...state.userData, password: '' },
+      }),
     }
   )
 );

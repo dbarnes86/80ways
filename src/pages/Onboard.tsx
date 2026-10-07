@@ -1,79 +1,55 @@
 import { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOnboardingStore } from '@/stores/onboardingStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { Step1 } from '@/components/onboarding/Step1';
 import { Step2 } from '@/components/onboarding/Step2';
-import { Step3 } from '@/components/onboarding/Step3';
-import { Step4 } from '@/components/onboarding/Step4';
-import { Step5 } from '@/components/onboarding/Step5';
-import { Step6 } from '@/components/onboarding/Step6';
-import { Step7 } from '@/components/onboarding/Step7';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import { Progress } from '@/components/ui/progress';
 
-// Note: In production, use your actual Stripe publishable key
-const stripePromise = loadStripe('pk_test_51QgmGMGd6fPRdSS4LHsb5nLjBHjKXNHZQjvr8SjLjV1zX0pNvZQJzHhZ1QzXvZQJzHhZ1QzXvZQJzHhZ1QzXvZQJzHhZ');
+const TOTAL_STEPS = 2;
 
 const Onboard = () => {
   const currentStep = useOnboardingStore((state) => state.currentStep);
-  const totalSteps = 7;
+  const resetOnboarding = useOnboardingStore((state) => state.resetOnboarding);
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { toast } = useToast();
+
+  // Returning from Stripe Checkout (success_url carries session_id).
+  const checkoutSessionId = params.get('session_id');
+  useEffect(() => {
+    if (!checkoutSessionId || loading) return;
+    resetOnboarding();
+    toast({
+      title: 'Membership confirmed',
+      description: user ? 'Welcome aboard. Your expedition begins now.' : 'Confirm your email, then sign in to begin.',
+    });
+    navigate(user ? '/dashboard' : '/login', { replace: true });
+  }, [checkoutSessionId, loading, user, navigate, resetOnboarding, toast]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentStep]);
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <Step1 />;
-      case 2:
-        return <Step2 />;
-      case 3:
-        return (
-          <Elements stripe={stripePromise}>
-            <Step3 />
-          </Elements>
-        );
-      case 4:
-        return <Step4 />;
-      case 5:
-        return <Step5 />;
-      case 6:
-        return <Step6 />;
-      case 7:
-        return <Step7 />;
-      default:
-        return <Step1 />;
-    }
-  };
+  const step = Math.min(Math.max(currentStep, 1), TOTAL_STEPS);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Animated grid background */}
       <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-      
+
       <div className="relative z-10 container mx-auto px-4 py-12">
-        {/* Progress Header */}
         <div className="max-w-3xl mx-auto mb-12">
           <div className="text-center mb-4">
             <p className="text-muted-foreground text-lg">
-              Step {currentStep} of {totalSteps}
+              Step {step} of {TOTAL_STEPS}
             </p>
           </div>
-          <div className="relative">
-            <Progress 
-              value={(currentStep / totalSteps) * 100} 
-              className="h-3 bg-muted"
-            />
-            <div 
-              className="absolute top-0 left-0 h-3 bg-primary shadow-lg shadow-primary/50 rounded-full transition-all duration-500"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
+          <Progress value={(step / TOTAL_STEPS) * 100} className="h-3 bg-muted" />
         </div>
 
-        {/* Step Content */}
-        {renderStep()}
+        {step === 1 ? <Step1 /> : <Step2 />}
       </div>
     </div>
   );

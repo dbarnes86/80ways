@@ -1,90 +1,144 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HolographicCard } from "@/components/ui/holographic-card";
-import { CyberpunkProgress } from "@/components/ui/cyberpunk-progress";
-import { Zap, TrendingUp, Shield, Sparkles } from "lucide-react";
+import { Zap, Layers, ShieldOff, Coins, type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { useUserStore } from "@/stores/userStore";
+import {
+  BOOSTERS,
+  CREDITS_PER_ACTIVITY,
+  CREDITS_PER_LEG_BASE,
+  CREDITS_RAID_SUCCESS,
+  DAILY_MISSION,
+  type BoosterId,
+} from "@/data/gameConstants";
+import { activateDecayInhibitor, buyBooster } from "@/lib/gameActions";
+import { formatTimeLeft } from "@/data/raids";
+import { useToast } from "@/hooks/use-toast";
+
+const ICONS: Record<BoosterId, LucideIcon> = {
+  energyAmplifier: Zap,
+  decayInhibitor: ShieldOff,
+  multiCharge: Layers,
+};
+
+const rarityGlow = (r: string) => (r === "epic" ? ("purple" as const) : r === "rare" ? ("cyan" as const) : ("none" as const));
+
+const rarityBadge = (r: string) =>
+  r === "epic"
+    ? "bg-accent/20 text-accent border-accent/40"
+    : r === "rare"
+      ? "bg-primary/20 text-primary border-primary/40"
+      : "bg-muted text-muted-foreground";
+
+const HOW_TO_USE: Record<BoosterId, string> = {
+  energyAmplifier: "Tick it when logging an activity.",
+  multiCharge: "Tick it when logging an activity.",
+  decayInhibitor: "Activate it here, any time.",
+};
 
 export default function Store() {
-  const boosters = [
-    { id: 1, name: "Velocity Surge", icon: Zap, description: "Double your distance for 1 hour", price: 100, duration: "1 hour", rarity: "common" },
-    { id: 2, name: "Endurance Elixir", icon: Shield, description: "50% bonus distance for 24 hours", price: 250, duration: "24 hours", rarity: "rare" },
-    { id: 3, name: "Quantum Leap", icon: Sparkles, description: "Triple distance for 30 minutes", price: 500, duration: "30 minutes", rarity: "epic" },
-    { id: 4, name: "Marathon Mode", icon: TrendingUp, description: "1.5x distance for 7 days", price: 750, duration: "7 days", rarity: "legendary" },
-  ];
+  const inventory = useUserStore((s) => s.inventory);
+  const frozenUntil = useUserStore((s) => s.effects.decayInhibitorUntil);
+  const { toast } = useToast();
 
-  const rarityGlow = (r: string) =>
-    r === "legendary" ? "magenta" as const : r === "epic" ? "purple" as const : r === "rare" ? "cyan" as const : "none" as const;
+  const frozen = frozenUntil && new Date(frozenUntil) > new Date();
 
-  const rarityBadge = (r: string) =>
-    r === "legendary" ? "bg-warning/20 text-warning border-warning/40" :
-    r === "epic" ? "bg-accent/20 text-accent border-accent/40" :
-    r === "rare" ? "bg-primary/20 text-primary border-primary/40" :
-    "bg-muted text-muted-foreground";
+  const handleBuy = (id: BoosterId) => {
+    if (buyBooster(id)) {
+      toast({ title: `${BOOSTERS[id].name} acquired`, description: HOW_TO_USE[id] });
+    } else {
+      toast({ title: "Not enough credits", description: "Log activities and complete legs to earn more.", variant: "destructive" });
+    }
+  };
+
+  const handleActivate = () => {
+    const until = activateDecayInhibitor();
+    if (until) toast({ title: "Decay frozen", description: `Your reserves won't decay until ${until.toLocaleString()}.` });
+  };
+
+  const ids = Object.keys(BOOSTERS) as BoosterId[];
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-4xl font-heading mb-2 text-glow-cyan">Booster Emporium</h1>
-        <p className="text-muted-foreground">Accelerate your journey with power-ups</p>
+        <p className="text-muted-foreground">Spend the credits you earn on the road</p>
       </div>
 
-      {/* Balance Card */}
       <HolographicCard glow="cyan" className="p-6 mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Your Balance</div>
-            <div className="text-4xl font-mono font-bold text-primary">2,450 pts</div>
+            <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Your balance</div>
+            <div className="text-4xl font-mono font-bold text-warning flex items-center gap-2">
+              <Coins className="w-8 h-8" /> {inventory.credits}
+            </div>
           </div>
-          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-magenta">
-            Purchase Points
-          </Button>
+          <div className="text-xs text-muted-foreground space-y-0.5 sm:text-right">
+            <p>+{CREDITS_PER_ACTIVITY} per activity · +{DAILY_MISSION.creditReward} daily mission</p>
+            <p>+{CREDITS_PER_LEG_BASE}+ per leg · +{CREDITS_RAID_SUCCESS} per raid won</p>
+          </div>
         </div>
       </HolographicCard>
 
-      {/* Boosters Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {boosters.map((booster, index) => (
-          <motion.div
-            key={booster.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <HolographicCard glow={rarityGlow(booster.rarity)} className="p-6 h-full flex flex-col">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${rarityBadge(booster.rarity)}`}>
-                  <booster.icon className="w-6 h-6" />
+      <div className="grid md:grid-cols-3 gap-6">
+        {ids.map((id, index) => {
+          const booster = BOOSTERS[id];
+          const Icon = ICONS[id];
+          const owned = inventory[id];
+          const affordable = inventory.credits >= booster.price;
+          return (
+            <motion.div key={id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+              <HolographicCard glow={rarityGlow(booster.rarity)} className="p-6 h-full flex flex-col">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${rarityBadge(booster.rarity)}`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <Badge className={rarityBadge(booster.rarity)}>{booster.rarity.toUpperCase()}</Badge>
                 </div>
-                <Badge className={rarityBadge(booster.rarity)}>
-                  {booster.rarity.toUpperCase()}
-                </Badge>
-              </div>
-              <h3 className="text-xl font-heading mb-2">{booster.name}</h3>
-              <p className="text-sm text-muted-foreground mb-4 flex-1">{booster.description}</p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Duration</span>
-                  <span className="font-mono">{booster.duration}</span>
+                <h3 className="text-xl font-heading mb-2">{booster.name}</h3>
+                <p className="text-sm text-muted-foreground mb-1">{booster.description}</p>
+                <p className="text-xs text-muted-foreground mb-4 flex-1">{HOW_TO_USE[id]}</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">In your kit</span>
+                    <span className="font-mono">{owned}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-2xl font-mono text-warning flex items-center gap-1">
+                      <Coins className="w-5 h-5" /> {booster.price}
+                    </div>
+                    <div className="flex gap-2">
+                      {id === "decayInhibitor" && owned > 0 && (
+                        <Button size="sm" variant="outline" onClick={handleActivate}>
+                          Activate
+                        </Button>
+                      )}
+                      <Button size="sm" onClick={() => handleBuy(id)} disabled={!affordable}>
+                        Buy
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="text-2xl font-mono text-primary">{booster.price} pts</div>
-                  <Button size="sm">Purchase</Button>
-                </div>
-              </div>
-            </HolographicCard>
-          </motion.div>
-        ))}
+              </HolographicCard>
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* Active Boosters */}
       <HolographicCard glow="none" className="p-6 mt-8">
-        <h2 className="text-2xl font-heading mb-4">Active Boosters</h2>
-        <div className="text-center py-8 text-muted-foreground">
-          <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>No active boosters</p>
-          <p className="text-sm mt-1">Purchase a booster to enhance your journey</p>
-        </div>
+        <h2 className="text-2xl font-heading mb-4">Active effects</h2>
+        {frozen ? (
+          <div className="flex items-center gap-3">
+            <ShieldOff className="w-6 h-6 text-accent" />
+            <div>
+              <p className="font-heading">Decay Inhibitor</p>
+              <p className="text-sm text-muted-foreground">Reserves frozen for another {formatTimeLeft(new Date(frozenUntil!))}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Nothing active. Amplifiers and Multi-Charges apply when you log an activity.</p>
+        )}
       </HolographicCard>
     </div>
   );

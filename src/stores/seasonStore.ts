@@ -1,10 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { getExpectedGlobalLeg, getRealDayToNarrativeDay } from '@/data/gameConstants';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 
-interface Season {
+type SeasonRow = Database['public']['Tables']['seasons']['Row'];
+type ParticipationRow = Database['public']['Tables']['season_participation']['Row'];
+
+export interface Season {
   id: string;
   seasonNumber: number;
   name: string;
@@ -12,14 +16,13 @@ interface Season {
   startDate: Date;
   endDate: Date;
   status: 'upcoming' | 'active' | 'completed';
-  currentGlobalLeg: number;
   totalDistanceKm: number;
 }
 
-interface SeasonParticipation {
+export interface SeasonParticipation {
   id: string;
   seasonId: string;
-  joinedAt: Date;
+  joinedAt: string;
   joinedAtLeg: number;
   currentLeg: number;
   legProgress: number;
@@ -29,64 +32,95 @@ interface SeasonParticipation {
 interface SeasonState {
   activeSeason: Season | null;
   participation: SeasonParticipation | null;
+  /** Where the season as a whole is, by calendar (1–80). */
   narrativeDay: number;
+  /** Leg the season calendar expects everyone to be on — late joiners start here. */
   globalLeg: number;
   loaded: boolean;
 }
 
 interface SeasonStore extends SeasonState {
   fetchActiveSeason: () => Promise<void>;
-  joinSeason: (userId: string) => Promise<void>;
   fetchParticipation: (userId: string) => Promise<void>;
-  advanceLeg: (userId: string) => Promise<void>;
-  updateLegProgress: (userId: string, progress: number) => Promise<void>;
-  getCurrentLegData: () => typeof JOURNEY_LEGS[number] | null;
+  joinSeason: (userId: string) => Promise<{ error?: string }>;
+  setLegProgress: (progress: number) => Promise<void>;
+  /** Moves to the next leg, or marks the journey complete after the last one. */
+  completeLeg: () => Promise<{ journeyComplete: boolean }>;
   getJoinLeg: () => number;
+  reset: () => void;
 }
+
+/** Status from the calendar, so a stale DB status never strands players. */
+const statusFromDates = (start: Date, end: Date, now = new Date()): Season['status'] =>
+  now < start ? 'upcoming' : now > end ? 'completed' : 'active';
+
+const toSeason = (row: SeasonRow): Season => {
+  const startDate = new Date(row.start_date);
+  const endDate = new Date(row.end_date);
+  return {
+    id: row.id,
+    seasonNumber: row.season_number,
+    name: row.name,
+    description: row.description,
+    startDate,
+    endDate,
+    status: statusFromDates(startDate, endDate),
+    totalDistanceKm: Number(row.total_distance_km),
+  };
+};
+
+const toParticipation = (row: ParticipationRow): SeasonParticipation => ({
+  id: row.id,
+  seasonId: row.season_id,
+  joinedAt: row.joined_at,
+  joinedAtLeg: row.joined_at_leg,
+  currentLeg: row.current_leg,
+  legProgress: Number(row.leg_progress),
+  status: row.status === 'completed' ? 'completed' : 'active',
+});
+
+const initialState: SeasonState = {
+  activeSeason: null,
+  participation: null,
+  narrativeDay: 1,
+  globalLeg: 0,
+  loaded: false,
+};
 
 export const useSeasonStore = create<SeasonStore>()(
   persist(
     (set, get) => ({
-      activeSeason: null,
-      participation: null,
-      narrativeDay: 1,
-      globalLeg: 0,
-      loaded: false,
+      ...initialState,
 
       fetchActiveSeason: async () => {
-        // Fetch the current or upcoming season
-        const { data, error } = await supabase
-          .from('seasons')
-          .select('*')
-          .in('status', ['active', 'upcoming'])
-          .order('season_number', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+        // Preferred: server opens the next season when the last one has ended.
+        let row: SeasonRow | null = null;
+        const rpc = await supabase.rpc('get_current_season');
+        if (!rpc.error && rpc.data && rpc.data.length > 0) {
+          row = rpc.data[0];
+        } else {
+          // Fallback for databases without the RPC: first season that hasn't ended, else the latest.
+          const { data, error } = await supabase
+            .from('seasons')
+            .select('*')
+            .order('season_number', { ascending: true });
+          if (error) console.error('Failed to fetch seasons:', error);
+          const now = Date.now();
+          row = data?.find((s) => new Date(s.end_date).getTime() >= now) ?? data?.[data.length - 1] ?? null;
+        }
 
-        if (error || !data) {
-          console.error('Failed to fetch season:', error);
-          set({ loaded: true });
+        if (!row) {
+          set({ activeSeason: null, loaded: true });
           return;
         }
 
-        const startDate = new Date(data.start_date);
-        const narrativeDay = getRealDayToNarrativeDay(startDate);
-        const globalLeg = getExpectedGlobalLeg(startDate);
-
+        const season = toSeason(row);
+        const current = get().participation;
         set({
-          activeSeason: {
-            id: data.id,
-            seasonNumber: data.season_number,
-            name: data.name,
-            description: data.description,
-            startDate,
-            endDate: new Date(data.end_date),
-            status: data.status as Season['status'],
-            currentGlobalLeg: Number(data.current_global_leg),
-            totalDistanceKm: Number(data.total_distance_km),
-          },
-          narrativeDay,
-          globalLeg,
+          activeSeason: season,
+          narrativeDay: getRealDayToNarrativeDay(season.startDate),
+          globalLeg: season.status === 'upcoming' ? 0 : getExpectedGlobalLeg(season.startDate),
+          participation: current && current.seasonId === season.id ? current : null,
           loaded: true,
         });
       },
@@ -106,29 +140,15 @@ export const useSeasonStore = create<SeasonStore>()(
           console.error('Failed to fetch participation:', error);
           return;
         }
-
-        if (data) {
-          set({
-            participation: {
-              id: data.id,
-              seasonId: data.season_id,
-              joinedAt: new Date(data.joined_at),
-              joinedAtLeg: data.joined_at_leg,
-              currentLeg: data.current_leg,
-              legProgress: Number(data.leg_progress),
-              status: data.status as 'active' | 'completed',
-            },
-          });
-        }
+        set({ participation: data ? toParticipation(data) : null });
       },
 
       joinSeason: async (userId) => {
         const season = get().activeSeason;
-        if (!season) return;
+        if (!season) return { error: 'No season is open right now.' };
+        if (season.status === 'completed') return { error: 'This season has ended.' };
 
-        // Late joiners start at the current global leg
         const joinLeg = get().getJoinLeg();
-
         const { data, error } = await supabase
           .from('season_participation')
           .insert({
@@ -143,77 +163,67 @@ export const useSeasonStore = create<SeasonStore>()(
           .single();
 
         if (error) {
+          // Already joined on another device — just load it.
+          if (error.code === '23505') {
+            await get().fetchParticipation(userId);
+            return {};
+          }
           console.error('Failed to join season:', error);
-          return;
+          return { error: error.message };
         }
 
-        set({
-          participation: {
-            id: data.id,
-            seasonId: data.season_id,
-            joinedAt: new Date(data.joined_at),
-            joinedAtLeg: data.joined_at_leg,
-            currentLeg: data.current_leg,
-            legProgress: Number(data.leg_progress),
-            status: 'active',
-          },
-        });
+        set({ participation: toParticipation(data) });
+        return {};
       },
 
-      advanceLeg: async (userId) => {
-        const { participation, activeSeason } = get();
-        if (!participation || !activeSeason) return;
-
-        const nextLeg = Math.min(participation.currentLeg + 1, JOURNEY_LEGS.length - 1);
-
-        await supabase
-          .from('season_participation')
-          .update({ current_leg: nextLeg, leg_progress: 0 })
-          .eq('id', participation.id);
-
-        set({
-          participation: {
-            ...participation,
-            currentLeg: nextLeg,
-            legProgress: 0,
-          },
-        });
-      },
-
-      updateLegProgress: async (userId, progress) => {
+      setLegProgress: async (progress) => {
         const { participation } = get();
         if (!participation) return;
+        set({ participation: { ...participation, legProgress: progress } });
 
-        await supabase
+        const { error } = await supabase
           .from('season_participation')
           .update({ leg_progress: progress })
           .eq('id', participation.id);
-
-        set({
-          participation: { ...participation, legProgress: progress },
-        });
+        if (error) console.error('Failed to save leg progress:', error);
       },
 
-      getCurrentLegData: () => {
+      completeLeg: async () => {
         const { participation } = get();
-        if (!participation) return JOURNEY_LEGS[0];
-        return JOURNEY_LEGS[participation.currentLeg] || null;
+        if (!participation) return { journeyComplete: false };
+
+        const isLast = participation.currentLeg >= JOURNEY_LEGS.length - 1;
+        const next: SeasonParticipation = isLast
+          ? { ...participation, legProgress: JOURNEY_LEGS[participation.currentLeg].requiredEnergy.amount, status: 'completed' }
+          : { ...participation, currentLeg: participation.currentLeg + 1, legProgress: 0 };
+        set({ participation: next });
+
+        const { error } = await supabase
+          .from('season_participation')
+          .update({ current_leg: next.currentLeg, leg_progress: next.legProgress, status: next.status })
+          .eq('id', participation.id);
+        if (error) console.error('Failed to advance leg:', error);
+
+        return { journeyComplete: isLast };
       },
 
       getJoinLeg: () => {
         const season = get().activeSeason;
-        if (!season) return 0;
+        if (!season || season.status === 'upcoming') return 0;
         return getExpectedGlobalLeg(season.startDate);
       },
+
+      reset: () => set(initialState),
     }),
     {
       name: 'season-storage',
-      partialize: (state) => ({
-        activeSeason: state.activeSeason,
-        participation: state.participation,
-        narrativeDay: state.narrativeDay,
-        globalLeg: state.globalLeg,
-      }),
+      version: 2,
+      // Only participation is cached; the season itself is always refetched (it carries Dates).
+      partialize: (state) => ({ participation: state.participation }),
+      migrate: () => ({ participation: null }) as unknown as SeasonStore,
     }
   )
 );
+
+export const selectHasJoined = (s: SeasonState) =>
+  !!s.participation && !!s.activeSeason && s.participation.seasonId === s.activeSeason.id;

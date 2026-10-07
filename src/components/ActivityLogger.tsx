@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,26 +8,33 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { 
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
 import { useUserStore } from '@/stores/userStore';
-import { useEnergyStore } from '@/stores/energyStore';
-import { useActivityStore } from '@/stores/activityStore';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Anchor, 
-  Waves, 
-  Sailboat, 
+import { logActivity, type LogActivityResult } from '@/lib/gameActions';
+import { calculateActivityEnergy, getNativeEnergyType } from '@/lib/gameEngine';
+import { ENERGY_THEME } from '@/data/energyTheme';
+import {
+  DAILY_MISSION,
+  ENERGY_TYPES,
+  INTENSITY_MULTIPLIERS,
+  KM_PER_MILE,
+  MULTI_CHARGE_SPILLOVER,
+  XP_OPTIMAL_MATCH_BONUS,
+  type EnergyType,
+  type Intensity,
+} from '@/data/gameConstants';
+import {
+  Anchor,
+  Waves,
+  Sailboat,
   Ship,
   PersonStanding,
   Footprints,
@@ -44,9 +51,13 @@ import {
   Droplet,
   Droplets,
   Info,
-  AlertTriangle,
   Check,
-  Loader2
+  Loader2,
+  Layers,
+  Coins,
+  Rocket,
+  Trophy,
+  type LucideIcon,
 } from 'lucide-react';
 
 interface ActivityLoggerProps {
@@ -54,366 +65,265 @@ interface ActivityLoggerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const ACTIVITIES = [
-  // Nautical
-  { name: 'Rowing', icon: Anchor, energyType: 'nautical' },
-  { name: 'Swimming', icon: Waves, energyType: 'nautical' },
-  { name: 'Sailing', icon: Sailboat, energyType: 'nautical' },
-  { name: 'Kayaking', icon: Ship, energyType: 'nautical' },
-  
-  // Terrestrial
-  { name: 'Running', icon: PersonStanding, energyType: 'terrestrial' },
-  { name: 'Walking', icon: Footprints, energyType: 'terrestrial' },
-  { name: 'Hiking', icon: Mountain, energyType: 'terrestrial' },
-  { name: 'Jogging', icon: PersonStanding, energyType: 'terrestrial' },
-  
-  // Transport
-  { name: 'Cycling', icon: Bike, energyType: 'transport' },
-  { name: 'Skateboarding', icon: ActivityIcon, energyType: 'transport' },
-  { name: 'Rollerblading', icon: Zap, energyType: 'transport' },
-  { name: 'E-biking', icon: Bike, energyType: 'transport' },
-  
-  // Strength
-  { name: 'Weightlifting', icon: Dumbbell, energyType: 'strength' },
-  { name: 'CrossFit', icon: Weight, energyType: 'strength' },
-  { name: 'Calisthenics', icon: Sparkles, energyType: 'strength' },
-  { name: 'Yoga', icon: Flame, energyType: 'strength' },
+const ACTIVITIES: { name: string; icon: LucideIcon }[] = [
+  { name: 'Rowing', icon: Anchor },
+  { name: 'Swimming', icon: Waves },
+  { name: 'Sailing', icon: Sailboat },
+  { name: 'Kayaking', icon: Ship },
+  { name: 'Running', icon: PersonStanding },
+  { name: 'Walking', icon: Footprints },
+  { name: 'Hiking', icon: Mountain },
+  { name: 'Jogging', icon: PersonStanding },
+  { name: 'Cycling', icon: Bike },
+  { name: 'Skateboarding', icon: ActivityIcon },
+  { name: 'Rollerblading', icon: Zap },
+  { name: 'E-biking', icon: Bike },
+  { name: 'Weightlifting', icon: Dumbbell },
+  { name: 'CrossFit', icon: Weight },
+  { name: 'Calisthenics', icon: Sparkles },
+  { name: 'Yoga', icon: Flame },
 ];
 
-const ACTIVITY_TYPE_MAP: Record<string, string> = {
-  'Rowing': 'nautical',
-  'Swimming': 'nautical',
-  'Sailing': 'nautical',
-  'Kayaking': 'nautical',
-  'Running': 'terrestrial',
-  'Walking': 'terrestrial',
-  'Hiking': 'terrestrial',
-  'Jogging': 'terrestrial',
-  'Cycling': 'transport',
-  'Skateboarding': 'transport',
-  'Rollerblading': 'transport',
-  'E-biking': 'transport',
-  'Weightlifting': 'strength',
-  'CrossFit': 'strength',
-  'Calisthenics': 'strength',
-  'Yoga': 'strength',
-};
-
-const ENERGY_GROUPS = {
-  nautical: { label: 'NAUTICAL', color: 'cyan', icon: Anchor },
-  terrestrial: { label: 'TERRESTRIAL', color: 'lime', icon: PersonStanding },
-  transport: { label: 'TRANSPORT', color: 'orange', icon: Bike },
-  strength: { label: 'STRENGTH', color: 'magenta', icon: Dumbbell },
-};
-
-const INTENSITY_OPTIONS = [
-  { 
-    value: 'light', 
-    label: 'LIGHT', 
-    description: 'A gentle pace',
-    multiplier: 0.5,
-    icon: Droplet,
-    color: 'blue'
-  },
-  { 
-    value: 'moderate', 
-    label: 'MODERATE', 
-    description: 'Steady progress',
-    multiplier: 1.0,
-    icon: Droplets,
-    color: 'yellow'
-  },
-  { 
-    value: 'vigorous', 
-    label: 'VIGOROUS', 
-    description: 'Maximum effort',
-    multiplier: 1.5,
-    icon: Droplets,
-    color: 'red'
-  },
+const INTENSITY_OPTIONS: { value: Intensity; label: string; description: string; icon: LucideIcon; selected: string }[] = [
+  { value: 'light', label: 'LIGHT', description: 'A gentle pace', icon: Droplet, selected: 'border-primary text-primary' },
+  { value: 'moderate', label: 'MODERATE', description: 'Steady progress', icon: Droplets, selected: 'border-warning text-warning' },
+  { value: 'vigorous', label: 'VIGOROUS', description: 'Maximum effort', icon: Flame, selected: 'border-destructive text-destructive' },
 ];
 
-const calculateEnergy = (
-  duration: number,
-  intensity: 'light' | 'moderate' | 'vigorous',
-  distance: number | undefined,
-  activityType: string,
-  targetType: string
-) => {
-  const intensityMultipliers = {
-    light: 0.5,
-    moderate: 1.0,
-    vigorous: 1.5,
-  };
-
-  const baseEnergy = (duration / 60) * intensityMultipliers[intensity];
-  const distanceBonus = distance ? distance * 0.1 : 0;
-  const totalBase = baseEnergy + distanceBonus;
-
-  const optimalType = ACTIVITY_TYPE_MAP[activityType];
-  const efficiency = optimalType === targetType ? 1.0 : 0.5;
-
-  return {
-    baseEnergy: totalBase,
-    efficiency,
-    actualEnergy: totalBase * efficiency,
-  };
+/** yyyy-MM-ddTHH:mm in local time, for <input type="datetime-local">. */
+const toLocalInput = (d: Date) => {
+  const off = d.getTimezoneOffset() * 60_000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
 };
+
+const emptyForm = () => ({
+  activityType: '',
+  duration: 30,
+  distance: '' as string,
+  intensity: 'moderate' as Intensity,
+  performedAt: toLocalInput(new Date()),
+  notes: '',
+  targetEnergyType: '' as EnergyType | '',
+  useAmplifier: false,
+  useMultiCharge: false,
+});
 
 export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
   const { toast } = useToast();
-  const inventory = useUserStore((state) => state.inventory);
-  const addActivity = useActivityStore((state) => state.addActivity);
-  const chargeEnergy = useEnergyStore((state) => state.chargeEnergy);
-  const updateStats = useUserStore((state) => state.updateStats);
-  const updateInventory = useUserStore((state) => state.updateInventory);
-  const stats = useUserStore((state) => state.stats);
+  const inventory = useUserStore((s) => s.inventory);
+  const preferredUnit = useUserStore((s) => s.settings.units);
 
-  const [formData, setFormData] = useState({
-    activityType: '',
-    duration: 30,
-    distance: undefined as number | undefined,
-    intensity: 'moderate' as 'light' | 'moderate' | 'vigorous',
-    timestamp: new Date(),
-    notes: '',
-    targetEnergyType: '' as string,
-    useEnergyAmplifier: false,
-  });
-
+  const [form, setForm] = useState(emptyForm);
+  const [unit, setUnit] = useState<'km' | 'mi'>(preferredUnit === 'imperial' ? 'mi' : 'km');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [unit, setUnit] = useState<'km' | 'mi'>('km');
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [result, setResult] = useState<LogActivityResult | null>(null);
 
-  const selectedActivity = ACTIVITIES.find(a => a.name === formData.activityType);
-  const showDistance = selectedActivity?.energyType !== 'strength';
-  const optimalType = formData.activityType ? ACTIVITY_TYPE_MAP[formData.activityType] : '';
+  const nativeType = form.activityType ? getNativeEnergyType(form.activityType) : undefined;
+  const showDistance = nativeType && nativeType !== 'strength';
+  const distanceKm = useMemo(() => {
+    const n = parseFloat(form.distance);
+    if (!showDistance || !Number.isFinite(n) || n <= 0) return undefined;
+    return unit === 'mi' ? n * KM_PER_MILE : n;
+  }, [form.distance, unit, showDistance]);
 
-  // Auto-select optimal energy type when activity changes
-  useEffect(() => {
-    if (formData.activityType && !formData.targetEnergyType) {
-      setFormData(prev => ({ ...prev, targetEnergyType: optimalType }));
+  const preview = (target: EnergyType, boosters = true) =>
+    calculateActivityEnergy({
+      durationMin: form.duration,
+      intensity: form.intensity,
+      distanceKm,
+      activityType: form.activityType,
+      targetType: target,
+      amplifier: boosters && form.useAmplifier,
+      multiCharge: boosters && form.useMultiCharge,
+    });
+
+  const calc = form.targetEnergyType ? preview(form.targetEnergyType) : null;
+
+  const close = (next: boolean) => {
+    onOpenChange(next);
+    if (!next) {
+      setTimeout(() => {
+        setForm(emptyForm());
+        setErrors({});
+        setResult(null);
+      }, 200);
     }
-  }, [formData.activityType, optimalType]);
-
-  const energyCalc = formData.targetEnergyType 
-    ? calculateEnergy(
-        formData.duration,
-        formData.intensity,
-        formData.distance,
-        formData.activityType,
-        formData.targetEnergyType
-      )
-    : null;
-
-  const finalEnergy = energyCalc && formData.useEnergyAmplifier 
-    ? energyCalc.actualEnergy * 2 
-    : energyCalc?.actualEnergy || 0;
-
-  const handleDurationChange = (delta: number) => {
-    const newDuration = Math.max(1, Math.min(600, formData.duration + delta));
-    setFormData(prev => ({ ...prev, duration: newDuration }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.activityType) newErrors.activityType = 'Activity type is required';
-    if (formData.duration < 1 || formData.duration > 600) newErrors.duration = 'Duration must be between 1 and 600 minutes';
-    if (formData.distance !== undefined && formData.distance <= 0) newErrors.distance = 'Distance must be positive';
-    if (formData.notes.length > 500) newErrors.notes = 'Notes must be less than 500 characters';
-    if (!formData.targetEnergyType) newErrors.targetEnergyType = 'Please select an energy reserve';
+    const nextErrors: Record<string, string> = {};
+    const performedAt = new Date(form.performedAt);
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!form.activityType) nextErrors.activityType = 'Pick an activity';
+    if (form.duration < 1 || form.duration > 600) nextErrors.duration = 'Duration must be between 1 and 600 minutes';
+    if (form.distance && !(parseFloat(form.distance) > 0)) nextErrors.distance = 'Distance must be positive';
+    if (Number.isNaN(performedAt.getTime())) nextErrors.performedAt = 'Pick when you did it';
+    else if (performedAt.getTime() > Date.now() + 60_000) nextErrors.performedAt = "Can't log the future, sadly";
+    else if (Date.now() - performedAt.getTime() > 7 * 86_400_000) nextErrors.performedAt = 'Activities must be from the last 7 days';
+    if (!form.targetEnergyType) nextErrors.targetEnergyType = 'Pick a reserve to charge';
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
 
     setSubmitting(true);
-
     try {
-      const activity = {
-        id: crypto.randomUUID(),
-        timestamp: formData.timestamp,
-        activityType: formData.activityType,
-        targetEnergyType: formData.targetEnergyType as any,
-        efficiency: energyCalc!.efficiency,
-        duration: formData.duration,
-        distance: formData.distance,
-        intensity: formData.intensity,
-        notes: formData.notes,
-        baseEnergy: energyCalc!.baseEnergy,
-        actualEnergy: finalEnergy,
-        boosterUsed: formData.useEnergyAmplifier ? 'energyAmplifier' as const : undefined,
-      };
-
-      addActivity(activity);
-      chargeEnergy(formData.targetEnergyType as any, finalEnergy);
-
-      updateStats({
-        totalActivities: stats.totalActivities + 1,
-        totalDistance: stats.totalDistance + (formData.distance || 0),
-        totalEnergyGenerated: stats.totalEnergyGenerated + finalEnergy,
+      const res = logActivity({
+        activityType: form.activityType,
+        targetType: form.targetEnergyType as EnergyType,
+        durationMin: form.duration,
+        intensity: form.intensity,
+        distanceKm,
+        notes: form.notes,
+        performedAt,
+        useAmplifier: form.useAmplifier,
+        useMultiCharge: form.useMultiCharge,
       });
-
-      if (formData.useEnergyAmplifier) {
-        updateInventory({
-          energyAmplifier: inventory.energyAmplifier - 1,
-        });
+      setResult(res);
+      if (res.levelUp) {
+        toast({ title: `Level ${res.levelUp.level}!`, description: `You're now a ${res.levelUp.name}.` });
       }
-
-      setSuccess(true);
-      
-      toast({
-        title: "Activity Recorded!",
-        description: `+${finalEnergy.toFixed(1)} kWh ${formData.targetEnergyType}`,
-      });
-
-      setTimeout(() => {
-        setSuccess(false);
-        onOpenChange(false);
-        setFormData({
-          activityType: '',
-          duration: 30,
-          distance: undefined,
-          intensity: 'moderate',
-          timestamp: new Date(),
-          notes: '',
-          targetEnergyType: '',
-          useEnergyAmplifier: false,
-        });
-      }, 2000);
-
-    } catch (error: any) {
-      setErrors({ submit: error.message });
+    } catch (err) {
+      setErrors({ submit: err instanceof Error ? err.message : 'Something went wrong' });
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
         <AnimatePresence mode="wait">
-          {success ? (
+          {result ? (
             <motion.div
               key="success"
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="py-12 text-center"
+              className="py-8 text-center space-y-5"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: 'spring' }}
-                className="mb-6"
-              >
-                <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                  <Check className="h-12 w-12 text-green-500" />
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: 'spring' }}>
+                <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto">
+                  <Check className="h-10 w-10 text-success" />
                 </div>
               </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <h2 className="text-3xl font-bold mb-4">ACTIVITY RECORDED!</h2>
-                <p className="text-xl text-green-400 mb-6">
-                  +{finalEnergy.toFixed(1)} kWh added to<br />
-                  {formData.targetEnergyType.toUpperCase()} RESERVES
+
+              <div>
+                <h2 className="text-2xl font-heading font-bold mb-2">ACTIVITY RECORDED</h2>
+                <p className={`text-lg ${ENERGY_THEME[result.activity.targetEnergyType].text}`}>
+                  +{result.energy.toFixed(1)} kWh {ENERGY_THEME[result.activity.targetEnergyType].label.toUpperCase()}
                 </p>
-                <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 max-w-md mx-auto">
-                  <p className="text-sm italic text-foreground/90">
-                    "Excellent work! Our reserves are replenished."
-                    <br />
-                    <span className="text-primary">— Phileas Fogg</span>
+                {Object.keys(result.spillover).length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Multi-Charge: +{Object.values(result.spillover)[0]!.toFixed(1)} kWh to every other reserve
                   </p>
-                </div>
-              </motion.div>
+                )}
+              </div>
+
+              <div className="flex justify-center gap-3 text-sm font-mono">
+                <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary">+{result.xp} XP</span>
+                <span className="px-3 py-1 rounded-full bg-warning/10 border border-warning/30 text-warning flex items-center gap-1">
+                  <Coins className="w-3.5 h-3.5" /> +{result.credits}
+                </span>
+              </div>
+
+              <div className="space-y-2 max-w-sm mx-auto">
+                {result.starterCompleted && (
+                  <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm flex items-center gap-2">
+                    <Rocket className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Lift Off complete! You're cleared to board the expedition.</span>
+                  </div>
+                )}
+                {result.dailyMissionCompleted && (
+                  <div className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-accent flex-shrink-0" />
+                    <span>{DAILY_MISSION.name} done for today.</span>
+                  </div>
+                )}
+                {result.levelUp && (
+                  <div className="rounded-lg border border-secondary/40 bg-secondary/10 p-3 text-sm flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-secondary flex-shrink-0" />
+                    <span>Level {result.levelUp.level}: {result.levelUp.name}</span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-sm italic text-muted-foreground max-w-sm mx-auto">
+                "Excellent work. Our reserves are replenished." <span className="text-primary">— Phileas Fogg</span>
+              </p>
+
+              <div className="flex gap-3 justify-center">
+                <Button variant="outline" onClick={() => { setForm(emptyForm()); setResult(null); }}>
+                  Log another
+                </Button>
+                <Button onClick={() => close(false)}>Done</Button>
+              </div>
             </motion.div>
           ) : (
-            <motion.div
-              key="form"
-              initial={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.div key="form" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <DialogHeader>
-                <DialogTitle className="text-3xl font-bold text-glow">LOG BIOMETRIC DATA</DialogTitle>
-                <p className="text-muted-foreground">Record your expedition activity</p>
+                <DialogTitle className="text-2xl md:text-3xl font-heading font-bold text-glow">LOG ACTIVITY</DialogTitle>
+                <DialogDescription>Record a workout to charge your energy reserves</DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                 {/* Activity Type */}
                 <div>
-                  <Label className="text-lg mb-3 block">ACTIVITY CLASSIFICATION</Label>
+                  <Label className="text-sm font-mono tracking-wider mb-2 block">ACTIVITY</Label>
                   <Select
-                    value={formData.activityType}
+                    value={form.activityType}
                     onValueChange={(value) => {
-                      const activity = ACTIVITIES.find(a => a.name === value);
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        activityType: value,
-                        targetEnergyType: activity?.energyType || null 
-                      }));
+                      setForm((prev) => ({ ...prev, activityType: value, targetEnergyType: getNativeEnergyType(value) ?? '' }));
+                      setErrors((prev) => ({ ...prev, activityType: '' }));
                     }}
                   >
-                    <SelectTrigger className="bg-background/50 border-primary/30 focus:border-primary text-lg h-12 z-50">
+                    <SelectTrigger className="bg-background/50 border-primary/30 focus:border-primary text-lg h-12">
                       <SelectValue placeholder="Select activity type" />
                     </SelectTrigger>
-                    <SelectContent className="bg-background border-primary/30 max-h-80 overflow-y-auto z-[100]">
-                      {Object.entries(ENERGY_GROUPS).map(([type, config]) => (
-                        <div key={type}>
-                          <div className={`px-2 py-2 text-sm font-bold text-${config.color}-400 border-b border-${config.color}-400/30`}>
-                            {config.label}
-                          </div>
-                          {ACTIVITIES
-                            .filter(a => a.energyType === type)
-                            .map((activity) => {
-                              const Icon = activity.icon;
-                              return (
-                                <SelectItem 
-                                  key={activity.name} 
-                                  value={activity.name}
-                                  className="cursor-pointer hover:bg-primary/10 py-3"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Icon className="h-5 w-5" />
-                                    <span>{activity.name}</span>
-                                  </div>
-                                </SelectItem>
-                              );
-                            })}
-                        </div>
+                    <SelectContent className="bg-background border-primary/30 max-h-80 z-[100]">
+                      {ENERGY_TYPES.map((type) => (
+                        <SelectGroup key={type}>
+                          <SelectLabel className={`text-xs font-mono tracking-wider ${ENERGY_THEME[type].text}`}>
+                            {ENERGY_THEME[type].label.toUpperCase()}
+                          </SelectLabel>
+                          {ACTIVITIES.filter((a) => getNativeEnergyType(a.name) === type).map((activity) => (
+                            <SelectItem key={activity.name} value={activity.name} className="cursor-pointer py-2.5">
+                              <div className="flex items-center gap-3">
+                                <activity.icon className="h-4 w-4" />
+                                <span>{activity.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.activityType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.activityType}</p>
-                  )}
+                  {errors.activityType && <p className="text-destructive text-sm mt-1">{errors.activityType}</p>}
                 </div>
 
                 {/* Duration */}
                 <div>
-                  <Label className="text-lg mb-3 block">DURATION (MINUTES)</Label>
-                  <div className="flex items-center gap-4">
+                  <Label className="text-sm font-mono tracking-wider mb-2 block">DURATION (MINUTES)</Label>
+                  <div className="flex items-center gap-3">
                     <Button
                       type="button"
                       variant="outline"
                       size="lg"
-                      onClick={() => handleDurationChange(-5)}
+                      onClick={() => setForm((p) => ({ ...p, duration: Math.max(1, p.duration - 5) }))}
                       className="border-primary/30"
+                      aria-label="5 minutes less"
                     >
                       <Minus className="h-5 w-5" />
                     </Button>
                     <Input
                       type="number"
-                      value={formData.duration}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
-                      className="text-center text-3xl font-mono bg-background/50 border-primary/30 focus:border-primary flex-1"
+                      inputMode="numeric"
+                      value={form.duration}
+                      onChange={(e) => setForm((p) => ({ ...p, duration: parseInt(e.target.value) || 0 }))}
+                      className="text-center text-3xl font-mono h-14 bg-background/50 border-primary/30 focus:border-primary flex-1"
                       min={1}
                       max={600}
                     />
@@ -421,360 +331,248 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                       type="button"
                       variant="outline"
                       size="lg"
-                      onClick={() => handleDurationChange(5)}
+                      onClick={() => setForm((p) => ({ ...p, duration: Math.min(600, p.duration + 5) }))}
                       className="border-primary/30"
+                      aria-label="5 minutes more"
                     >
                       <Plus className="h-5 w-5" />
                     </Button>
                   </div>
-                  {errors.duration && (
-                    <p className="text-red-500 text-sm mt-1">{errors.duration}</p>
-                  )}
+                  {errors.duration && <p className="text-destructive text-sm mt-1">{errors.duration}</p>}
                 </div>
 
-                {/* Distance (conditional) */}
+                {/* Distance */}
                 {showDistance && (
                   <div>
-                    <Label className="text-lg mb-3 block">DISTANCE COVERED</Label>
-                    <div className="flex items-center gap-4">
+                    <Label className="text-sm font-mono tracking-wider mb-2 block">DISTANCE (OPTIONAL)</Label>
+                    <div className="flex items-center gap-3">
                       <Input
                         type="number"
+                        inputMode="decimal"
                         step="0.1"
-                        value={formData.distance || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, distance: parseFloat(e.target.value) || undefined }))}
-                        placeholder="Optional"
-                        className="bg-background/50 border-primary/30 focus:border-green-400 text-lg flex-1"
+                        value={form.distance}
+                        onChange={(e) => setForm((p) => ({ ...p, distance: e.target.value }))}
+                        placeholder="0.0"
+                        className="bg-background/50 border-primary/30 text-lg h-12 flex-1"
                       />
                       <div className="flex border border-primary/30 rounded-md overflow-hidden">
-                        <Button
-                          type="button"
-                          variant={unit === 'km' ? 'default' : 'ghost'}
-                          onClick={() => setUnit('km')}
-                          className="rounded-none"
-                        >
-                          KM
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={unit === 'mi' ? 'default' : 'ghost'}
-                          onClick={() => setUnit('mi')}
-                          className="rounded-none"
-                        >
-                          MI
-                        </Button>
+                        {(['km', 'mi'] as const).map((u) => (
+                          <Button
+                            key={u}
+                            type="button"
+                            variant={unit === u ? 'default' : 'ghost'}
+                            onClick={() => setUnit(u)}
+                            className="rounded-none h-12"
+                          >
+                            {u.toUpperCase()}
+                          </Button>
+                        ))}
                       </div>
                     </div>
-                    {errors.distance && (
-                      <p className="text-red-500 text-sm mt-1">{errors.distance}</p>
-                    )}
+                    {errors.distance && <p className="text-destructive text-sm mt-1">{errors.distance}</p>}
                   </div>
                 )}
 
                 {/* Intensity */}
                 <div>
-                  <Label className="text-lg mb-3 block">EXERTION COEFFICIENT</Label>
-                  <div className="grid grid-cols-3 gap-4">
+                  <Label className="text-sm font-mono tracking-wider mb-2 block">INTENSITY</Label>
+                  <div className="grid grid-cols-3 gap-3">
                     {INTENSITY_OPTIONS.map((option) => {
-                      const Icon = option.icon;
-                      const isSelected = formData.intensity === option.value;
-                      
+                      const isSelected = form.intensity === option.value;
                       return (
-                        <motion.div
+                        <Card
                           key={option.value}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
+                          className={`p-3 cursor-pointer transition-all border-2 ${
+                            isSelected ? option.selected : 'border-muted hover:border-primary/50'
+                          }`}
+                          onClick={() => setForm((p) => ({ ...p, intensity: option.value }))}
+                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setForm((p) => ({ ...p, intensity: option.value }))}
                         >
-                          <Card
-                            className={`p-4 cursor-pointer transition-all duration-300 ${
-                              isSelected
-                                ? `border-${option.color}-400 border-2 shadow-lg`
-                                : 'border-muted hover:border-primary/50'
-                            }`}
-                            onClick={() => setFormData(prev => ({ ...prev, intensity: option.value as any }))}
-                          >
-                            <div className="flex flex-col items-center text-center">
-                              <Icon className={`h-8 w-8 mb-2 ${isSelected ? `text-${option.color}-400` : 'text-muted-foreground'}`} />
-                              <h4 className={`font-bold mb-1 text-sm ${isSelected ? `text-${option.color}-400` : ''}`}>
-                                {option.label}
-                              </h4>
-                              <p className="text-xs text-muted-foreground mb-1">{option.description}</p>
-                              <p className="text-xs font-mono">{option.multiplier} energy</p>
-                            </div>
-                          </Card>
-                        </motion.div>
+                          <div className="flex flex-col items-center text-center">
+                            <option.icon className={`h-6 w-6 mb-1 ${isSelected ? '' : 'text-muted-foreground'}`} />
+                            <h4 className="font-bold text-xs">{option.label}</h4>
+                            <p className="text-[10px] text-muted-foreground hidden sm:block">{option.description}</p>
+                            <p className="text-[10px] font-mono text-muted-foreground">×{INTENSITY_MULTIPLIERS[option.value]}</p>
+                          </div>
+                        </Card>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Notes */}
+                {/* When */}
                 <div>
-                  <Label className="text-lg mb-3 block">FIELD NOTES</Label>
-                  <Textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Additional observations... (optional)"
-                    className="bg-background/50 border-primary/30 focus:border-primary font-mono min-h-24"
-                    maxLength={500}
+                  <Label htmlFor="performed-at" className="text-sm font-mono tracking-wider mb-2 block">WHEN</Label>
+                  <Input
+                    id="performed-at"
+                    type="datetime-local"
+                    value={form.performedAt}
+                    max={toLocalInput(new Date())}
+                    onChange={(e) => setForm((p) => ({ ...p, performedAt: e.target.value }))}
+                    className="bg-background/50 border-primary/30 h-12"
                   />
-                  <p className="text-xs text-muted-foreground mt-1 text-right">
-                    {formData.notes.length} / 500
-                  </p>
-                  {errors.notes && (
-                    <p className="text-red-500 text-sm mt-1">{errors.notes}</p>
-                  )}
+                  {errors.performedAt && <p className="text-destructive text-sm mt-1">{errors.performedAt}</p>}
                 </div>
 
-                {/* ENERGY ALLOCATION SECTION */}
-                {formData.activityType && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    transition={{ duration: 0.3 }}
-                    className="space-y-4"
-                  >
+                {/* Reserve selection */}
+                {form.activityType && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
                     <div>
-                      <Label className="text-lg mb-3 block">CHARGE WHICH RESERVES?</Label>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        You can charge any energy type, but matching gives bonuses
-                      </p>
+                      <Label className="text-sm font-mono tracking-wider mb-1 block">CHARGE WHICH RESERVE?</Label>
+                      <p className="text-xs text-muted-foreground mb-3">Any reserve works. The matching one charges at 100%, others at 50%.</p>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {Object.entries(ENERGY_GROUPS).map(([type, config]) => {
-                          const isOptimal = type === optimalType;
-                          const isSelected = formData.targetEnergyType === type;
-                          const Icon = config.icon;
-                          
-                          const tempCalc = calculateEnergy(
-                            formData.duration,
-                            formData.intensity,
-                            formData.distance,
-                            formData.activityType,
-                            type
-                          );
-
-                          const optimalActivities = ACTIVITIES
-                            .filter(a => a.energyType === type)
-                            .map(a => a.name);
-
+                      <div className="grid grid-cols-2 gap-3">
+                        {ENERGY_TYPES.map((type) => {
+                          const theme = ENERGY_THEME[type];
+                          const isOptimal = type === nativeType;
+                          const isSelected = form.targetEnergyType === type;
+                          const est = preview(type, false);
                           return (
-                            <motion.div
+                            <Card
                               key={type}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
+                              role="button"
+                              tabIndex={0}
+                              aria-pressed={isSelected}
+                              className={`p-3 cursor-pointer transition-all border-2 ${
+                                isSelected ? `${theme.border} ${theme.bgSoft}` : 'border-muted hover:border-primary/50'
+                              }`}
+                              onClick={() => setForm((p) => ({ ...p, targetEnergyType: type }))}
+                              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setForm((p) => ({ ...p, targetEnergyType: type }))}
                             >
-                              <Card
-                                className={`p-4 cursor-pointer transition-all duration-300 ${
-                                  isSelected
-                                    ? `border-${config.color}-400 border-2 bg-${config.color}-400/5`
-                                    : isOptimal
-                                    ? 'border-green-400 border bg-green-400/5'
-                                    : 'border-muted hover:border-primary/50'
-                                }`}
-                                onClick={() => setFormData(prev => ({ ...prev, targetEnergyType: type }))}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <div className={`w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center ${
-                                    isSelected
-                                      ? `border-${config.color}-400 bg-${config.color}-400/20`
-                                      : 'border-muted'
-                                  }`}>
-                                    {isSelected && (
-                                      <div className={`w-2.5 h-2.5 rounded-full bg-${config.color}-400`} />
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center gap-2">
-                                        <Icon className={`h-5 w-5 ${isOptimal ? 'text-green-400' : `text-${config.color}-400`}`} />
-                                        <h4 className="font-bold text-sm">
-                                          {config.label} RESERVES
-                                        </h4>
-                                      </div>
-                                      {isOptimal && (
-                                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-                                          ✓ OPTIMAL
-                                        </span>
-                                      )}
-                                      {!isOptimal && (
-                                        <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded flex items-center gap-1">
-                                          <AlertTriangle className="h-3 w-3" />
-                                          50%
-                                        </span>
-                                      )}
-                                    </div>
-                                    
-                                    <p className="text-sm font-mono mb-1">
-                                      Efficiency: {tempCalc.efficiency === 1.0 ? '100%' : '50%'}
-                                    </p>
-                                    <p className="text-sm mb-2">
-                                      Will generate: <span className="font-bold">{tempCalc.actualEnergy.toFixed(1)} kWh</span>
-                                    </p>
-                                    
-                                    {!isOptimal && (
-                                      <p className="text-xs text-muted-foreground">
-                                        Better for: {optimalActivities.slice(0, 2).join(', ')}
-                                      </p>
-                                    )}
-                                  </div>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <theme.icon className={`h-4 w-4 ${theme.text}`} />
+                                  <span className="font-bold text-xs">{theme.label.toUpperCase()}</span>
                                 </div>
-                              </Card>
-                            </motion.div>
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                                    isOptimal ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'
+                                  }`}
+                                >
+                                  {isOptimal ? '100%' : '50%'}
+                                </span>
+                              </div>
+                              <p className="text-sm font-mono">+{est.actualEnergy.toFixed(1)} kWh</p>
+                            </Card>
                           );
                         })}
                       </div>
+                      {errors.targetEnergyType && <p className="text-destructive text-sm mt-1">{errors.targetEnergyType}</p>}
                     </div>
 
-                    {/* Energy Calculation Preview */}
-                    {energyCalc && (
-                      <Card className="p-6 border-primary/30 bg-gradient-to-br from-primary/10 to-transparent">
-                        <h3 className="text-xl font-bold mb-4">ESTIMATED ENERGY GENERATION</h3>
-                        
-                        <div className="text-center mb-6">
-                          <motion.div
-                            key={finalEnergy}
-                            initial={{ scale: 1.2, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="text-6xl font-bold text-primary mb-2"
-                          >
-                            {finalEnergy.toFixed(1)} kWh
-                          </motion.div>
-                          <Zap className="h-12 w-12 mx-auto text-primary animate-pulse" />
-                        </div>
-
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">TARGET:</span>
-                            <span className="font-bold">{formData.targetEnergyType.toUpperCase()} RESERVES</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">EFFICIENCY:</span>
-                            <span className={`font-bold ${energyCalc.efficiency === 1.0 ? 'text-green-400' : 'text-amber-400'}`}>
-                              {energyCalc.efficiency === 1.0 ? '100% ✓' : '50%'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-primary/20">
-                          <p className="text-xs text-muted-foreground mb-2">Calculation:</p>
-                          <div className="space-y-1 text-xs font-mono">
-                            <div>• Base: {energyCalc.baseEnergy.toFixed(1)} kWh ({formData.duration}min × {formData.intensity})</div>
-                            {formData.distance && (
-                              <div>• Distance bonus: +{(formData.distance * 0.1).toFixed(1)} kWh</div>
-                            )}
-                            <div>• Efficiency: ×{energyCalc.efficiency} {energyCalc.efficiency === 1.0 ? '(optimal!)' : '(reduced)'}</div>
-                            {formData.useEnergyAmplifier && (
-                              <div>• Amplifier: ×2.0</div>
-                            )}
-                            <div className="font-bold">• Total: {finalEnergy.toFixed(1)} kWh</div>
-                          </div>
-                        </div>
-
-                        {energyCalc.efficiency === 1.0 && (
-                          <div className="mt-4 bg-green-500/20 border border-green-400/50 rounded-lg p-3 text-center">
-                            <p className="text-sm font-bold text-green-400">
-                              ✓ OPTIMAL MATCH! +50 XP BONUS
-                            </p>
-                          </div>
+                    {/* Boosters */}
+                    {(inventory.energyAmplifier > 0 || inventory.multiCharge > 0) && (
+                      <Card className="p-4 border-primary/30 bg-primary/5 space-y-3">
+                        <p className="text-xs font-mono tracking-wider text-muted-foreground">BOOSTERS</p>
+                        {inventory.energyAmplifier > 0 && (
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <Checkbox
+                              checked={form.useAmplifier}
+                              onCheckedChange={(c) => setForm((p) => ({ ...p, useAmplifier: !!c }))}
+                              className="mt-0.5"
+                            />
+                            <div className="text-sm">
+                              <span className="font-bold flex items-center gap-1.5">
+                                <Zap className="h-4 w-4 text-warning" /> Energy Amplifier (2× energy)
+                              </span>
+                              <span className="text-xs text-muted-foreground">{inventory.energyAmplifier} in your kit</span>
+                            </div>
+                          </label>
                         )}
-
-                        {energyCalc.efficiency < 1.0 && (
-                          <div className="mt-4 bg-amber-500/20 border border-amber-400/50 rounded-lg p-3 text-center">
-                            <p className="text-sm font-bold text-amber-400">
-                              50% EFFICIENCY
-                            </p>
-                          </div>
+                        {inventory.multiCharge > 0 && (
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <Checkbox
+                              checked={form.useMultiCharge}
+                              onCheckedChange={(c) => setForm((p) => ({ ...p, useMultiCharge: !!c }))}
+                              className="mt-0.5"
+                            />
+                            <div className="text-sm">
+                              <span className="font-bold flex items-center gap-1.5">
+                                <Layers className="h-4 w-4 text-accent" /> Multi-Charge (+{MULTI_CHARGE_SPILLOVER * 100}% to every other reserve)
+                              </span>
+                              <span className="text-xs text-muted-foreground">{inventory.multiCharge} in your kit</span>
+                            </div>
+                          </label>
                         )}
                       </Card>
                     )}
 
-                    {/* Educational Reasoning */}
-                    <Accordion type="single" collapsible className="border border-primary/20 rounded-lg">
-                      <AccordionItem value="reasoning" className="border-none">
-                        <AccordionTrigger className="px-4 hover:no-underline">
-                          <div className="flex items-center gap-2">
-                            <Info className="h-4 w-4 text-primary" />
-                            <span className="text-sm">Why the difference?</span>
+                    {/* Estimate */}
+                    {calc && (
+                      <Card className="p-5 border-primary/30 bg-gradient-to-br from-primary/10 to-transparent">
+                        <div className="flex items-end justify-between">
+                          <div>
+                            <p className="text-xs font-mono text-muted-foreground tracking-wider">ESTIMATED</p>
+                            <motion.p
+                              key={calc.actualEnergy.toFixed(2)}
+                              initial={{ scale: 1.1, opacity: 0.5 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="text-4xl font-heading font-bold text-primary"
+                            >
+                              {calc.actualEnergy.toFixed(1)} kWh
+                            </motion.p>
                           </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-4 pb-4">
-                          <p className="text-sm text-foreground/90 leading-relaxed">
-                            Think of it like fuel types. {formData.activityType} (foot power) naturally
-                            charges {optimalType.charAt(0).toUpperCase() + optimalType.slice(1)} reserves better than other types.
-                            <br /><br />
-                            You CAN cross-charge any activity into any reserve, but it&apos;s
-                            less efficient—like using diesel in a gas engine. Still works,
-                            just not optimal!
-                          </p>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-
-                    {/* Booster Section */}
-                    {inventory.energyAmplifier > 0 && (
-                      <Card className="p-4 border-primary/30 bg-primary/5">
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={formData.useEnergyAmplifier}
-                            onCheckedChange={(checked) => 
-                              setFormData(prev => ({ ...prev, useEnergyAmplifier: !!checked }))
-                            }
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <Label className="font-bold flex items-center gap-2 mb-2">
-                              <Zap className="h-4 w-4 text-amber-400" />
-                              USE ENERGY AMPLIFIER (2× energy)
-                            </Label>
-                            <p className="text-sm text-muted-foreground mb-2">
-                              You have: <span className="font-bold text-foreground">{inventory.energyAmplifier} available</span>
-                            </p>
-                            <div className="text-sm space-y-1">
-                              <div>Without: +{energyCalc?.actualEnergy.toFixed(1)} kWh</div>
-                              <div className="font-bold text-primary">
-                                With: +{(energyCalc?.actualEnergy || 0) * 2} kWh ⚡
-                              </div>
-                            </div>
+                          <Zap className="h-10 w-10 text-primary animate-pulse" />
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-primary/20 space-y-0.5 text-xs font-mono text-muted-foreground">
+                          <div>
+                            Base {(form.duration / 60 * INTENSITY_MULTIPLIERS[form.intensity]).toFixed(2)} kWh ({form.duration} min × {form.intensity})
                           </div>
+                          {distanceKm && <div>Distance +{(distanceKm * 0.1).toFixed(2)} kWh ({distanceKm.toFixed(1)} km)</div>}
+                          <div>Efficiency ×{calc.efficiency}{calc.isOptimal ? ` (matched, +${XP_OPTIMAL_MATCH_BONUS} XP)` : ''}</div>
+                          {form.useAmplifier && <div>Amplifier ×2</div>}
+                          {form.duration >= DAILY_MISSION.minDuration && <div className="text-accent">Counts toward the {DAILY_MISSION.name}</div>}
                         </div>
                       </Card>
+                    )}
+
+                    {!calc?.isOptimal && nativeType && (
+                      <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <Info className="h-4 w-4 flex-shrink-0 text-primary" />
+                        <span>
+                          {form.activityType} naturally charges {ENERGY_THEME[nativeType].label}. Cross-charging still works, just at half rate.
+                        </span>
+                      </div>
                     )}
                   </motion.div>
                 )}
 
-                {/* Form Actions */}
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    className="border-red-400 text-red-400 hover:bg-red-400/10"
-                  >
-                    CANCEL
+                {/* Notes */}
+                <div>
+                  <Label className="text-sm font-mono tracking-wider mb-2 block">NOTES</Label>
+                  <Textarea
+                    value={form.notes}
+                    onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                    placeholder="Optional"
+                    className="bg-background/50 border-primary/30 min-h-20"
+                    maxLength={500}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => close(false)}>
+                    Cancel
                   </Button>
                   <Button
                     type="submit"
-                    disabled={!formData.activityType || !formData.targetEnergyType || submitting}
-                    className="flex-1 text-lg py-6 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
+                    disabled={!form.activityType || !form.targetEnergyType || submitting}
+                    className="flex-1 text-base py-6 bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     {submitting ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        PROCESSING...
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Recording...
                       </>
                     ) : (
-                      <>
-                        RECORD → {formData.targetEnergyType.toUpperCase() || 'ACTIVITY'}
-                      </>
+                      <>Record {calc ? `+${calc.actualEnergy.toFixed(1)} kWh` : 'activity'}</>
                     )}
                   </Button>
                 </div>
 
                 {errors.submit && (
-                  <div className="bg-red-500/20 border border-red-400 rounded-lg p-3 text-sm text-red-400">
-                    {errors.submit}
-                  </div>
+                  <div className="bg-destructive/20 border border-destructive rounded-lg p-3 text-sm text-destructive">{errors.submit}</div>
                 )}
               </form>
             </motion.div>
