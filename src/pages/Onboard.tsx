@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/toast';
 import { Step1 } from '@/components/onboarding/Step1';
 import { Step2 } from '@/components/onboarding/Step2';
-import { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui';
 
 const TOTAL_STEPS = 2;
 
@@ -15,7 +15,6 @@ const Onboard = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { toast } = useToast();
 
   // Returning from Stripe Checkout (success_url carries session_id).
   const checkoutSessionId = params.get('session_id');

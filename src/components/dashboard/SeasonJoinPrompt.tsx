@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Globe, Map, Calendar, ArrowRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
+import { Button } from '@/components/ui';
 
 interface SeasonJoinProps {
   onJoin: () => Promise<{ error?: string }>;
@@ -42,10 +41,8 @@ export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="border border-primary/30 bg-primary/5 rounded-xl p-5 space-y-4"
+    <div
+      className="border border-primary/30 bg-primary/5 rounded-xl p-5 space-y-4 animate-scale-in"
     >
       <div className="flex items-center gap-2">
         <Globe className="w-5 h-5 text-primary" />
@@ -86,6 +83,6 @@ export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
         {isUpcoming ? 'Sign on for the season' : 'Board the expedition'}
         {!joining && <ArrowRight className="w-4 h-4" />}
       </Button>
-    </motion.div>
+    </div>
   );
 };

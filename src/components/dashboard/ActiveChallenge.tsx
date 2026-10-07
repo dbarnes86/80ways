@@ -1,9 +1,7 @@
-import { HolographicCard } from '@/components/ui/holographic-card';
-import { CyberpunkProgress } from '@/components/ui/cyberpunk-progress';
-import { Button } from '@/components/ui/button';
 import { Zap } from 'lucide-react';
 import { ENERGY_THEME } from '@/data/energyTheme';
 import type { EnergyType } from '@/data/gameConstants';
+import { HoloCard, SegmentedProgress, Button } from '@/components/ui';
 
 interface ActiveChallengeProps {
   title: string;
@@ -21,7 +19,7 @@ export const ActiveChallenge = ({ title, description, requiredEnergy, currentPro
   const theme = ENERGY_THEME[requiredEnergy.type];
 
   return (
-    <HolographicCard glow={theme.glow} className="p-4">
+    <HoloCard glow={theme.glow} className="p-4">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0">
           <p className="text-[10px] font-mono text-muted-foreground tracking-widest">CURRENT LEG</p>
@@ -45,10 +43,10 @@ export const ActiveChallenge = ({ title, description, requiredEnergy, currentPro
         </span>
         <span className={`text-xs ${theme.text}`}>{theme.label}</span>
       </div>
-      <CyberpunkProgress value={currentProgress} max={requiredEnergy.amount} segments={12} glow="cyan" size="md" />
+      <SegmentedProgress value={currentProgress} max={requiredEnergy.amount} segments={12} glow="cyan" size="md" />
       {!canDeploy && (
         <p className="text-[11px] text-muted-foreground mt-2">Reserves empty. Log an activity to charge up, then deploy.</p>
       )}
-    </HolographicCard>
+    </HoloCard>
   );
 };

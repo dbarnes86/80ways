@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local env. Never commit keys; see .env.example.
+.env
+.env.*
+!.env.example
+
+# Capacitor build output
+ios/App/App/public
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+android/app/src/main/assets/public

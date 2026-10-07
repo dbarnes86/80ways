@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { Sword, Users, Target, Zap, AlertCircle, Flame, ChevronRight, CheckCircle2, XCircle, Coins } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { HolographicCard } from "@/components/ui/holographic-card";
-import { CyberpunkProgress } from "@/components/ui/cyberpunk-progress";
 import { EnergyAllocator } from "@/components/EnergyAllocator";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useSeasonStore } from "@/stores/seasonStore";
 import { useRaidStore } from "@/stores/raidStore";
 import { useUserStore } from "@/stores/userStore";
@@ -15,7 +9,8 @@ import { ENERGY_THEME } from "@/data/energyTheme";
 import { CREDITS_RAID_SUCCESS, type EnergyType } from "@/data/gameConstants";
 import { formatTimeLeft, getRaidSchedule, getRaidStatus, RAID_XP_FIRST_CONTRIBUTION, type ScheduledRaid } from "@/data/raids";
 import { claimRaidReward, contributeToRaid } from "@/lib/gameActions";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from '@/components/toast';
+import { Badge, Button, Dialog, HoloCard, SegmentedProgress, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 
 interface Contributor {
   display_name: string;
@@ -27,7 +22,6 @@ export default function Raids() {
   const activeSeason = useSeasonStore((s) => s.activeSeason);
   const { totals, available, loaded, fetchTotals } = useRaidStore();
   const claimed = useUserStore((s) => s.raidRewardsClaimed);
-  const { toast } = useToast();
 
   const [contributing, setContributing] = useState<ScheduledRaid | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -98,23 +92,21 @@ export default function Raids() {
       </div>
 
       {loaded && !available && (
-        <HolographicCard glow="none" corners={false} className="p-4 mb-6 text-sm text-warning">
+        <HoloCard glow="none" corners={false} className="p-4 mb-6 text-sm text-warning">
           Raid HQ is offline. Contributions will open once the server is updated.
-        </HolographicCard>
+        </HoloCard>
       )}
 
       {activeRaid ? (
-        <HolographicCard glow="magenta" className="p-6 md:p-8 mb-8 border-2 border-destructive/30">
-          <motion.div
-            animate={{ opacity: [1, 0.6, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="flex items-center gap-2 mb-6"
+        <HoloCard glow="magenta" className="p-6 md:p-8 mb-8 border-2 border-destructive/30">
+          <div
+            className="flex items-center gap-2 mb-6 animate-float"
           >
             <AlertCircle className="w-5 h-5 text-destructive" />
             <Badge className="bg-destructive/20 text-destructive border-destructive/40 uppercase tracking-widest text-xs">
               <Flame className="w-3 h-3 mr-1" /> Raid active · ends in {formatTimeLeft(activeRaid.end)}
             </Badge>
-          </motion.div>
+          </div>
 
           <div className="flex items-start justify-between gap-4 mb-6">
             <div>
@@ -152,7 +144,7 @@ export default function Raids() {
               </span>
               <span className="font-mono text-muted-foreground">{Math.min(100, (activeTotal / activeRaid.goalKwh) * 100).toFixed(0)}%</span>
             </div>
-            <CyberpunkProgress value={activeTotal} max={activeRaid.goalKwh} segments={20} glow="magenta" size="lg" />
+            <SegmentedProgress value={activeTotal} max={activeRaid.goalKwh} segments={20} glow="magenta" size="lg" />
             {activeTotals?.yourContribution ? (
               <p className="text-xs text-muted-foreground mt-2">You've contributed {activeTotals.yourContribution.toFixed(1)} kWh.</p>
             ) : null}
@@ -195,15 +187,15 @@ export default function Raids() {
               </div>
             </div>
           )}
-        </HolographicCard>
+        </HoloCard>
       ) : (
-        <HolographicCard glow="none" className="p-6 mb-8 text-center">
+        <HoloCard glow="none" className="p-6 mb-8 text-center">
           <Sword className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
           <p className="font-heading text-lg">All quiet. For now.</p>
           <p className="text-sm text-muted-foreground">
             {upcoming[0] ? `Fix's next move: ${upcoming[0].name}, in ${formatTimeLeft(upcoming[0].start)}.` : "No more raids this season."}
           </p>
-        </HolographicCard>
+        </HoloCard>
       )}
 
       {upcoming.length > 0 && (
@@ -211,7 +203,7 @@ export default function Raids() {
           <h2 className="text-2xl font-heading mb-4">Incoming</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {upcoming.map((raid) => (
-              <HolographicCard key={raid.key} glow="cyan" className="p-5">
+              <HoloCard key={raid.key} glow="cyan" className="p-5">
                 <Badge variant="secondary" className="mb-3 uppercase tracking-widest text-[10px]">
                   In {formatTimeLeft(raid.start)}
                 </Badge>
@@ -230,7 +222,7 @@ export default function Raids() {
                     <span className={ENERGY_THEME[raid.type].text}>{ENERGY_THEME[raid.type].label}</span>
                   </div>
                 </div>
-              </HolographicCard>
+              </HoloCard>
             ))}
           </div>
         </div>
@@ -267,8 +259,7 @@ export default function Raids() {
         </div>
       )}
 
-      <Dialog open={!!contributing} onOpenChange={(o) => !o && setContributing(null)}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto bg-background border-2 border-secondary/50">
+      <Dialog open={!!contributing} onClose={() => setContributing(null)} className="max-w-xl max-h-[90vh] overflow-y-auto bg-background border-2 border-secondary/50">
           {contributing && (
             <>
               <DialogHeader>
@@ -288,8 +279,7 @@ export default function Raids() {
               />
             </>
           )}
-        </DialogContent>
-      </Dialog>
+              </Dialog>
     </div>
   );
 }

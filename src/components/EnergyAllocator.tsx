@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Zap, RefreshCw, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { CyberpunkProgress } from '@/components/ui/cyberpunk-progress';
 import { useEnergyStore } from '@/stores/energyStore';
 import { ENERGY_THEME } from '@/data/energyTheme';
 import { ENERGY_TYPES, getDeploymentEfficiency, type EnergyType } from '@/data/gameConstants';
 import { planDeployment } from '@/lib/gameEngine';
+import { Button, Slider, SegmentedProgress } from '@/components/ui';
 
 interface EnergyAllocatorProps {
   targetType: EnergyType;
@@ -84,12 +82,11 @@ export const EnergyAllocator = ({ targetType, required, progress, submitLabel, s
                 <span className={`text-xs font-mono ${efficiencyClass(efficiency)}`}>{Math.round(efficiency * 100)}%</span>
               </div>
               <Slider
-                value={[value]}
-                onValueChange={(v) => setSelection((s) => ({ ...s, [type]: v[0] }))}
+                value={value}
+                onChange={(v) => setSelection((s) => ({ ...s, [type]: v }))}
                 max={Math.max(0.1, round1(available))}
-                step={0.1}
                 disabled={available < 0.1}
-                aria-label={`${theme.label} energy to deploy`}
+                label={`${theme.label} energy to deploy`}
               />
               <div className="flex justify-between text-[11px] font-mono mt-1 text-muted-foreground">
                 <span>Deploy {value.toFixed(1)}</span>
@@ -123,7 +120,7 @@ export const EnergyAllocator = ({ targetType, required, progress, submitLabel, s
             {plan.unused.toFixed(1)} kWh selected isn't needed and stays in your reserves.
           </p>
         )}
-        <CyberpunkProgress value={after} max={required} segments={12} glow="cyan" size="sm" />
+        <SegmentedProgress value={after} max={required} segments={12} glow="cyan" size="sm" />
         <div className="flex justify-between text-[11px] font-mono text-muted-foreground">
           <span>{after.toFixed(1)} / {required.toFixed(1)} kWh</span>
           <span>{Math.max(0, required - after).toFixed(1)} to go</span>

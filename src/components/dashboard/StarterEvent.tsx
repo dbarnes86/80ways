@@ -1,6 +1,4 @@
-import { motion } from 'framer-motion';
 import { Zap, Rocket, Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useProgressionStore } from '@/stores/progressionStore';
 import {
   STARTER_EVENT,
@@ -14,12 +12,10 @@ export const StarterEvent = () => {
     starterEventProgress,
     xp,
     level,
-    levelName,
     canJoinMainJourney,
   } = useProgressionStore();
 
   const progress = starterEventProgress / STARTER_EVENT.requiredEnergy;
-  const levelInfo = getLevelFromXP(xp);
 
   // Determine narrative message
   const getNarrativeMessage = () => {
@@ -31,10 +27,8 @@ export const StarterEvent = () => {
   if (canJoinMainJourney) return null; // Player has graduated
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+    <div
+      className="space-y-4 animate-fade-up"
     >
       {/* Header */}
       <div className="text-center">
@@ -63,17 +57,15 @@ export const StarterEvent = () => {
               stroke="hsl(var(--muted) / 0.3)"
               strokeWidth="5"
             />
-            <motion.circle
+            <circle
               cx="50" cy="50" r="42"
               fill="none"
               stroke="hsl(var(--primary))"
               strokeWidth="5"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 42}
-              initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-              animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - progress) }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-              style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.5))' }}
+              strokeDashoffset={2 * Math.PI * 42 * (1 - progress)}
+              style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.5))', transition: 'stroke-dashoffset 1s ease-out' }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -106,6 +98,6 @@ export const StarterEvent = () => {
         )}
       </div>
 
-    </motion.div>
+    </div>
   );
 };

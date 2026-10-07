@@ -1,136 +1,58 @@
-import { Capacitor } from '@capacitor/core';
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * In-app purchases for the Capacitor builds (App Store / Google Play).
+ *
+ * Plumbing only for now. A store purchase does not grant membership yet: that needs a server-side
+ * receipt check (App Store Server Notifications / Play RTDN) writing the entitlements row the same
+ * way the Stripe webhook does. Until that exists the native paywall stays switched off (see
+ * NATIVE_PURCHASES_ENABLED) rather than take money it can't honour.
+ */
+import { Capacitor } from '@capacitor/core'
 
-// App Store Connect product IDs — update these after creating products in App Store Connect
+export const NATIVE_PURCHASES_ENABLED = false
+
 export const PRODUCTS = {
-  YEARLY_FULL: {
-    id: 'com.atw80ways.yearly.full', // $29.99/year
-    appStoreId: 'com.atw80ways.yearly.full',
-    stripePriceId: 'price_1SDn2gKaw9duBfyWTItImHiW',
-  },
-  YEARLY_TRIAL: {
-    id: 'com.atw80ways.yearly.trial', // 7-day free trial, then $19.99/year
-    appStoreId: 'com.atw80ways.yearly.trial',
-    stripePriceId: '', // Create this Stripe price if needed
-  },
-} as const;
+  monthly: 'com.atw80ways.membership.monthly',
+  annual: 'com.atw80ways.membership.annual',
+} as const
 
-export type PurchasePlan = 'yearly' | 'trial';
+export type NativePlan = keyof typeof PRODUCTS
 
-const isNative = () => Capacitor.isNativePlatform();
+export const isNative = () => Capacitor.isNativePlatform()
 
-/**
- * Initialize the IAP plugin (call once on app start for native)
- */
-export async function initializePurchases() {
-  if (!isNative()) return;
-
+export async function getNativeProducts() {
+  if (!isNative()) return []
   try {
-    const { NativePurchases } = await import('@capgo/native-purchases');
-    const supported = await NativePurchases.isBillingSupported();
-    if (!supported) {
-      console.warn('Billing not supported on this device');
-    }
-  } catch (err) {
-    console.error('Failed to initialize purchases:', err);
-  }
-}
-
-/**
- * Fetch available products from the store
- */
-export async function getAvailableProducts() {
-  if (!isNative()) return [];
-
-  try {
-    const { NativePurchases, PURCHASE_TYPE } = await import('@capgo/native-purchases');
+    const { NativePurchases, PURCHASE_TYPE } = await import('@capgo/native-purchases')
     const { products } = await NativePurchases.getProducts({
-      productIdentifiers: [PRODUCTS.YEARLY_FULL.appStoreId, PRODUCTS.YEARLY_TRIAL.appStoreId],
+      productIdentifiers: Object.values(PRODUCTS),
       productType: PURCHASE_TYPE.SUBS,
-    });
-    return products;
+    })
+    return products
   } catch (err) {
-    console.error('Failed to fetch products:', err);
-    return [];
+    console.error('Failed to fetch products:', err)
+    return []
   }
 }
 
-/**
- * Purchase a subscription plan
- * - On native: triggers StoreKit/Google Play
- * - On web: falls back to Stripe checkout
- */
-export async function purchasePlan(
-  plan: PurchasePlan,
-  userInfo: { email: string; displayName: string }
-): Promise<{ success: boolean; error?: string }> {
-  if (isNative()) {
-    return purchaseNative(plan);
-  }
-  return purchaseStripe(plan, userInfo);
-}
-
-async function purchaseNative(plan: PurchasePlan): Promise<{ success: boolean; error?: string }> {
+export async function purchaseNative(plan: NativePlan): Promise<{ success: boolean; error?: string }> {
   try {
-    const { NativePurchases } = await import('@capgo/native-purchases');
-    const productId = plan === 'yearly' ? PRODUCTS.YEARLY_FULL.appStoreId : PRODUCTS.YEARLY_TRIAL.appStoreId;
-
-    const result = await NativePurchases.purchaseProduct({
-      productIdentifier: productId,
-      quantity: 1,
-    });
-
-    if (result.transactionId) {
-      return { success: true };
-    }
-
-    return { success: false, error: 'Purchase was not completed' };
-  } catch (err: any) {
-    // User cancelled
-    if (err?.code === 'USER_CANCELLED' || err?.message?.includes('cancel')) {
-      return { success: false, error: 'cancelled' };
-    }
-    return { success: false, error: err?.message || 'Purchase failed' };
+    const { NativePurchases } = await import('@capgo/native-purchases')
+    const result = await NativePurchases.purchaseProduct({ productIdentifier: PRODUCTS[plan], quantity: 1 })
+    return result.transactionId ? { success: true } : { success: false, error: 'Purchase was not completed' }
+  } catch (err) {
+    const e = err as { code?: string; message?: string }
+    if (e?.code === 'USER_CANCELLED' || e?.message?.includes('cancel')) return { success: false, error: 'cancelled' }
+    return { success: false, error: e?.message || 'Purchase failed' }
   }
 }
 
-async function purchaseStripe(
-  plan: PurchasePlan,
-  userInfo: { email: string; displayName: string }
-): Promise<{ success: boolean; error?: string }> {
+export async function restoreNativePurchases(): Promise<boolean> {
+  if (!isNative()) return false
   try {
-    const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: {
-        email: userInfo.email,
-        displayName: userInfo.displayName,
-        plan,
-      },
-    });
-
-    if (error) throw error;
-
-    if (data?.url) {
-      window.open(data.url, '_blank');
-      return { success: false, error: 'redirect' }; // not a real error, user redirected
-    }
-
-    return { success: false, error: 'No checkout URL returned' };
-  } catch (err: any) {
-    return { success: false, error: err?.message || 'Failed to create checkout' };
-  }
-}
-
-/**
- * Restore previous purchases (native only)
- */
-export async function restorePurchases(): Promise<boolean> {
-  if (!isNative()) return false;
-
-  try {
-    const { NativePurchases } = await import('@capgo/native-purchases');
-    await NativePurchases.restorePurchases();
-    return true;
+    const { NativePurchases } = await import('@capgo/native-purchases')
+    await NativePurchases.restorePurchases()
+    return true
   } catch {
-    return false;
+    return false
   }
 }

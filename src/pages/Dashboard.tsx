@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { HolographicCard } from '@/components/ui/holographic-card';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useProgressionStore } from '@/stores/progressionStore';
 import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
@@ -22,6 +20,7 @@ import { DAILY_MISSION, ENERGY_TYPES } from '@/data/gameConstants';
 import { formatTimeLeft, getRaidSchedule, getRaidStatus } from '@/data/raids';
 import { computeStreak, getPlayerNarrativeDay, toDayKey } from '@/lib/gameEngine';
 import { Plus, Clock, AlertCircle, Sparkles, Flame, ShieldOff, Trophy, Loader2 } from 'lucide-react';
+import { Button, HoloCard } from '@/components/ui';
 
 const Dashboard = () => {
   const energy = useEnergyStore();
@@ -111,14 +110,14 @@ const Dashboard = () => {
 
             <div className="mb-6">
               {journeyDone ? (
-                <HolographicCard glow="magenta" className="p-5 text-center space-y-2">
+                <HoloCard glow="magenta" className="p-5 text-center space-y-2">
                   <Trophy className="w-8 h-8 text-secondary mx-auto" />
                   <p className="font-heading font-bold text-lg">Wager won</p>
                   <p className="text-sm text-muted-foreground">
                     You've made it around the world. Keep charging for raids and climb the leaderboard until the season closes.
                   </p>
                   <Link to="/leaderboard" className="text-sm text-primary hover:underline">See the leaderboard</Link>
-                </HolographicCard>
+                </HoloCard>
               ) : (
                 <ActiveChallenge
                   title={currentLeg.narrative.title}
@@ -160,7 +159,7 @@ const Dashboard = () => {
 
         {/* Secondary info */}
         <div className="space-y-3">
-          <HolographicCard glow="purple" corners={false} className="p-4">
+          <HoloCard glow="purple" corners={false} className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
                 <Clock className="w-4 h-4 text-accent" />
@@ -176,10 +175,10 @@ const Dashboard = () => {
                 <p className="text-[9px] text-muted-foreground">Resets {formatTimeLeft(midnight)}</p>
               </div>
             </div>
-          </HolographicCard>
+          </HoloCard>
 
           {streak > 0 && (
-            <HolographicCard glow="none" corners={false} className="p-4">
+            <HoloCard glow="none" corners={false} className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-secondary/10 border border-secondary/30 flex items-center justify-center flex-shrink-0">
                   <Flame className="w-4 h-4 text-secondary" />
@@ -189,12 +188,12 @@ const Dashboard = () => {
                   <p className="text-[10px] text-muted-foreground">Log something every day to keep it going</p>
                 </div>
               </div>
-            </HolographicCard>
+            </HoloCard>
           )}
 
           <Link to="/raids" className="block">
             {activeRaid ? (
-              <HolographicCard glow="magenta" className="p-4">
+              <HoloCard glow="magenta" className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center flex-shrink-0">
                     <AlertCircle className="w-4 h-4 text-destructive" />
@@ -206,9 +205,9 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-              </HolographicCard>
+              </HoloCard>
             ) : (
-              <HolographicCard glow="none" corners={false} className="p-4">
+              <HoloCard glow="none" corners={false} className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-muted/10 border border-muted flex items-center justify-center flex-shrink-0">
                     <AlertCircle className="w-4 h-4 text-muted-foreground" />
@@ -220,11 +219,11 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-              </HolographicCard>
+              </HoloCard>
             )}
           </Link>
 
-          <HolographicCard glow="cyan" corners={false} className="p-4">
+          <HoloCard glow="cyan" corners={false} className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
                 <Sparkles className="w-4 h-4 text-primary" />
@@ -236,7 +235,7 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-          </HolographicCard>
+          </HoloCard>
         </div>
       </div>
 

@@ -1,15 +1,12 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Coins, Flag, Sparkles } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { CyberpunkProgress } from '@/components/ui/cyberpunk-progress';
 import { EnergyAllocator } from '@/components/EnergyAllocator';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { ENERGY_THEME } from '@/data/energyTheme';
 import { deployToLeg, type DeployResult } from '@/lib/gameActions';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/toast';
+import { Dialog, Button, SegmentedProgress, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 
 interface EnergyDeploymentProps {
   open: boolean;
@@ -52,11 +49,10 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
-        <AnimatePresence mode="wait">
+    <Dialog open={open} onClose={() => close()} className="max-w-xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
+        <>
           {!result ? (
-            <motion.div key="form" exit={{ opacity: 0 }} className="space-y-5">
+            <div key="form" className="space-y-5">
               <DialogHeader>
                 <DialogTitle className="text-xl font-heading font-bold text-primary">
                   {leg.narrative.title.toUpperCase()}
@@ -76,21 +72,19 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
                 onSubmit={handleSubmit}
                 onCancel={close}
               />
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
+            <div
               key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-6 space-y-5"
+              className="text-center py-6 space-y-5 animate-scale-in"
             >
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }} className="flex justify-center">
+              <div className="flex justify-center animate-scale-in">
                 {result.legCompleted ? (
                   <Flag className="w-20 h-20 text-success" />
                 ) : (
                   <CheckCircle2 className="w-20 h-20 text-primary" />
                 )}
-              </motion.div>
+              </div>
 
               <div>
                 <h2 className="text-2xl font-heading font-bold mb-1">
@@ -131,7 +125,7 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
                 </div>
               ) : (
                 <div className="p-4 rounded-lg border border-primary/40 bg-primary/5 space-y-2">
-                  <CyberpunkProgress value={result.newProgress} max={leg.requiredEnergy.amount} segments={12} glow="cyan" size="sm" />
+                  <SegmentedProgress value={result.newProgress} max={leg.requiredEnergy.amount} segments={12} glow="cyan" size="sm" />
                   <p className="text-sm text-muted-foreground">
                     {(leg.requiredEnergy.amount - result.newProgress).toFixed(1)} kWh to {leg.to}
                   </p>
@@ -139,10 +133,9 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
               )}
 
               <Button onClick={close} className="w-full">Continue</Button>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
-      </DialogContent>
-    </Dialog>
+        </>
+          </Dialog>
   );
 };

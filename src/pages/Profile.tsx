@@ -1,15 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { HolographicCard } from "@/components/ui/holographic-card";
-import { CyberpunkProgress } from "@/components/ui/cyberpunk-progress";
 import { User, MapPin, Award, Zap, Flame, Activity, Globe, LogOut, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useProgressionStore } from "@/stores/progressionStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { useUserStore } from "@/stores/userStore";
@@ -18,7 +11,8 @@ import { getLevelFromXP, KM_PER_MILE, type EnergyType } from "@/data/gameConstan
 import { ACHIEVEMENTS } from "@/data/achievements";
 import { computeStreak, longestStreak } from "@/lib/gameEngine";
 import { schedulePush } from "@/lib/gameSync";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from '@/components/toast';
+import { Button, Input, Badge, Switch, HoloCard, SegmentedProgress } from '@/components/ui';
 
 const rarityRing: Record<string, string> = {
   legendary: "glow-magenta",
@@ -37,7 +31,6 @@ const rarityText: Record<string, string> = {
 export default function Profile() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const progression = useProgressionStore();
   const activities = useActivityStore((s) => s.activities);
@@ -131,7 +124,7 @@ export default function Profile() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
-          <HolographicCard glow="cyan" className="p-6">
+          <HoloCard glow="cyan" className="p-6">
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto mb-4 flex items-center justify-center glow-purple">
                 <User className="w-10 h-10 text-primary-foreground" />
@@ -146,7 +139,7 @@ export default function Profile() {
                   Level {progression.level} · {progression.levelName}
                 </span>
               </div>
-              <CyberpunkProgress value={levelInfo.progress * 100} segments={10} glow="cyan" size="sm" />
+              <SegmentedProgress value={levelInfo.progress * 100} segments={10} glow="cyan" size="sm" />
               <p className="text-xs text-muted-foreground mt-1 text-right font-mono">
                 {progression.xp} XP{levelInfo.xpForNext > 0 && levelInfo.progress < 1 ? ` · ${levelInfo.xpForNext - levelInfo.xpInLevel} to next` : ""}
               </p>
@@ -156,29 +149,29 @@ export default function Profile() {
               <span className="text-sm text-muted-foreground">Member since</span>
               <span className="text-sm font-mono">{memberSince}</span>
             </div>
-          </HolographicCard>
+          </HoloCard>
 
-          <HolographicCard glow="magenta" className="p-6 text-center">
+          <HoloCard glow="magenta" className="p-6 text-center">
             <Flame className="w-10 h-10 mx-auto mb-2 text-secondary" />
             <p className="text-3xl font-mono font-bold text-secondary">{currentStreak}</p>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Day streak</p>
-          </HolographicCard>
+          </HoloCard>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {statCards.map((stat, index) => (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }}>
-                <HolographicCard glow={stat.glow} className="p-4">
+              <div className="animate-fade-up" key={stat.label} style={{ animationDelay: `${index * 0.08}s` }}>
+                <HoloCard glow={stat.glow} className="p-4">
                   <stat.icon className="w-5 h-5 text-primary mb-2" />
                   <div className="text-xl font-mono mb-1">{stat.value}</div>
                   <div className="text-xs text-muted-foreground">{stat.label}</div>
-                </HolographicCard>
-              </motion.div>
+                </HoloCard>
+              </div>
             ))}
           </div>
 
-          <HolographicCard glow="purple" className="p-6">
+          <HoloCard glow="purple" className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-heading flex items-center gap-2">
                 <Award className="w-5 h-5 text-accent" /> Achievements
@@ -189,14 +182,11 @@ export default function Profile() {
             </div>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
               {achievements.map((badge, index) => (
-                <motion.div
+                <div
                   key={badge.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.03 }}
-                  className={`text-center ${badge.isEarned ? "" : "opacity-35 grayscale"}`}
+                  className={`text-center ${badge.isEarned ? "" : "opacity-35 grayscale"} animate-scale-in`}
                   title={badge.description}
-                >
+                 style={{ animationDelay: `${index * 0.03}s` }}>
                   <div
                     className={`w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-2 ${
                       badge.isEarned ? rarityRing[badge.rarity] : ""
@@ -207,12 +197,12 @@ export default function Profile() {
                   <div className="text-xs font-medium leading-tight">{badge.name}</div>
                   <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{badge.description}</div>
                   <div className={`text-[9px] uppercase tracking-wider mt-0.5 ${rarityText[badge.rarity]}`}>{badge.rarity}</div>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </HolographicCard>
+          </HoloCard>
 
-          <HolographicCard glow="none" className="p-6">
+          <HoloCard glow="none" className="p-6">
             <h2 className="text-2xl font-heading mb-6">Settings</h2>
             <div className="space-y-6">
               <div>
@@ -234,7 +224,8 @@ export default function Profile() {
                 </div>
                 <Switch
                   checked={imperial}
-                  onCheckedChange={(c) => {
+                  label="Imperial units"
+                  onChange={(c) => {
                     setUnits(c ? "imperial" : "metric");
                     schedulePush();
                   }}
@@ -245,7 +236,7 @@ export default function Profile() {
                 <LogOut className="w-4 h-4 mr-2" /> Sign out
               </Button>
             </div>
-          </HolographicCard>
+          </HoloCard>
         </div>
       </div>
     </div>

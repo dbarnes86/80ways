@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui";
 import { 
   Map, 
   Trophy, 
@@ -13,7 +13,6 @@ import {
   LogOut
 } from "lucide-react";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const Navbar = () => {
@@ -55,12 +54,11 @@ export const Navbar = () => {
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
             <NavLink to={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
+              <div
                 className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_15px_hsl(187_100%_50%/0.4)] transition-shadow duration-300 group-hover:shadow-[0_0_25px_hsl(187_100%_50%/0.6)]"
               >
                 <Map className="w-5 h-5 text-primary-foreground" />
-              </motion.div>
+              </div>
               <div className="hidden md:block">
                 <div className="font-heading text-lg leading-tight text-glow-cyan tracking-wide">
                   ATW<span className="text-secondary">80</span>
@@ -91,10 +89,8 @@ export const Navbar = () => {
                       <span>{item.label}</span>
                       {/* Active indicator line */}
                       {isActive && (
-                        <motion.div
-                          layoutId="nav-active"
+                        <div
                           className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary shadow-[0_0_8px_hsl(187_100%_50%/0.6)]"
-                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         />
                       )}
                     </>
@@ -138,23 +134,16 @@ export const Navbar = () => {
       </div>
 
       {/* Mobile Navigation */}
-      <AnimatePresence>
+      <>
         {user && mobileMenuOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="lg:hidden overflow-hidden bg-card/95 backdrop-blur-md border-b border-primary/15"
+          <div
+            className="lg:hidden overflow-hidden bg-card/95 backdrop-blur-md border-b border-primary/15 animate-fade-in"
           >
             <div className="container mx-auto px-4 py-3 space-y-1">
               {navItems.map((item, i) => (
-                <motion.div
+                <div className="animate-fade-up"
                   key={item.to}
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: i * 0.04 }}
-                >
+                 style={{ animationDelay: `${i * 0.04}s` }}>
                   <NavLink
                     to={item.to}
                     onClick={() => setMobileMenuOpen(false)}
@@ -169,12 +158,12 @@ export const Navbar = () => {
                     <item.icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>
                   </NavLink>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </nav>
   );
 };

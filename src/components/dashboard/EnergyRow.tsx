@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Anchor, PersonStanding, Bike, Dumbbell } from 'lucide-react';
 
 type EnergyType = 'nautical' | 'terrestrial' | 'transport' | 'strength';
@@ -34,11 +33,8 @@ export const EnergyRow = ({ reserves }: EnergyRowProps) => {
             <p className={`text-[10px] font-mono tracking-wider ${c.color}`}>{c.label}</p>
             {/* Mini bar */}
             <div className="h-1.5 rounded-full bg-muted/40 mt-1.5 overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${c.bar}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
+              <div
+                className={`h-full rounded-full ${c.bar} animate-fade-up`}
                 style={{ boxShadow: pct > 0 ? `0 0 6px hsl(var(--primary) / 0.4)` : 'none' }}
               />
             </div>

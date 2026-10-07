@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Coins, Shield } from 'lucide-react';
 import { useProgressionStore } from '@/stores/progressionStore';
 import { useUserStore } from '@/stores/userStore';
@@ -23,11 +22,8 @@ export const PlayerLevelBar = () => {
             <span className="text-[10px] font-heading text-muted-foreground truncate ml-2">{levelName}</span>
           </div>
           <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${levelInfo.progress * 100}%` }}
-              transition={{ duration: 0.8 }}
+            <div
+              className="h-full bg-primary rounded-full animate-fade-up"
               style={{ boxShadow: '0 0 6px hsl(var(--primary) / 0.4)' }}
             />
           </div>

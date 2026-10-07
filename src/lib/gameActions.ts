@@ -3,7 +3,7 @@
  * instantly), writes to Supabase best-effort, and returns what happened so
  * the UI can celebrate it.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import {
   BOOSTERS,
   CREDITS_JOURNEY_COMPLETE,

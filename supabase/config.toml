@@ -1,4 +1,11 @@
-project_id = "ruotjgegljtlcmukchma"
+# Supabase CLI project config. Migrations live in supabase/migrations and are applied to
+# production by the Supabase GitHub integration on merge to main. Edge functions are deployed
+# by .github/workflows/deploy.yml after CI passes.
+project_id = "80ways"
 
-[functions.create-checkout]
+[functions.billing]
+verify_jwt = true
+
+# Stripe signs the request; it carries no Supabase token.
+[functions.stripe-webhook]
 verify_jwt = false

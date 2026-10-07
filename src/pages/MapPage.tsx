@@ -1,13 +1,11 @@
-import { motion } from 'framer-motion';
-import { HolographicCard } from '@/components/ui/holographic-card';
 import { LocationCard } from '@/components/map/LocationCard';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { ENERGY_THEME } from '@/data/energyTheme';
 import { getDistanceCovered, getPlayerNarrativeDay } from '@/lib/gameEngine';
 import { MapPin, Globe, Compass, Lock } from 'lucide-react';
+import { HoloCard, Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 
 type LegStatus = 'complete' | 'active' | 'locked';
 
@@ -103,7 +101,7 @@ export default function MapPage() {
       </div>
 
       {/* SVG Map Visualization */}
-      <HolographicCard glow="cyan" className="p-4 mb-8">
+      <HoloCard glow="cyan" className="p-4 mb-8">
         <div className="aspect-[21/9] w-full relative">
           <svg viewBox="0 0 100 60" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             {/* Simplified world map continents */}
@@ -161,14 +159,11 @@ export default function MapPage() {
 
             {/* Completed path (bright) */}
             {completedLegs > 0 && (
-              <motion.path
+              <path
                 d={buildRoute(pathCities.slice(0, completedLegs + 1))}
                 fill="none"
                 stroke="hsl(187 100% 50%)"
                 strokeWidth={0.5}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 2, ease: 'easeInOut' }}
               />
             )}
 
@@ -186,16 +181,13 @@ export default function MapPage() {
               return (
                 <g key={i}>
                   {isActive && (
-                    <motion.circle
+                    <circle
                       cx={p.x}
                       cy={p.y}
                       r={2}
                       fill="none"
                       stroke="hsl(187 100% 50%)"
-                      strokeWidth={0.2}
-                      initial={{ r: 1.5, opacity: 0.8 }}
-                      animate={{ r: [1.5, 3, 1.5], opacity: [0.8, 0, 0.8] }}
-                      transition={{ duration: 2, repeat: Infinity }}
+                      strokeWidth={0.2} className="animate-ring"
                     />
                   )}
                   <circle
@@ -221,7 +213,7 @@ export default function MapPage() {
             })}
           </svg>
         </div>
-      </HolographicCard>
+      </HoloCard>
 
       {/* Journey Stages */}
       <h2 className="text-2xl font-heading font-bold mb-4 flex items-center gap-2">
@@ -230,12 +222,9 @@ export default function MapPage() {
       </h2>
       <div className="space-y-3">
         {stages.map((stage, index) => (
-          <motion.div
+          <div className="animate-fade-up"
             key={stage.legNumber}
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.06 }}
-          >
+           style={{ animationDelay: `${index * 0.06}s` }}>
             <LocationCard
               name={stage.name}
               country={stage.country}
@@ -245,7 +234,7 @@ export default function MapPage() {
               narrative={stage.narrative}
               onClick={() => setOpenLeg(index)}
             />
-          </motion.div>
+          </div>
         ))}
       </div>
 
@@ -255,8 +244,7 @@ export default function MapPage() {
         </p>
       )}
 
-      <Dialog open={openLeg !== null} onOpenChange={(o) => !o && setOpenLeg(null)}>
-        <DialogContent className="max-w-lg bg-background border-2 border-primary/50">
+      <Dialog open={openLeg !== null} onClose={() => setOpenLeg(null)} className="max-w-lg bg-background border-2 border-primary/50">
           {selected && (
             <>
               <DialogHeader>
@@ -287,8 +275,7 @@ export default function MapPage() {
               )}
             </>
           )}
-        </DialogContent>
-      </Dialog>
+              </Dialog>
     </div>
   );
 }

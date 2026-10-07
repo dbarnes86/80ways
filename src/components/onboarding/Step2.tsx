@@ -1,356 +1,195 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, Eye, EyeOff, Loader2, Lock, Mail, MailCheck, User, X } from 'lucide-react';
+import { Button, HoloCard, Input, Label } from '@/components/ui';
 import { useOnboardingStore } from '@/stores/onboardingStore';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { purchasePlan, type PurchasePlan } from '@/services/purchaseService';
-import { User, Mail, Lock, Eye, EyeOff, Check, X, ArrowLeft, Loader2, Crown, Sparkles } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { haptic } from '@/lib/native';
+
+const validateName = (name: string) => {
+  if (!name.trim()) return 'Pick a name for the crew list';
+  if (name.trim().length < 2) return 'At least 2 characters';
+  if (name.length > 50) return 'Under 50 characters, please';
+  return '';
+};
+
+const validateEmail = (email: string) => {
+  if (!email) return 'Email is required';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "That email doesn't look right";
+  return '';
+};
+
+const PASSWORD_RULES = [
+  { label: '8+ characters', test: (p: string) => p.length >= 8 },
+  { label: 'A number', test: (p: string) => /\d/.test(p) },
+  { label: 'A letter', test: (p: string) => /[a-z]/i.test(p) },
+];
 
 export const Step2 = () => {
-  const { userData, setStep, updateUserData } = useOnboardingStore();
+  const { userData, setStep, updateUserData, resetOnboarding } = useOnboardingStore();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [form, setForm] = useState({ displayName: userData.displayName, email: userData.email, password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [processing, setProcessing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PurchasePlan | null>(null);
-  
-  const [formData, setFormData] = useState({
-    displayName: userData.displayName,
-    email: userData.email,
-    password: userData.password,
-  });
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmEmailSent, setConfirmEmailSent] = useState(false);
 
-  const validateName = (name: string) => {
-    if (!name) return 'Name is required';
-    if (name.length < 2) return 'Name must be at least 2 characters';
-    if (name.length > 50) return 'Name must be less than 50 characters';
-    return '';
+  const change = (field: keyof typeof form, value: string) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((e) => ({ ...e, [field]: '', submit: '' }));
   };
 
-  const validateEmail = (email: string) => {
-    if (!email) return 'Email is required';
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return 'Invalid email format';
-    return '';
-  };
-
-  const validatePassword = (password: string) => {
-    if (!password) return 'Password is required';
-    if (password.length < 8) return 'Password must be at least 8 characters';
-    if (!/\d/.test(password)) return 'Password must contain at least one number';
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return 'Password must contain a special character';
-    return '';
-  };
-
-  const getPasswordStrength = (password: string) => {
-    if (!password) return { label: '', color: '' };
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-    if (/\d/.test(password)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
-
-    if (strength <= 2) return { label: 'Weak', color: 'bg-red-500' };
-    if (strength <= 4) return { label: 'Moderate', color: 'bg-yellow-500' };
-    return { label: 'Strong', color: 'bg-green-500' };
-  };
-
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
-  };
-
-  const handleContinue = async (plan: PurchasePlan) => {
-    const nameError = validateName(formData.displayName);
-    const emailError = validateEmail(formData.email);
-    const passwordError = validatePassword(formData.password);
-
-    if (nameError || emailError || passwordError) {
-      setErrors({
-        displayName: nameError,
-        email: emailError,
-        password: passwordError,
-      });
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const next = {
+      displayName: validateName(form.displayName),
+      email: validateEmail(form.email),
+      password: PASSWORD_RULES.every((r) => r.test(form.password)) ? '' : 'Password needs all three',
+    };
+    if (Object.values(next).some(Boolean)) {
+      setErrors(next);
+      haptic('error');
       return;
     }
 
-    updateUserData(formData);
-    setSelectedPlan(plan);
+    updateUserData({ displayName: form.displayName, email: form.email });
+    setSubmitting(true);
+    const { data, error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard`, data: { display_name: form.displayName.trim() } },
+    });
+    setSubmitting(false);
 
-    try {
-      setProcessing(true);
-
-      // First sign up the user
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: { display_name: formData.displayName },
-        },
-      });
-
-      if (signUpError) throw signUpError;
-
-      // Then initiate purchase
-      const result = await purchasePlan(plan, {
-        email: formData.email,
-        displayName: formData.displayName,
-      });
-
-      if (result.success) {
-        // Native IAP succeeded — go to dashboard
-        toast({
-          title: "Welcome aboard!",
-          description: "Your expedition begins now.",
-        });
-        navigate('/dashboard');
-      } else if (result.error === 'redirect') {
-        // Stripe fallback (web) — checkout opened in new tab
-        toast({
-          title: "Checkout opened",
-          description: "Complete your payment in the new tab to continue.",
-        });
-      } else if (result.error === 'cancelled') {
-        // User cancelled — do nothing
-      } else {
-        throw new Error(result.error || 'Purchase failed');
-      }
-    } catch (error: any) {
-      console.error('Error during signup/purchase:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessing(false);
-      setSelectedPlan(null);
+    if (error) {
+      setErrors({ submit: error.message });
+      haptic('error');
+      return;
+    }
+    haptic('success');
+    if (data.session) {
+      resetOnboarding();
+      navigate('/dashboard', { replace: true });
+    } else {
+      setConfirmEmailSent(true);
     }
   };
 
-  const isValid = !validateName(formData.displayName) && 
-                  !validateEmail(formData.email) && 
-                  !validatePassword(formData.password);
-
-  const passwordStrength = getPasswordStrength(formData.password);
+  if (confirmEmailSent) {
+    return (
+      <div className="mx-auto max-w-md animate-scale-in text-center">
+        <HoloCard glow="cyan" className="space-y-4 p-8">
+          <MailCheck className="mx-auto size-12 text-primary" />
+          <h2 className="text-2xl font-heading font-bold">Check your inbox</h2>
+          <p className="text-muted-foreground">
+            We've sent a link to <span className="text-foreground">{form.email}</span>. Tap it to confirm, then you're on the crew list.
+          </p>
+          <Link to="/login" className="inline-block text-sm text-primary hover:underline">
+            Already confirmed? Sign in
+          </Link>
+        </HoloCard>
+      </div>
+    );
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto pb-8"
-    >
-      <Button
-        variant="ghost"
-        onClick={() => setStep(1)}
-        className="mb-4 text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
+    <div className="mx-auto max-w-md animate-fade-up pb-8">
+      <Button variant="ghost" onClick={() => setStep(1)} className="mb-4 text-muted-foreground hover:text-foreground">
+        <ArrowLeft /> Back
       </Button>
 
-      <div className="text-center mb-6">
-        <h2 className="text-2xl md:text-4xl font-bold mb-2 text-glow">
-          REGISTER AS AN ADVENTURER
-        </h2>
-        <p className="text-muted-foreground text-base md:text-lg">Join Fogg's crew and begin your journey</p>
+      <div className="mb-6 text-center">
+        <h2 className="mb-2 text-3xl font-heading font-bold text-glow md:text-4xl">JOIN THE CREW</h2>
+        <p className="text-muted-foreground">Free to start. Lift Off is on us.</p>
       </div>
 
-      <Card className="p-6 md:p-10 border-primary/20 bg-card/50 backdrop-blur relative overflow-hidden mb-6">
-        {/* Victorian corner ornaments */}
-        <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-primary/50" />
-        <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-primary/50" />
-        <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-primary/50" />
-        <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-primary/50" />
-
-        <div className="space-y-5">
-          {/* Display Name */}
-          <div>
-            <Label htmlFor="displayName" className="text-base mb-1.5 flex items-center gap-2">
-              <User className="h-4 w-4 text-primary" />
-              Your Name
+      <HoloCard glow="cyan" className="p-6">
+        <form onSubmit={submit} className="space-y-5" noValidate>
+          <div className="space-y-1.5">
+            <Label htmlFor="displayName" className="flex items-center gap-2">
+              <User className="size-4 text-primary" /> Your name
             </Label>
-            <div className="relative">
-              <Input
-                id="displayName"
-                value={formData.displayName}
-                onChange={(e) => handleChange('displayName', e.target.value)}
-                placeholder="Enter your adventurer name"
-                className="bg-background/50 border-primary/30 focus:border-primary text-base pr-10"
-              />
-              {formData.displayName && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {validateName(formData.displayName) ? (
-                    <X className="h-5 w-5 text-red-500" />
-                  ) : (
-                    <Check className="h-5 w-5 text-green-500" />
-                  )}
-                </div>
-              )}
-            </div>
-            {errors.displayName && (
-              <p className="text-red-500 text-sm mt-1">{errors.displayName}</p>
-            )}
+            <Input
+              id="displayName"
+              autoComplete="nickname"
+              value={form.displayName}
+              onChange={(e) => change('displayName', e.target.value)}
+              placeholder="How the leaderboard will know you"
+              aria-invalid={!!errors.displayName}
+            />
+            {errors.displayName && <p className="text-sm text-destructive">{errors.displayName}</p>}
           </div>
 
-          {/* Email */}
-          <div>
-            <Label htmlFor="email" className="text-base mb-1.5 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-primary" />
-              Email
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="flex items-center gap-2">
+              <Mail className="size-4 text-primary" /> Email
             </Label>
-            <div className="relative">
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                placeholder="your.email@example.com"
-                className="bg-background/50 border-primary/30 focus:border-primary text-base pr-10"
-              />
-              {formData.email && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {validateEmail(formData.email) ? (
-                    <X className="h-5 w-5 text-red-500" />
-                  ) : (
-                    <Check className="h-5 w-5 text-green-500" />
-                  )}
-                </div>
-              )}
-            </div>
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-            )}
+            <Input
+              id="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              value={form.email}
+              onChange={(e) => change('email', e.target.value)}
+              placeholder="you@example.com"
+              aria-invalid={!!errors.email}
+            />
+            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
           </div>
 
-          {/* Password */}
-          <div>
-            <Label htmlFor="password" className="text-base mb-1.5 flex items-center gap-2">
-              <Lock className="h-4 w-4 text-primary" />
-              Password
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="flex items-center gap-2">
+              <Lock className="size-4 text-primary" /> Password
             </Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => handleChange('password', e.target.value)}
-                placeholder="Create a secure password"
-                className="bg-background/50 border-primary/30 focus:border-primary text-base pr-10"
+                autoComplete="new-password"
+                value={form.password}
+                onChange={(e) => change('password', e.target.value)}
+                className="pr-10"
+                aria-invalid={!!errors.password}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassword((s) => !s)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
               </button>
             </div>
-            {errors.password && (
-              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-            )}
-            
-            {formData.password && (
-              <div className="mt-2 space-y-1.5">
-                <div className="flex items-center gap-2 text-xs">
-                  {formData.password.length >= 8 ? <Check className="h-3.5 w-3.5 text-green-500" /> : <X className="h-3.5 w-3.5 text-red-500" />}
-                  <span className={formData.password.length >= 8 ? 'text-green-500' : 'text-muted-foreground'}>8+ characters</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  {/\d/.test(formData.password) ? <Check className="h-3.5 w-3.5 text-green-500" /> : <X className="h-3.5 w-3.5 text-red-500" />}
-                  <span className={/\d/.test(formData.password) ? 'text-green-500' : 'text-muted-foreground'}>Number</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  {/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? <Check className="h-3.5 w-3.5 text-green-500" /> : <X className="h-3.5 w-3.5 text-red-500" />}
-                  <span className={/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'text-green-500' : 'text-muted-foreground'}>Special character</span>
-                </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
-                  <div 
-                    className={`h-full transition-all duration-300 ${passwordStrength.color}`}
-                    style={{ 
-                      width: passwordStrength.label === 'Strong' ? '100%' : 
-                             passwordStrength.label === 'Moderate' ? '66%' : '33%' 
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+              {PASSWORD_RULES.map((r) => {
+                const ok = r.test(form.password);
+                return (
+                  <li key={r.label} className={`flex items-center gap-1 text-xs ${ok ? 'text-success' : 'text-muted-foreground'}`}>
+                    {ok ? <Check className="size-3.5" /> : <X className="size-3.5" />} {r.label}
+                  </li>
+                );
+              })}
+            </ul>
+            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
           </div>
-        </div>
-      </Card>
 
-      {/* Pricing Options */}
-      <div className="space-y-4">
-        {/* Primary: $29.99/year */}
-        <Card 
-          className="p-6 border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-transparent relative overflow-hidden cursor-pointer hover:border-primary transition-colors"
-          onClick={() => isValid && !processing && handleContinue('yearly')}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Crown className="h-5 w-5 text-primary" />
-            <span className="text-xs font-mono text-primary uppercase tracking-wider">Recommended</span>
-          </div>
-          <div className="flex items-baseline justify-between mb-2">
-            <h3 className="text-xl font-bold">Full Expedition Pass</h3>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-primary">$29.99</div>
-              <div className="text-xs text-muted-foreground">/year</div>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">Unlock everything. Start your adventure today.</p>
-          <Button
-            disabled={!isValid || processing}
-            className="w-full py-5 text-base bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleContinue('yearly');
-            }}
-          >
-            {processing && selectedPlan === 'yearly' ? (
-              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
-            ) : (
-              'CONTINUE TO PAYMENT'
-            )}
+          {errors.submit && <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">{errors.submit}</p>}
+
+          <Button type="submit" disabled={submitting} className="h-12 w-full text-base">
+            {submitting ? <Loader2 className="animate-spin" /> : null}
+            {submitting ? 'Signing you on…' : 'Create my account'}
           </Button>
-        </Card>
+        </form>
+      </HoloCard>
 
-        {/* Secondary: $19.99/year with 7-day trial */}
-        <button
-          disabled={!isValid || processing}
-          onClick={() => handleContinue('trial')}
-          className="w-full text-center py-4 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          {processing && selectedPlan === 'trial' ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Processing...
-            </span>
-          ) : (
-            <span className="flex flex-col items-center gap-1">
-              <span className="text-sm">No thanks, I want to check it out first</span>
-              <span className="text-xs flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                7-day free trial · then $19.99/year
-              </span>
-            </span>
-          )}
-        </button>
-      </div>
-
-      <p className="text-xs text-muted-foreground text-center mt-4">
-        By continuing, you agree to our{' '}
-        <a href="/terms" className="text-primary hover:underline">Terms</a>
-        {' & '}
-        <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        By continuing you agree to our <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{' '}
+        <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
       </p>
-    </motion.div>
+      <p className="mt-2 text-center text-sm">
+        <Link to="/login" className="text-muted-foreground hover:text-primary">Already have an account? Sign in</Link>
+      </p>
+    </div>
   );
 };
