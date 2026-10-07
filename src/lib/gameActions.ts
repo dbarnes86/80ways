@@ -188,6 +188,7 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   if (plan.totalDeployed <= 0) throw new Error('Select some energy to deploy.');
 
   for (const line of plan.lines) energy.deployEnergy(line.type, line.amount);
+  useUserStore.getState().logDeployment(toDayKey(new Date()), plan.totalDeployed);
 
   const newProgress = Math.min(required, participation.legProgress + plan.totalEffective);
   const legCompleted = newProgress >= required - 1e-6;

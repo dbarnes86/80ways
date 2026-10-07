@@ -25,13 +25,28 @@ vi.mock('@capacitor/core', async (orig) => {
 });
 
 describe('connectHealth', () => {
-  it('asks for workouts, imports them and never treats the plugin as a promise', async () => {
-    const { connectHealth, isHealthConnected } = await import('@/services/healthService');
+  it('asks for workouts, queues them to collect and never treats the plugin as a promise', async () => {
+    const { connectHealth, isHealthConnected, syncHealth } = await import('@/services/healthService');
+    const { useInboxStore } = await import('@/stores/inboxStore');
     const result = await connectHealth('user-1');
     expect(calls).not.toContain('then');
     expect(calls).toEqual(['isAvailable', 'requestAuthorization', 'queryWorkouts']);
-    expect(result.imported).toBe(1);
-    expect(result.activities).toEqual(['Running']);
+    expect(result.arrived).toBe(1);
+    expect(useInboxStore.getState().items.map((i) => i.activityType)).toEqual(['Running']);
     expect(isHealthConnected('user-1')).toBe(true);
+
+    // The same workout again is not queued twice.
+    expect((await syncHealth('user-1')).arrived).toBe(0);
+  });
+
+  it('collecting a workout pays it out and empties the inbox', async () => {
+    const { useInboxStore } = await import('@/stores/inboxStore');
+    const { collectItem } = await import('@/game/collect');
+    const { useActivityStore } = await import('@/stores/activityStore');
+    const item = useInboxStore.getState().items[0];
+    const r = collectItem(item);
+    expect(r.energy).toBeGreaterThan(0);
+    expect(useInboxStore.getState().items).toHaveLength(0);
+    expect(useActivityStore.getState().activities[0].id).toBe(item.id);
   });
 });

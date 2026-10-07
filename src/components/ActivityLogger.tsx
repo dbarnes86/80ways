@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useUserStore } from '@/stores/userStore';
 import { haptic } from '@/lib/native';
-import { logActivity, type LogActivityResult } from '@/lib/gameActions';
+import { logActivity } from '@/lib/gameActions';
+import { announce } from '@/game/rewards';
+import { flyOrbs } from '@/game/fx';
+import { play } from '@/game/sfx';
 import { calculateActivityEnergy, getNativeEnergyType } from '@/lib/gameEngine';
 import { ENERGY_THEME } from '@/data/energyTheme';
 import {
@@ -34,12 +37,8 @@ import {
   Droplet,
   Droplets,
   Info,
-  Check,
   Loader2,
   Layers,
-  Coins,
-  Rocket,
-  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 import { Dialog, Button, Label, Input, Textarea, Card, Checkbox, Select, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
@@ -100,7 +99,6 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
   const [unit, setUnit] = useState<'km' | 'mi'>(preferredUnit === 'imperial' ? 'mi' : 'km');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<LogActivityResult | null>(null);
 
   const nativeType = form.activityType ? getNativeEnergyType(form.activityType) : undefined;
   const showDistance = nativeType && nativeType !== 'strength';
@@ -128,7 +126,6 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
     setTimeout(() => {
       setForm(emptyForm());
       setErrors({});
-      setResult(null);
     }, 200);
   };
 
@@ -163,8 +160,12 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
         useAmplifier: form.useAmplifier,
         useMultiCharge: form.useMultiCharge,
       });
-      setResult(res);
+      // Straight back to the game: the sheet closes and the rewards fly in.
+      close();
+      void flyOrbs({ x: window.innerWidth / 2, y: window.innerHeight * 0.6 }, res.activity.targetEnergyType, 8 + Math.min(12, Math.round(res.energy * 6)));
+      play('collect');
       haptic(res.levelUp || res.starterCompleted ? 'success' : 'tap');
+      announce({ energy: res.energy, xp: res.xp, credits: res.credits, starterCompleted: res.starterCompleted, levelUp: res.levelUp });
     } catch (err) {
       setErrors({ submit: err instanceof Error ? err.message : 'Something went wrong' });
     } finally {
@@ -175,69 +176,6 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
   return (
     <Dialog open={open} onClose={close} className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
         <>
-          {result ? (
-            <div
-              key="success"
-              className="py-8 text-center space-y-5 animate-scale-in"
-            >
-              <div className="animate-scale-in" style={{ animationDelay: `${0.1}s` }}>
-                <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto">
-                  <Check className="h-10 w-10 text-success" />
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-2xl font-heading font-bold mb-2">ACTIVITY RECORDED</h2>
-                <p className={`text-lg ${ENERGY_THEME[result.activity.targetEnergyType].text}`}>
-                  +{result.energy.toFixed(1)} kWh {ENERGY_THEME[result.activity.targetEnergyType].label.toUpperCase()}
-                </p>
-                {Object.keys(result.spillover).length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Multi-Charge: +{Object.values(result.spillover)[0]!.toFixed(1)} kWh to every other reserve
-                  </p>
-                )}
-              </div>
-
-              <div className="flex justify-center gap-3 text-sm font-mono">
-                <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary">+{result.xp} XP</span>
-                <span className="px-3 py-1 rounded-full bg-warning/10 border border-warning/30 text-warning flex items-center gap-1">
-                  <Coins className="w-3.5 h-3.5" /> +{result.credits}
-                </span>
-              </div>
-
-              <div className="space-y-2 max-w-sm mx-auto">
-                {result.starterCompleted && (
-                  <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm flex items-center gap-2">
-                    <Rocket className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>Lift Off complete! You're cleared to board the expedition.</span>
-                  </div>
-                )}
-                {result.dailyMissionCompleted && (
-                  <div className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-accent flex-shrink-0" />
-                    <span>{DAILY_MISSION.name} done for today.</span>
-                  </div>
-                )}
-                {result.levelUp && (
-                  <div className="rounded-lg border border-secondary/40 bg-secondary/10 p-3 text-sm flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-secondary flex-shrink-0" />
-                    <span>Level {result.levelUp.level}: {result.levelUp.name}</span>
-                  </div>
-                )}
-              </div>
-
-              <p className="text-sm italic text-muted-foreground max-w-sm mx-auto">
-                "Excellent work. Our reserves are replenished." <span className="text-primary">— Phileas Fogg</span>
-              </p>
-
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={() => { setForm(emptyForm()); setResult(null); }}>
-                  Log another
-                </Button>
-                <Button onClick={() => close()}>Done</Button>
-              </div>
-            </div>
-          ) : (
             <div className="animate-fade-up" key="form">
               <DialogHeader>
                 <DialogTitle className="text-2xl md:text-3xl font-heading font-bold text-glow">LOG ACTIVITY</DialogTitle>
@@ -540,7 +478,6 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                 )}
               </form>
             </div>
-          )}
         </>
           </Dialog>
   );

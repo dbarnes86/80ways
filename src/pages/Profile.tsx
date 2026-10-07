@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, MapPin, Award, Zap, Flame, Activity, Globe, LogOut, Loader2, BookOpen, ShoppingBag, Crown } from "lucide-react";
+import { User, MapPin, Award, Zap, Flame, Activity, Globe, LogOut, Loader2, BookOpen, ShoppingBag, Crown, Trophy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useProgressionStore } from "@/stores/progressionStore";
@@ -161,14 +161,15 @@ export default function Profile() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <nav className="grid grid-cols-3 gap-3 lg:hidden" aria-label="More">
+          <nav className="grid grid-cols-4 gap-2" aria-label="More">
             {[
+              { to: '/leaderboard', label: 'Ranks', icon: Trophy },
               { to: '/activity-history', label: 'Logbook', icon: BookOpen },
               { to: '/store', label: 'Store', icon: ShoppingBag },
-              { to: '/membership', label: 'Membership', icon: Crown },
+              { to: '/membership', label: 'Season Pass', icon: Crown },
             ].map((l) => (
-              <Link key={l.to} to={l.to} className="flex flex-col items-center gap-1.5 rounded-lg border border-primary/25 bg-card/60 p-3 text-xs font-medium transition-colors hover:border-primary/60 active:scale-95">
-                <l.icon className="size-5 text-primary" /> {l.label}
+              <Link key={l.to} to={l.to} className="press flex flex-col items-center gap-1.5 rounded-2xl border border-primary/25 bg-card/60 px-1 py-3 text-xs font-semibold transition-colors hover:border-primary/60">
+                <l.icon className="size-7 text-primary" /> {l.label}
               </Link>
             ))}
           </nav>

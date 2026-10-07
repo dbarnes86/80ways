@@ -13,6 +13,7 @@ import { useRaidStore } from '@/stores/raidStore';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { useUserStore, type UserGameData } from '@/stores/userStore';
 import { useMembershipStore } from '@/stores/membershipStore';
+import { useInboxStore } from '@/stores/inboxStore';
 
 const OWNER_KEY = 'atw80-local-owner';
 /** Set while this device holds changes the server hasn't confirmed. */
@@ -55,6 +56,7 @@ export function resetLocalGame() {
   useUserStore.getState().reset();
   useRaidStore.getState().reset();
   useMembershipStore.getState().reset();
+  useInboxStore.getState().reset();
 }
 
 /** Make sure local state belongs to this user before we read or write it. */
@@ -94,6 +96,9 @@ const buildGameState = (): GameState => {
       raidXpAwarded: u.raidXpAwarded,
       raidRewardsClaimed: u.raidRewardsClaimed,
       settings: u.settings,
+      questsClaimed: u.questsClaimed,
+      deployLog: u.deployLog,
+      discipline: u.discipline,
     },
   };
 };

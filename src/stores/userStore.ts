@@ -30,7 +30,15 @@ export interface UserGameData {
   settings: {
     units: 'metric' | 'imperial';
   };
+  /** Quest and chest ids already paid out (see game/quests.ts). */
+  questsClaimed: string[];
+  /** kWh spent on the expedition per day key, for quests. */
+  deployLog: Record<string, number>;
+  /** The discipline picked in onboarding; sets the avatar and home reserve. */
+  discipline: Discipline | null;
 }
+
+export type Discipline = 'runner' | 'rider' | 'swimmer' | 'lifter';
 
 interface UserStore extends UserGameData {
   addCredits: (amount: number) => void;
@@ -44,6 +52,9 @@ interface UserStore extends UserGameData {
   markRaidXpAwarded: (key: string) => void;
   markRaidRewardClaimed: (key: string) => void;
   setUnits: (units: 'metric' | 'imperial') => void;
+  markQuestsClaimed: (ids: string[]) => void;
+  logDeployment: (dayKey: string, kwh: number) => void;
+  setDiscipline: (d: Discipline) => void;
   hydrate: (data: Partial<UserGameData>) => void;
   reset: () => void;
 }
@@ -56,6 +67,9 @@ const initialData = (): UserGameData => ({
   raidXpAwarded: [],
   raidRewardsClaimed: [],
   settings: { units: 'metric' },
+  questsClaimed: [],
+  deployLog: {},
+  discipline: null,
 });
 
 export const useUserStore = create<UserStore>()(
@@ -95,6 +109,18 @@ export const useUserStore = create<UserStore>()(
 
       setUnits: (units) => set((s) => ({ settings: { ...s.settings, units } })),
 
+      markQuestsClaimed: (ids) => set((s) => ({ questsClaimed: Array.from(new Set([...s.questsClaimed, ...ids])) })),
+
+      logDeployment: (dayKey, kwh) =>
+        set((s) => {
+          // Keep two weeks: enough for the weekly quests.
+          const cutoff = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
+          const kept = Object.fromEntries(Object.entries(s.deployLog).filter(([d]) => d >= cutoff));
+          return { deployLog: { ...kept, [dayKey]: (kept[dayKey] ?? 0) + kwh } };
+        }),
+
+      setDiscipline: (discipline) => set({ discipline }),
+
       hydrate: (data) => set((s) => ({
         inventory: { ...s.inventory, ...data.inventory },
         effects: { ...s.effects, ...data.effects },
@@ -103,15 +129,20 @@ export const useUserStore = create<UserStore>()(
         lastDailyMission: data.lastDailyMission ?? s.lastDailyMission,
         raidXpAwarded: data.raidXpAwarded ?? s.raidXpAwarded,
         raidRewardsClaimed: data.raidRewardsClaimed ?? s.raidRewardsClaimed,
+        // Union, so a claim on this device isn't lost to an older server copy.
+        questsClaimed: Array.from(new Set([...s.questsClaimed, ...(data.questsClaimed ?? [])])),
+        deployLog: { ...s.deployLog, ...data.deployLog },
+        discipline: data.discipline ?? s.discipline,
       })),
 
       reset: () => set(initialData()),
     }),
     {
       name: 'user-storage',
-      version: 2,
-      // v1 stored mock profile/subscription data; start clean.
-      migrate: () => initialData() as UserStore,
+      version: 3,
+      // v1 stored mock profile/subscription data; start clean. v2 lacked the quest fields.
+      migrate: (persisted, version) =>
+        (version === 2 ? { ...initialData(), ...(persisted as object) } : initialData()) as UserStore,
     }
   )
 );

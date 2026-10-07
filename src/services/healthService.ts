@@ -1,11 +1,12 @@
 /**
- * Apple Health on the iPhone app: ask once, then pull new workouts in whenever the app opens.
+ * Apple Health on the iPhone app: ask once, then pull new workouts into the inbox whenever the app
+ * opens. Collecting them (game/collect.ts) is what pays out.
  * On the web every function reports "unavailable" and does nothing.
  */
 import { Capacitor } from '@capacitor/core';
-import { logActivity, type Rewards } from '@/lib/gameActions';
 import { activityIdFor, BACKFILL_DAYS, planImport, type HealthWorkout } from '@/lib/healthImport';
 import { useActivityStore } from '@/stores/activityStore';
+import { useInboxStore, type InboxItem } from '@/stores/inboxStore';
 
 const DAY_MS = 86_400_000;
 /** Re-read a day before the last sync: Watch workouts can land in Health a little late. */
@@ -39,22 +40,13 @@ export const isHealthPlatform = () => Capacitor.getPlatform() === 'ios';
 
 export const isHealthConnected = (userId: string) => isHealthPlatform() && readState(userId).connected;
 
-export interface HealthSyncResult extends Rewards {
-  imported: number;
-  energy: number;
-  starterCompleted: boolean;
-  dailyMissionCompleted: boolean;
-  /** Names of the workouts brought in, newest last, for the summary line. */
-  activities: string[];
+export interface HealthSyncResult {
+  /** New workouts now waiting in the inbox. */
+  arrived: number;
 }
 
-const EMPTY: HealthSyncResult = { imported: 0, energy: 0, xp: 0, credits: 0, starterCompleted: false, dailyMissionCompleted: false, activities: [] };
+const EMPTY: HealthSyncResult = { arrived: 0 };
 
-/**
- * Wrapped in an object on purpose: a Capacitor plugin answers every property as a native method,
- * `then` included, so returning it bare from an async function makes it look like a promise that
- * never settles.
- */
 async function plugin() {
   const { Health } = await import('@capgo/capacitor-health');
   return { Health };
@@ -117,36 +109,24 @@ async function runSync(userId: string): Promise<HealthSyncResult> {
     'reading workouts',
   );
 
-  const known = new Set(useActivityStore.getState().activities.map((a) => a.id));
-  const withIds = await Promise.all(
-    planImport(workouts as HealthWorkout[], new Set()).map(async (plan) => ({ plan, id: await activityIdFor(userId, plan.externalId) })),
-  );
-
-  const result: HealthSyncResult = { ...EMPTY, activities: [] };
-  for (const { plan, id } of withIds) {
+  const known = new Set([...useActivityStore.getState().activities.map((a) => a.id), ...useInboxStore.getState().items.map((i) => i.id)]);
+  const items: InboxItem[] = [];
+  for (const plan of planImport(workouts as HealthWorkout[], new Set())) {
+    const id = await activityIdFor(userId, plan.externalId);
     if (known.has(id)) continue;
-    const r = logActivity({
+    items.push({
       id,
       activityType: plan.activityType,
       targetType: plan.targetType,
       durationMin: plan.durationMin,
       intensity: plan.intensity,
       distanceKm: plan.distanceKm,
-      notes: `From ${plan.sourceName}`,
-      performedAt: plan.performedAt,
-      useAmplifier: false,
-      useMultiCharge: false,
+      performedAt: plan.performedAt.toISOString(),
+      sourceName: plan.sourceName,
     });
-    result.imported += 1;
-    result.energy += r.energy;
-    result.xp += r.xp;
-    result.credits += r.credits;
-    result.starterCompleted ||= r.starterCompleted;
-    result.dailyMissionCompleted ||= r.dailyMissionCompleted;
-    if (r.levelUp) result.levelUp = r.levelUp;
-    result.activities.push(plan.activityType);
   }
+  useInboxStore.getState().add(items);
 
   writeState(userId, { connected: true, lastSync: now.toISOString() });
-  return result;
+  return { arrived: items.length };
 }
