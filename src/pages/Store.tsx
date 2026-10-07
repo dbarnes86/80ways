@@ -55,13 +55,13 @@ export default function Store() {
   const ids = Object.keys(BOOSTERS) as BoosterId[];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-heading mb-2 text-glow-cyan">Booster Emporium</h1>
-        <p className="text-muted-foreground">Spend the credits you earn on the road</p>
+    <div className="mx-auto max-w-md px-4 pb-6 pt-4">
+      <div className="mb-5">
+        <h1 className="font-heading text-3xl font-bold mb-1 text-glow-cyan">Store</h1>
+        <p className="text-muted-foreground">Coins from workouts, quests and chests buy boosters.</p>
       </div>
 
-      <HoloCard glow="cyan" className="p-6 mb-8">
+      <HoloCard glow="cyan" className="p-5 mb-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Your balance</div>
@@ -76,7 +76,7 @@ export default function Store() {
         </div>
       </HoloCard>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid gap-4">
         {ids.map((id, index) => {
           const booster = BOOSTERS[id];
           const Icon = ICONS[id];

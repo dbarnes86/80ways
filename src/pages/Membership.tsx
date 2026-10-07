@@ -50,9 +50,9 @@ export default function Membership() {
   const renews = membership?.currentPeriodEnd ? new Date(membership.currentPeriodEnd).toLocaleDateString() : null
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="mb-2 text-4xl font-heading text-glow-magenta">Season Pass</h1>
+    <div className="mx-auto max-w-md px-4 pb-6 pt-4">
+      <div className="mb-5">
+        <h1 className="mb-1 font-heading text-3xl font-bold text-glow-magenta">Season Pass</h1>
         <p className="text-muted-foreground">Quests are free. The voyage is on the pass.</p>
       </div>
 
