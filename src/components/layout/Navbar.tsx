@@ -1,34 +1,40 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui";
-import { 
-  Map, 
-  Trophy, 
-  ShoppingBag, 
-  User, 
-  Sword,
-  BookOpen,
-  LayoutDashboard,
-  Menu,
-  X,
-  LogOut
-} from "lucide-react";
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { NavLink, useNavigate } from 'react-router-dom';
+import { BookOpen, LayoutDashboard, LogOut, Map, ShoppingBag, Swords, Trophy, User } from 'lucide-react';
+import { Button, cn } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSeasonStore } from '@/stores/seasonStore';
+import { getRaidSchedule, getRaidStatus } from '@/data/raids';
+import { haptic } from '@/lib/native';
+
+const DESKTOP_NAV = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/map', icon: Map, label: 'Map' },
+  { to: '/raids', icon: Swords, label: 'Raids' },
+  { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+  { to: '/activity-history', icon: BookOpen, label: 'Logbook' },
+  { to: '/store', icon: ShoppingBag, label: 'Store' },
+  { to: '/profile', icon: User, label: 'Profile' },
+];
+
+/** Five tabs on phones; Logbook and Store are one tap away from Home and Profile. */
+const TABS = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+  { to: '/map', icon: Map, label: 'Map' },
+  { to: '/raids', icon: Swords, label: 'Raids' },
+  { to: '/leaderboard', icon: Trophy, label: 'Ranks' },
+  { to: '/profile', icon: User, label: 'Me' },
+];
+
+function useRaidLive() {
+  const season = useSeasonStore((s) => s.activeSeason);
+  if (!season) return false;
+  return getRaidSchedule(season.startDate, season.endDate).some((r) => getRaidStatus(r) === 'active');
+}
 
 export const Navbar = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-
-  const navItems = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/map", icon: Map, label: "Map" },
-    { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
-    { to: "/raids", icon: Sword, label: "Raids" },
-    { to: "/activity-history", icon: BookOpen, label: "Logbook" },
-    { to: "/store", icon: ShoppingBag, label: "Store" },
-    { to: "/profile", icon: User, label: "Profile" },
-  ];
+  const raidLive = useRaidLive();
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,134 +42,96 @@ export const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 relative">
-      {/* Top gradient accent line */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-primary via-secondary to-accent" />
-
-      <div className="bg-card/80 backdrop-blur-md border-b border-primary/15">
-        {/* Scan line texture */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,240,255,0.02) 3px, rgba(0,240,255,0.02) 4px)',
-          }}
-        />
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="flex items-center justify-between h-14">
-            {/* Logo */}
-            <NavLink to={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
-              <div
-                className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_15px_hsl(187_100%_50%/0.4)] transition-shadow duration-300 group-hover:shadow-[0_0_25px_hsl(187_100%_50%/0.6)]"
-              >
-                <Map className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <div className="hidden md:block">
-                <div className="font-heading text-lg leading-tight text-glow-cyan tracking-wide">
-                  ATW<span className="text-secondary">80</span>
+    <>
+      <nav className="sticky top-0 z-50 pt-[env(safe-area-inset-top)] bg-card/85 backdrop-blur-md">
+        <div className="h-[2px] w-full bg-gradient-to-r from-primary via-secondary to-accent" />
+        <div className="scan-lines pointer-events-none absolute inset-0" />
+        <div className="relative z-10 border-b border-primary/15">
+          <div className="container mx-auto flex h-14 items-center justify-between px-4">
+            <NavLink to={user ? '/dashboard' : '/'} className="group flex items-center gap-2.5">
+              <img src="/apple-touch-icon.png" alt="" className="size-9 rounded-[10px] shadow-[0_0_15px_hsl(var(--primary)/0.35)] transition-shadow duration-300 group-hover:shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
+              <div className="leading-tight">
+                <div className="font-heading text-lg tracking-wide text-glow-cyan">
+                  80 <span className="text-secondary">WAYS</span>
                 </div>
-                <div className="text-[9px] text-muted-foreground font-mono tracking-widest uppercase">
-                  Around the World
-                </div>
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Around the World</div>
               </div>
             </NavLink>
 
-            {/* Desktop Navigation */}
-            <div className={`${user ? 'hidden lg:flex' : 'hidden'} items-center gap-0.5`}>
-              {navItems.map((item) => (
+            {user && (
+              <div className="hidden items-center gap-0.5 lg:flex">
+                {DESKTOP_NAV.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn('relative flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors', isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground')
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <item.icon className="size-4" />
+                        <span>{item.label}</span>
+                        {item.to === '/raids' && raidLive && <span className="size-1.5 animate-pulse-soft rounded-full bg-destructive" />}
+                        {isActive && <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              {user ? (
+                <Button variant="ghost" size="icon" onClick={() => void handleSignOut()} className="hidden size-8 text-muted-foreground hover:text-destructive lg:inline-flex" title="Sign out" aria-label="Sign out">
+                  <LogOut />
+                </Button>
+              ) : (
+                <NavLink to="/login" className="font-mono text-sm text-muted-foreground transition-colors hover:text-primary">
+                  Sign in
+                </NavLink>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {user && (
+        <nav
+          aria-label="Main"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-primary/20 bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+        >
+          <ul className="mx-auto grid h-16 max-w-md grid-cols-5">
+            {TABS.map((tab) => (
+              <li key={tab.to}>
                 <NavLink
-                  key={item.to}
-                  to={item.to}
+                  to={tab.to}
+                  onClick={() => haptic('select')}
                   className={({ isActive }) =>
-                    `relative flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`
+                    cn(
+                      'relative flex h-full flex-col items-center justify-center gap-1 text-[10px] font-medium tracking-wide transition-colors active:scale-95',
+                      isActive ? 'text-primary' : 'text-muted-foreground',
+                    )
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                      {/* Active indicator line */}
-                      {isActive && (
-                        <div
-                          className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary shadow-[0_0_8px_hsl(187_100%_50%/0.6)]"
-                        />
-                      )}
+                      {isActive && <span className="absolute top-0 h-[2px] w-8 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.8)]" />}
+                      <span className="relative">
+                        <tab.icon className={cn('size-5', isActive && 'drop-shadow-[0_0_6px_hsl(var(--primary)/0.7)]')} />
+                        {tab.to === '/raids' && raidLive && (
+                          <span className="absolute -right-1 -top-0.5 size-2 animate-pulse-soft rounded-full bg-destructive ring-2 ring-card" />
+                        )}
+                      </span>
+                      {tab.label}
                     </>
                   )}
                 </NavLink>
-              ))}
-            </div>
-
-            {/* Right side */}
-            <div className="flex items-center gap-2">
-              {user && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSignOut}
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              )}
-
-              {!user && (
-                <NavLink to="/login" className="text-sm font-mono text-muted-foreground hover:text-primary transition-colors">
-                  Sign in
-                </NavLink>
-              )}
-
-              {/* Mobile Menu Button */}
-              {user && <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden h-8 w-8"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Navigation */}
-      <>
-        {user && mobileMenuOpen && (
-          <div
-            className="lg:hidden overflow-hidden bg-card/95 backdrop-blur-md border-b border-primary/15 animate-fade-in"
-          >
-            <div className="container mx-auto px-4 py-3 space-y-1">
-              {navItems.map((item, i) => (
-                <div className="animate-fade-up"
-                  key={item.to}
-                 style={{ animationDelay: `${i * 0.04}s` }}>
-                  <NavLink
-                    to={item.to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? "bg-primary/10 text-primary border-l-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      }`
-                    }
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
-                  </NavLink>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </>
-    </nav>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+    </>
   );
 };

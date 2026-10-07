@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Coins, Shield } from 'lucide-react';
 import { useProgressionStore } from '@/stores/progressionStore';
 import { useUserStore } from '@/stores/userStore';
@@ -35,10 +36,10 @@ export const PlayerLevelBar = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-warning/10 border border-warning/30 flex-shrink-0" title="Credits">
+        <Link to="/store" className="flex items-center gap-1 px-2 py-1 rounded-md bg-warning/10 border border-warning/30 flex-shrink-0 transition-colors hover:bg-warning/20 active:scale-95" title="Credits: spend them in the Store" aria-label={`${credits} credits. Open the Store`}>
           <Coins className="w-3.5 h-3.5 text-warning" />
           <span className="text-xs font-mono text-warning">{credits}</span>
-        </div>
+        </Link>
       </div>
     </div>
   );

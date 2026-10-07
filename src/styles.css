@@ -123,6 +123,10 @@
     background-position: -1px -1px;
   }
 
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { overscroll-behavior-y: none; }
+  /* App chrome shouldn't select like a document when tapped and held. */
+  button, nav, [role="button"], [role="tab"] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: 700; }
   code, pre { font-family: var(--font-mono); }
   button:not(:disabled), [role="button"] { cursor: pointer; }

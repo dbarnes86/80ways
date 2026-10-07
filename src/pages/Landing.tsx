@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, User, Zap, Users, Globe } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { isNativeApp } from "@/lib/native";
 import foggPortrait from "@/assets/fogg-portrait.jpg";
 import passepartoutPortrait from "@/assets/passepartout-portrait.jpg";
 import fixPortrait from "@/assets/fix-portrait.jpg";
@@ -27,9 +28,17 @@ export default function Landing() {
   }, []);
 
   // Splash sequence
+  // The iOS app has its own native splash; it opens straight into the game.
+  if (isNativeApp()) return <Navigate to={user ? "/dashboard" : "/onboard"} replace />;
+
   if (splashPhase !== "done") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div
+        className="min-h-screen flex items-center justify-center bg-background cursor-pointer"
+        onClick={() => setSplashPhase("done")}
+        role="button"
+        aria-label="Skip intro"
+      >
         <>
           {splashPhase === "rift" && (
             <div

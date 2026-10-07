@@ -7,6 +7,7 @@ import { useActivityStore } from '@/stores/activityStore';
 import { useUserStore } from '@/stores/userStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { haptic } from '@/lib/native';
 import { JourneyHero } from '@/components/dashboard/JourneyHero';
 import { EnergyRow } from '@/components/dashboard/EnergyRow';
 import { ActiveChallenge } from '@/components/dashboard/ActiveChallenge';
@@ -240,10 +241,13 @@ const Dashboard = () => {
       </div>
 
       {/* Sticky LOG ACTIVITY button */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 bg-gradient-to-t from-background via-background/95 to-transparent p-4 pb-3 lg:bottom-0 lg:pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="max-w-md mx-auto">
           <Button
-            onClick={() => setActivityLoggerOpen(true)}
+            onClick={() => {
+              haptic('tap');
+              setActivityLoggerOpen(true);
+            }}
             className="w-full text-lg py-7 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.4)] font-heading tracking-wider"
           >
             <Plus className="mr-2 h-5 w-5" />
