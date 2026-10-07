@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ArrowRight, User, Zap, Users, Globe, Shield, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, User, Zap, Users, Globe } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
+import { isNativeApp } from "@/lib/native";
 import foggPortrait from "@/assets/fogg-portrait.jpg";
 import passepartoutPortrait from "@/assets/passepartout-portrait.jpg";
 import fixPortrait from "@/assets/fix-portrait.jpg";
 import aoudaPortrait from "@/assets/aouda-portrait.jpg";
 import riftLogo from "@/assets/rift-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button, Card } from '@/components/ui';
 
 type SplashPhase = "rift" | "title" | "done";
 
@@ -29,37 +28,37 @@ export default function Landing() {
   }, []);
 
   // Splash sequence
+  // The iOS app has its own native splash; it opens straight into the game.
+  if (isNativeApp()) return <Navigate to={user ? "/dashboard" : "/onboard"} replace />;
+
   if (splashPhase !== "done") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <AnimatePresence mode="wait">
+      <div
+        className="min-h-screen flex items-center justify-center bg-background cursor-pointer"
+        onClick={() => setSplashPhase("done")}
+        role="button"
+        aria-label="Skip intro"
+      >
+        <>
           {splashPhase === "rift" && (
-            <motion.div
+            <div
               key="rift"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
-              className="flex flex-col items-center"
+              className="flex flex-col items-center animate-fade-up"
             >
               <img src={riftLogo} alt="RIFT" className="w-40 h-auto invert" />
-            </motion.div>
+            </div>
           )}
           {splashPhase === "title" && (
-            <motion.div
+            <div
               key="title"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center"
+              className="text-center animate-fade-up"
             >
               <h1 className="text-5xl md:text-7xl font-heading text-glow-cyan uppercase leading-tight">
                 Around the World<br />in 80 Ways
               </h1>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
       </div>
     );
   }
@@ -136,21 +135,15 @@ export default function Landing() {
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-      className="min-h-screen"
+    <div
+      className="min-h-screen animate-fade-up"
     >
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20" />
         <div className="container mx-auto px-4 py-20 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="text-center max-w-5xl mx-auto"
+          <div
+            className="text-center max-w-5xl mx-auto animate-fade-up"
           >
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-heading mb-6 text-glow-cyan uppercase leading-tight">
               Around the World<br />in 80 Ways
@@ -176,18 +169,16 @@ export default function Landing() {
                 </Link>
               )}
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* The Wager Section */}
       <section className="py-20 border-t border-border">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+          <div className="animate-fade-up"
+           
+           
           >
             <Card className="max-w-4xl mx-auto p-8 md:p-12 bg-card border-2 border-primary/50 relative victorian-corners glow-purple">
               <h2 className="text-3xl md:text-4xl font-heading text-center mb-8 text-primary">
@@ -212,30 +203,27 @@ export default function Landing() {
                 </div>
               </div>
             </Card>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* How It Works */}
       <section className="py-20 border-t border-border">
         <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-heading text-center mb-12 text-glow-magenta"
+          <h2
+           
+           
+            className="text-3xl md:text-4xl font-heading text-center mb-12 text-glow-magenta animate-fade-up"
           >
             HOW IT WORKS
-          </motion.h2>
+          </h2>
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {howItWorks.map((section, index) => (
-              <motion.div
+              <div className="animate-fade-up"
                 key={section.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2, duration: 0.5 }}
-              >
+               
+               
+               style={{ animationDelay: `${index * 0.2}s` }}>
                 <Card className={`p-6 h-full border-2 ${section.borderColor} transition-smooth ${section.glowClass}`}>
                   <div className="text-center mb-6">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -252,7 +240,7 @@ export default function Landing() {
                     ))}
                   </ul>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -261,23 +249,20 @@ export default function Landing() {
       {/* Characters Preview */}
       <section className="py-20 border-t border-border">
         <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-heading text-center mb-12 text-glow-cyan"
+          <h2
+           
+           
+            className="text-3xl md:text-4xl font-heading text-center mb-12 text-glow-cyan animate-fade-up"
           >
             MEET YOUR COMPANIONS
-          </motion.h2>
+          </h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {characters.map((character, index) => (
-              <motion.div
+              <div className="animate-scale-in"
                 key={character.name}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-              >
+               
+               
+               style={{ animationDelay: `${index * 0.1}s` }}>
                 <Card className={`overflow-hidden border-2 ${character.borderColor} transition-smooth ${character.glowClass} relative victorian-corners`}>
                   <div className="aspect-video overflow-hidden bg-gradient-to-br from-muted to-background">
                     <img 
@@ -292,7 +277,7 @@ export default function Landing() {
                     <p className="text-muted-foreground">{character.bio}</p>
                   </div>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -325,6 +310,6 @@ export default function Landing() {
           </div>
         </div>
       </footer>
-    </motion.div>
+    </div>
   );
 }

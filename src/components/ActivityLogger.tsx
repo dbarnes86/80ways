@@ -1,23 +1,6 @@
 import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useUserStore } from '@/stores/userStore';
-import { useToast } from '@/hooks/use-toast';
+import { haptic } from '@/lib/native';
 import { logActivity, type LogActivityResult } from '@/lib/gameActions';
 import { calculateActivityEnergy, getNativeEnergyType } from '@/lib/gameEngine';
 import { ENERGY_THEME } from '@/data/energyTheme';
@@ -59,6 +42,7 @@ import {
   Trophy,
   type LucideIcon,
 } from 'lucide-react';
+import { Dialog, Button, Label, Input, Textarea, Card, Checkbox, Select, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 
 interface ActivityLoggerProps {
   open: boolean;
@@ -109,7 +93,6 @@ const emptyForm = () => ({
 });
 
 export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
-  const { toast } = useToast();
   const inventory = useUserStore((s) => s.inventory);
   const preferredUnit = useUserStore((s) => s.settings.units);
 
@@ -140,15 +123,13 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
 
   const calc = form.targetEnergyType ? preview(form.targetEnergyType) : null;
 
-  const close = (next: boolean) => {
-    onOpenChange(next);
-    if (!next) {
-      setTimeout(() => {
-        setForm(emptyForm());
-        setErrors({});
-        setResult(null);
-      }, 200);
-    }
+  const close = () => {
+    onOpenChange(false);
+    setTimeout(() => {
+      setForm(emptyForm());
+      setErrors({});
+      setResult(null);
+    }, 200);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -183,9 +164,7 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
         useMultiCharge: form.useMultiCharge,
       });
       setResult(res);
-      if (res.levelUp) {
-        toast({ title: `Level ${res.levelUp.level}!`, description: `You're now a ${res.levelUp.name}.` });
-      }
+      haptic(res.levelUp || res.starterCompleted ? 'success' : 'tap');
     } catch (err) {
       setErrors({ submit: err instanceof Error ? err.message : 'Something went wrong' });
     } finally {
@@ -194,22 +173,18 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
-        <AnimatePresence mode="wait">
+    <Dialog open={open} onClose={close} className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
+        <>
           {result ? (
-            <motion.div
+            <div
               key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="py-8 text-center space-y-5"
+              className="py-8 text-center space-y-5 animate-scale-in"
             >
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: 'spring' }}>
+              <div className="animate-scale-in" style={{ animationDelay: `${0.1}s` }}>
                 <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto">
                   <Check className="h-10 w-10 text-success" />
                 </div>
-              </motion.div>
+              </div>
 
               <div>
                 <h2 className="text-2xl font-heading font-bold mb-2">ACTIVITY RECORDED</h2>
@@ -259,11 +234,11 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                 <Button variant="outline" onClick={() => { setForm(emptyForm()); setResult(null); }}>
                   Log another
                 </Button>
-                <Button onClick={() => close(false)}>Done</Button>
+                <Button onClick={() => close()}>Done</Button>
               </div>
-            </motion.div>
+            </div>
           ) : (
-            <motion.div key="form" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="animate-fade-up" key="form">
               <DialogHeader>
                 <DialogTitle className="text-2xl md:text-3xl font-heading font-bold text-glow">LOG ACTIVITY</DialogTitle>
                 <DialogDescription>Record a workout to charge your energy reserves</DialogDescription>
@@ -274,32 +249,23 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                 <div>
                   <Label className="text-sm font-mono tracking-wider mb-2 block">ACTIVITY</Label>
                   <Select
+                    aria-label="Activity"
                     value={form.activityType}
-                    onValueChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value;
                       setForm((prev) => ({ ...prev, activityType: value, targetEnergyType: getNativeEnergyType(value) ?? '' }));
                       setErrors((prev) => ({ ...prev, activityType: '' }));
                     }}
+                    className="bg-background/50 border-primary/30 text-lg"
                   >
-                    <SelectTrigger className="bg-background/50 border-primary/30 focus:border-primary text-lg h-12">
-                      <SelectValue placeholder="Select activity type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border-primary/30 max-h-80 z-[100]">
-                      {ENERGY_TYPES.map((type) => (
-                        <SelectGroup key={type}>
-                          <SelectLabel className={`text-xs font-mono tracking-wider ${ENERGY_THEME[type].text}`}>
-                            {ENERGY_THEME[type].label.toUpperCase()}
-                          </SelectLabel>
-                          {ACTIVITIES.filter((a) => getNativeEnergyType(a.name) === type).map((activity) => (
-                            <SelectItem key={activity.name} value={activity.name} className="cursor-pointer py-2.5">
-                              <div className="flex items-center gap-3">
-                                <activity.icon className="h-4 w-4" />
-                                <span>{activity.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
+                    <option value="" disabled>Select activity type</option>
+                    {ENERGY_TYPES.map((type) => (
+                      <optgroup key={type} label={ENERGY_THEME[type].label}>
+                        {ACTIVITIES.filter((a) => getNativeEnergyType(a.name) === type).map((activity) => (
+                          <option key={activity.name} value={activity.name}>{activity.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
                   </Select>
                   {errors.activityType && <p className="text-destructive text-sm mt-1">{errors.activityType}</p>}
                 </div>
@@ -419,7 +385,7 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
 
                 {/* Reserve selection */}
                 {form.activityType && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                  <div className="space-y-4 animate-fade-in">
                     <div>
                       <Label className="text-sm font-mono tracking-wider mb-1 block">CHARGE WHICH RESERVE?</Label>
                       <p className="text-xs text-muted-foreground mb-3">Any reserve works. The matching one charges at 100%, others at 50%.</p>
@@ -471,7 +437,7 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                           <label className="flex items-start gap-3 cursor-pointer">
                             <Checkbox
                               checked={form.useAmplifier}
-                              onCheckedChange={(c) => setForm((p) => ({ ...p, useAmplifier: !!c }))}
+                              onChange={(c) => setForm((p) => ({ ...p, useAmplifier: c }))}
                               className="mt-0.5"
                             />
                             <div className="text-sm">
@@ -486,7 +452,7 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                           <label className="flex items-start gap-3 cursor-pointer">
                             <Checkbox
                               checked={form.useMultiCharge}
-                              onCheckedChange={(c) => setForm((p) => ({ ...p, useMultiCharge: !!c }))}
+                              onChange={(c) => setForm((p) => ({ ...p, useMultiCharge: c }))}
                               className="mt-0.5"
                             />
                             <div className="text-sm">
@@ -506,14 +472,12 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                         <div className="flex items-end justify-between">
                           <div>
                             <p className="text-xs font-mono text-muted-foreground tracking-wider">ESTIMATED</p>
-                            <motion.p
+                            <p
                               key={calc.actualEnergy.toFixed(2)}
-                              initial={{ scale: 1.1, opacity: 0.5 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              className="text-4xl font-heading font-bold text-primary"
+                              className="text-4xl font-heading font-bold text-primary animate-scale-in"
                             >
                               {calc.actualEnergy.toFixed(1)} kWh
-                            </motion.p>
+                            </p>
                           </div>
                           <Zap className="h-10 w-10 text-primary animate-pulse" />
                         </div>
@@ -537,7 +501,7 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                         </span>
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 )}
 
                 {/* Notes */}
@@ -553,7 +517,7 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <Button type="button" variant="outline" onClick={() => close(false)}>
+                  <Button type="button" variant="outline" onClick={() => close()}>
                     Cancel
                   </Button>
                   <Button
@@ -575,10 +539,9 @@ export const ActivityLogger = ({ open, onOpenChange }: ActivityLoggerProps) => {
                   <div className="bg-destructive/20 border border-destructive rounded-lg p-3 text-sm text-destructive">{errors.submit}</div>
                 )}
               </form>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
-      </DialogContent>
-    </Dialog>
+        </>
+          </Dialog>
   );
 };

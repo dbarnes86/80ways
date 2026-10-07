@@ -1,136 +1,95 @@
-import { Capacitor } from '@capacitor/core';
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * App Store purchases for the iOS build.
+ *
+ * StoreKit 2 handles the payment. The app buys with appAccountToken = the Supabase user id, then
+ * hands the signed transaction to the apple-iap Edge Function, which verifies it came from Apple
+ * and writes the entitlement. Renewals, refunds and cancellations reach the server through App
+ * Store Server Notifications, so the app never decides membership on its own.
+ */
+import { Capacitor } from '@capacitor/core'
+import { supabase } from '@/lib/supabase'
 
-// App Store Connect product IDs — update these after creating products in App Store Connect
 export const PRODUCTS = {
-  YEARLY_FULL: {
-    id: 'com.atw80ways.yearly.full', // $29.99/year
-    appStoreId: 'com.atw80ways.yearly.full',
-    stripePriceId: 'price_1SDn2gKaw9duBfyWTItImHiW',
-  },
-  YEARLY_TRIAL: {
-    id: 'com.atw80ways.yearly.trial', // 7-day free trial, then $19.99/year
-    appStoreId: 'com.atw80ways.yearly.trial',
-    stripePriceId: '', // Create this Stripe price if needed
-  },
-} as const;
+  monthly: 'com.atw80ways.membership.monthly',
+  annual: 'com.atw80ways.membership.annual',
+} as const
 
-export type PurchasePlan = 'yearly' | 'trial';
+export type NativePlan = keyof typeof PRODUCTS
 
-const isNative = () => Capacitor.isNativePlatform();
+export const isNative = () => Capacitor.isNativePlatform()
 
-/**
- * Initialize the IAP plugin (call once on app start for native)
- */
-export async function initializePurchases() {
-  if (!isNative()) return;
-
-  try {
-    const { NativePurchases } = await import('@capgo/native-purchases');
-    const supported = await NativePurchases.isBillingSupported();
-    if (!supported) {
-      console.warn('Billing not supported on this device');
-    }
-  } catch (err) {
-    console.error('Failed to initialize purchases:', err);
-  }
+export interface NativePlanInfo {
+  plan: NativePlan
+  label: string
 }
 
-/**
- * Fetch available products from the store
- */
-export async function getAvailableProducts() {
-  if (!isNative()) return [];
+const plugin = () => import('@capgo/native-purchases')
 
+/** Localised prices straight from the App Store. Empty until the products exist in App Store Connect. */
+export async function getNativePlans(): Promise<NativePlanInfo[]> {
+  if (!isNative()) return []
   try {
-    const { NativePurchases, PURCHASE_TYPE } = await import('@capgo/native-purchases');
+    const { NativePurchases, PURCHASE_TYPE } = await plugin()
     const { products } = await NativePurchases.getProducts({
-      productIdentifiers: [PRODUCTS.YEARLY_FULL.appStoreId, PRODUCTS.YEARLY_TRIAL.appStoreId],
+      productIdentifiers: Object.values(PRODUCTS),
       productType: PURCHASE_TYPE.SUBS,
-    });
-    return products;
+    })
+    return (Object.keys(PRODUCTS) as NativePlan[])
+      .map((plan) => {
+        const p = products.find((x) => x.identifier === PRODUCTS[plan])
+        return p ? { plan, label: `${p.priceString} / ${plan === 'annual' ? 'year' : 'month'}` } : null
+      })
+      .filter((x): x is NativePlanInfo => x !== null)
   } catch (err) {
-    console.error('Failed to fetch products:', err);
-    return [];
+    console.error('Failed to fetch products:', err)
+    return []
   }
 }
 
-/**
- * Purchase a subscription plan
- * - On native: triggers StoreKit/Google Play
- * - On web: falls back to Stripe checkout
- */
-export async function purchasePlan(
-  plan: PurchasePlan,
-  userInfo: { email: string; displayName: string }
-): Promise<{ success: boolean; error?: string }> {
-  if (isNative()) {
-    return purchaseNative(plan);
+/** Send a signed StoreKit transaction to the server, which verifies it and grants membership. */
+async function syncTransaction(jws: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('apple-iap', { body: { jws } })
+  if (error) {
+    const ctx = (error as { context?: Response }).context
+    const detail = ctx ? ((await ctx.json().catch(() => null)) as { error?: string } | null) : null
+    throw new Error(
+      detail?.error === 'subscription_belongs_to_another_account'
+        ? 'This App Store subscription is already linked to another 80 Ways account.'
+        : "We couldn't confirm the purchase with Apple. Tap Restore Purchases to try again.",
+    )
   }
-  return purchaseStripe(plan, userInfo);
 }
 
-async function purchaseNative(plan: PurchasePlan): Promise<{ success: boolean; error?: string }> {
+export async function purchaseNative(plan: NativePlan, userId: string): Promise<'purchased' | 'cancelled'> {
+  const { NativePurchases, PURCHASE_TYPE } = await plugin()
   try {
-    const { NativePurchases } = await import('@capgo/native-purchases');
-    const productId = plan === 'yearly' ? PRODUCTS.YEARLY_FULL.appStoreId : PRODUCTS.YEARLY_TRIAL.appStoreId;
-
-    const result = await NativePurchases.purchaseProduct({
-      productIdentifier: productId,
-      quantity: 1,
-    });
-
-    if (result.transactionId) {
-      return { success: true };
-    }
-
-    return { success: false, error: 'Purchase was not completed' };
-  } catch (err: any) {
-    // User cancelled
-    if (err?.code === 'USER_CANCELLED' || err?.message?.includes('cancel')) {
-      return { success: false, error: 'cancelled' };
-    }
-    return { success: false, error: err?.message || 'Purchase failed' };
+    const tx = await NativePurchases.purchaseProduct({
+      productIdentifier: PRODUCTS[plan],
+      productType: PURCHASE_TYPE.SUBS,
+      appAccountToken: userId,
+    })
+    if (!tx.jwsRepresentation) throw new Error('The App Store did not return a signed transaction.')
+    await syncTransaction(tx.jwsRepresentation)
+    return 'purchased'
+  } catch (err) {
+    const e = err as { code?: string; message?: string }
+    if (e?.code === 'USER_CANCELLED' || /cancel/i.test(e?.message ?? '')) return 'cancelled'
+    throw err
   }
 }
 
-async function purchaseStripe(
-  plan: PurchasePlan,
-  userInfo: { email: string; displayName: string }
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: {
-        email: userInfo.email,
-        displayName: userInfo.displayName,
-        plan,
-      },
-    });
-
-    if (error) throw error;
-
-    if (data?.url) {
-      window.open(data.url, '_blank');
-      return { success: false, error: 'redirect' }; // not a real error, user redirected
-    }
-
-    return { success: false, error: 'No checkout URL returned' };
-  } catch (err: any) {
-    return { success: false, error: err?.message || 'Failed to create checkout' };
-  }
+/** Re-link an existing App Store subscription to this account (App Review requires this button). */
+export async function restoreNative(): Promise<boolean> {
+  const { NativePurchases, PURCHASE_TYPE } = await plugin()
+  await NativePurchases.restorePurchases()
+  const { purchases } = await NativePurchases.getPurchases({ productType: PURCHASE_TYPE.SUBS, onlyCurrentEntitlements: true })
+  const ours = purchases.filter((p) => (Object.values(PRODUCTS) as string[]).includes(p.productIdentifier) && p.jwsRepresentation)
+  if (ours.length === 0) return false
+  await syncTransaction(ours[ours.length - 1].jwsRepresentation!)
+  return true
 }
 
-/**
- * Restore previous purchases (native only)
- */
-export async function restorePurchases(): Promise<boolean> {
-  if (!isNative()) return false;
-
-  try {
-    const { NativePurchases } = await import('@capgo/native-purchases');
-    await NativePurchases.restorePurchases();
-    return true;
-  } catch {
-    return false;
-  }
+export async function manageNativeSubscription() {
+  const { NativePurchases } = await plugin()
+  await NativePurchases.manageSubscriptions()
 }

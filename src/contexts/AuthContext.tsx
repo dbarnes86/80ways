@@ -1,44 +1,44 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { flushPush, releaseLocalState, resetLocalGame } from '@/lib/gameSync';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** True between following a password-reset link and choosing a new password. */
+  recovery: boolean;
   signOut: () => Promise<void>;
+  clearRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  recovery: false,
   signOut: async () => {},
+  clearRecovery: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
-    // Set up auth listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+      setSession(s);
       setLoading(false);
     });
-
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
       setLoading(false);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -51,7 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider
+      value={{ user: session?.user ?? null, session, loading, recovery, signOut, clearRecovery: () => setRecovery(false) }}
+    >
       {children}
     </AuthContext.Provider>
   );

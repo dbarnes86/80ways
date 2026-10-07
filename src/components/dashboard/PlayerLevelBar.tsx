@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Coins, Shield } from 'lucide-react';
 import { useProgressionStore } from '@/stores/progressionStore';
 import { useUserStore } from '@/stores/userStore';
@@ -23,12 +23,9 @@ export const PlayerLevelBar = () => {
             <span className="text-[10px] font-heading text-muted-foreground truncate ml-2">{levelName}</span>
           </div>
           <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${levelInfo.progress * 100}%` }}
-              transition={{ duration: 0.8 }}
-              style={{ boxShadow: '0 0 6px hsl(var(--primary) / 0.4)' }}
+            <div
+              className="h-full bg-primary rounded-full transition-[width] duration-700 ease-out"
+              style={{ width: `${levelInfo.progress * 100}%`, boxShadow: '0 0 6px hsl(var(--primary) / 0.4)' }}
             />
           </div>
           <div className="flex justify-between mt-0.5">
@@ -39,10 +36,10 @@ export const PlayerLevelBar = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-warning/10 border border-warning/30 flex-shrink-0" title="Credits">
+        <Link to="/store" className="flex items-center gap-1 px-2 py-1 rounded-md bg-warning/10 border border-warning/30 flex-shrink-0 transition-colors hover:bg-warning/20 active:scale-95" title="Credits: spend them in the Store" aria-label={`${credits} credits. Open the Store`}>
           <Coins className="w-3.5 h-3.5 text-warning" />
           <span className="text-xs font-mono text-warning">{credits}</span>
-        </div>
+        </Link>
       </div>
     </div>
   );

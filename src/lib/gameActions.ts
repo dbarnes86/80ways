@@ -3,7 +3,7 @@
  * instantly), writes to Supabase best-effort, and returns what happened so
  * the UI can celebrate it.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import {
   BOOSTERS,
   CREDITS_JOURNEY_COMPLETE,
@@ -38,6 +38,7 @@ import { useProgressionStore } from '@/stores/progressionStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { useUserStore } from '@/stores/userStore';
+import { useMembershipStore } from '@/stores/membershipStore';
 
 export interface Rewards {
   xp: number;
@@ -170,6 +171,7 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   const participation = season.participation;
   if (!participation || !season.activeSeason) throw new Error('Join the expedition first.');
   if (participation.status === 'completed') throw new Error('Your journey is already complete.');
+  if (useMembershipStore.getState().membership?.tier !== 'member') throw new Error('Your membership has lapsed. Renew it to keep travelling.');
 
   const legIndex = participation.currentLeg;
   const leg = JOURNEY_LEGS[legIndex];
@@ -239,6 +241,7 @@ export async function contributeToRaid(
 ): Promise<RaidContributionResult> {
   const userId = getActiveUserId();
   if (!userId) throw new Error('Sign in to join raids.');
+  if (useMembershipStore.getState().membership?.tier !== 'member') throw new Error('Raids are for members.');
 
   const totals = useRaidStore.getState().totals[raid.key];
   const remaining = Math.max(0, raid.goalKwh - (totals?.total ?? 0));

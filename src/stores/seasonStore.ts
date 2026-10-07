@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/lib/supabase';
+import type { Database } from '@/lib/database.types';
 import { getExpectedGlobalLeg, getRealDayToNarrativeDay } from '@/data/gameConstants';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 

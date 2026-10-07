@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Game rules, billing rules and component tests.
+      - run: npm test
+      - run: npm run build
+
+  functions:
+    name: Edge Functions typecheck (Deno)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      # Checked from a copy so Deno doesn't pick up the web app's package.json.
+      - run: |
+          mkdir -p /tmp/fn && cp -r supabase/functions/. /tmp/fn/
+          cd /tmp/fn
+          echo '{"nodeModulesDir":"auto","importMap":"./import_map.json"}' > deno.json
+          for f in billing stripe-webhook apple-iap appstore-notifications delete-account; do
+            deno check "$f/index.ts"
+          done

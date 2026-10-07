@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Trophy, Loader2, RefreshCw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { HolographicCard } from "@/components/ui/holographic-card";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { selectHasJoined, useSeasonStore } from "@/stores/seasonStore";
 import { JOURNEY_LEGS } from "@/data/journeyLegs";
 import { getDistanceCovered } from "@/lib/gameEngine";
+import { Badge, Button, HoloCard } from '@/components/ui';
 
 interface Row {
   rank: number;
@@ -81,7 +78,7 @@ export default function Leaderboard() {
       </div>
 
       {you && (
-        <HolographicCard glow="cyan" className="p-5 mb-6">
+        <HoloCard glow="cyan" className="p-5 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-mono text-muted-foreground tracking-widest">YOUR POSITION</p>
@@ -92,16 +89,16 @@ export default function Leaderboard() {
               <p className="text-xs text-muted-foreground">{describe(you).where}</p>
             </div>
           </div>
-        </HolographicCard>
+        </HoloCard>
       )}
 
       {!hasJoined && activeSeason && (
-        <HolographicCard glow="none" corners={false} className="p-4 mb-6 text-sm text-muted-foreground">
+        <HoloCard glow="none" corners={false} className="p-4 mb-6 text-sm text-muted-foreground">
           You're not on the expedition yet. <Link to="/dashboard" className="text-primary hover:underline">Board from your dashboard</Link> to get ranked.
-        </HolographicCard>
+        </HoloCard>
       )}
 
-      <HolographicCard glow="purple" className="p-4 md:p-6">
+      <HoloCard glow="purple" className="p-4 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-heading flex items-center gap-2">
             <Trophy className="w-5 h-5 text-warning" /> Expedition Standings
@@ -122,19 +119,16 @@ export default function Leaderboard() {
             {top.map((entry, index) => {
               const d = describe(entry);
               return (
-                <motion.div
+                <div
                   key={`${entry.rank}-${entry.displayName}`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: Math.min(index, 10) * 0.04 }}
                   className={`flex items-center gap-3 p-3 rounded-lg ${
                     entry.isYou
                       ? "bg-primary/15 border border-primary/50"
                       : entry.rank <= 3
                         ? "bg-gradient-to-r from-primary/10 to-transparent border border-primary/20"
                         : "bg-muted/20"
-                  }`}
-                >
+                  } animate-fade-up`}
+                 style={{ animationDelay: `${Math.min(index, 10) * 0.04}s` }}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-mono font-bold text-sm flex-shrink-0 ${medal(entry.rank)}`}>
                     #{entry.rank}
                   </div>
@@ -149,12 +143,12 @@ export default function Leaderboard() {
                     <div className="font-mono text-sm">{d.km.toLocaleString()} km</div>
                     <div className="text-[10px] text-muted-foreground font-mono">{entry.xp.toLocaleString()} XP</div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
         )}
-      </HolographicCard>
+      </HoloCard>
     </div>
   );
 }

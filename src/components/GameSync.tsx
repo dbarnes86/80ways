@@ -5,6 +5,7 @@ import { useEnergyStore } from '@/stores/energyStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { useUserStore } from '@/stores/userStore';
+import { useMembershipStore } from '@/stores/membershipStore';
 
 const DECAY_TICK_MS = 15 * 60 * 1000;
 
@@ -28,6 +29,7 @@ export function GameSync() {
     claimLocalState(userId);
 
     (async () => {
+      void useMembershipStore.getState().fetch(userId);
       await pullGameState(userId);
       if (cancelled) return;
       tickDecay();

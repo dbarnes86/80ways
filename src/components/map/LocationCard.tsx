@@ -1,8 +1,5 @@
-import { motion } from 'framer-motion';
-import { HolographicCard } from '@/components/ui/holographic-card';
-import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Lock, MapPin, Navigation } from 'lucide-react';
-import type { GlowColor } from '@/components/ui/holographic-card';
+import { HoloCard, Badge, type GlowColor } from '@/components/ui';
 
 type LocationStatus = 'complete' | 'active' | 'locked' | 'start';
 
@@ -45,9 +42,9 @@ const StatusIcon = ({ status }: { status: LocationStatus }) => {
       return <CheckCircle className="w-5 h-5 text-success" />;
     case 'active':
       return (
-        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+        <div className="animate-pulse-soft">
           <Navigation className="w-5 h-5 text-primary" />
-        </motion.div>
+        </div>
       );
     case 'locked':
       return <Lock className="w-5 h-5 text-muted-foreground" />;
@@ -69,7 +66,7 @@ export const LocationCard = ({
   const isLocked = status === 'locked';
 
   return (
-    <HolographicCard
+    <HoloCard
       glow={config.glow}
       corners={status === 'active'}
       scanLines={!isLocked}
@@ -134,6 +131,6 @@ export const LocationCard = ({
           </div>
         </div>
       </div>
-    </HolographicCard>
+    </HoloCard>
   );
 };

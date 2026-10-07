@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { HolographicCard } from "@/components/ui/holographic-card";
 import { BookOpen, Download, Zap } from "lucide-react";
-import { motion } from "framer-motion";
 import { useActivityStore, type Activity } from "@/stores/activityStore";
 import { useUserStore } from "@/stores/userStore";
 import { ENERGY_THEME } from "@/data/energyTheme";
 import { KM_PER_MILE } from "@/data/gameConstants";
+import { Button, HoloCard } from '@/components/ui';
 
 type Range = "week" | "month" | "year" | "all";
 
@@ -97,16 +95,16 @@ export default function ActivityHistory() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statItems.map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-            <HolographicCard glow={s.glow} className="p-5">
+          <div className="animate-fade-up" key={s.label} style={{ animationDelay: `${i * 0.08}s` }}>
+            <HoloCard glow={s.glow} className="p-5">
               <div className="text-2xl font-mono mb-1">{s.value}</div>
               <div className="text-sm text-muted-foreground">{s.label}</div>
-            </HolographicCard>
-          </motion.div>
+            </HoloCard>
+          </div>
         ))}
       </div>
 
-      <HolographicCard glow="none" corners={false} scanLines={false} className="p-4 mb-6">
+      <HoloCard glow="none" corners={false} scanLines={false} className="p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
           <div className="flex gap-2 flex-wrap">
             {RANGES.map((r) => (
@@ -120,9 +118,9 @@ export default function ActivityHistory() {
             Export CSV
           </Button>
         </div>
-      </HolographicCard>
+      </HoloCard>
 
-      <HolographicCard glow="cyan" className="p-4 md:p-6">
+      <HoloCard glow="cyan" className="p-4 md:p-6">
         {filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-50" />
@@ -170,7 +168,7 @@ export default function ActivityHistory() {
             </table>
           </div>
         )}
-      </HolographicCard>
+      </HoloCard>
     </div>
   );
 }

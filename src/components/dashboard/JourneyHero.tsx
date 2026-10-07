@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { MapPin, ArrowRight } from 'lucide-react';
 
 interface JourneyHeroProps {
@@ -21,7 +20,7 @@ export const JourneyHero = ({ currentDay, totalDays, from, to, legLabel, seasonN
       <div className="relative w-40 h-40 mb-4">
         <svg viewBox="0 0 130 130" className="w-full h-full -rotate-90">
           <circle cx="65" cy="65" r={radius} fill="none" stroke="hsl(var(--muted) / 0.3)" strokeWidth="6" />
-          <motion.circle
+          <circle
             cx="65"
             cy="65"
             r={radius}
@@ -30,10 +29,8 @@ export const JourneyHero = ({ currentDay, totalDays, from, to, legLabel, seasonN
             strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-            style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.5))' }}
+            strokeDashoffset={strokeDashoffset}
+            style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.5))', transition: 'stroke-dashoffset 1.5s ease-out' }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

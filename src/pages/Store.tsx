@@ -1,8 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { HolographicCard } from "@/components/ui/holographic-card";
 import { Zap, Layers, ShieldOff, Coins, type LucideIcon } from "lucide-react";
-import { motion } from "framer-motion";
 import { useUserStore } from "@/stores/userStore";
 import {
   BOOSTERS,
@@ -14,7 +10,8 @@ import {
 } from "@/data/gameConstants";
 import { activateDecayInhibitor, buyBooster } from "@/lib/gameActions";
 import { formatTimeLeft } from "@/data/raids";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from '@/components/toast';
+import { Button, Badge, HoloCard } from '@/components/ui';
 
 const ICONS: Record<BoosterId, LucideIcon> = {
   energyAmplifier: Zap,
@@ -40,7 +37,6 @@ const HOW_TO_USE: Record<BoosterId, string> = {
 export default function Store() {
   const inventory = useUserStore((s) => s.inventory);
   const frozenUntil = useUserStore((s) => s.effects.decayInhibitorUntil);
-  const { toast } = useToast();
 
   const frozen = frozenUntil && new Date(frozenUntil) > new Date();
 
@@ -66,7 +62,7 @@ export default function Store() {
         <p className="text-muted-foreground">Spend the credits you earn on the road</p>
       </div>
 
-      <HolographicCard glow="cyan" className="p-6 mb-8">
+      <HoloCard glow="cyan" className="p-6 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Your balance</div>
@@ -79,7 +75,7 @@ export default function Store() {
             <p>+{CREDITS_PER_LEG_BASE}+ per leg · +{CREDITS_RAID_SUCCESS} per raid won</p>
           </div>
         </div>
-      </HolographicCard>
+      </HoloCard>
 
       <div className="grid md:grid-cols-3 gap-6">
         {ids.map((id, index) => {
@@ -88,8 +84,8 @@ export default function Store() {
           const owned = inventory[id];
           const affordable = inventory.credits >= booster.price;
           return (
-            <motion.div key={id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-              <HolographicCard glow={rarityGlow(booster.rarity)} className="p-6 h-full flex flex-col">
+            <div className="animate-fade-up" key={id} style={{ animationDelay: `${index * 0.1}s` }}>
+              <HoloCard glow={rarityGlow(booster.rarity)} className="p-6 h-full flex flex-col">
                 <div className="flex items-start justify-between mb-4">
                   <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${rarityBadge(booster.rarity)}`}>
                     <Icon className="w-6 h-6" />
@@ -120,13 +116,13 @@ export default function Store() {
                     </div>
                   </div>
                 </div>
-              </HolographicCard>
-            </motion.div>
+              </HoloCard>
+            </div>
           );
         })}
       </div>
 
-      <HolographicCard glow="none" className="p-6 mt-8">
+      <HoloCard glow="none" className="p-6 mt-8">
         <h2 className="text-2xl font-heading mb-4">Active effects</h2>
         {frozen ? (
           <div className="flex items-center gap-3">
@@ -139,7 +135,7 @@ export default function Store() {
         ) : (
           <p className="text-sm text-muted-foreground">Nothing active. Amplifiers and Multi-Charges apply when you log an activity.</p>
         )}
-      </HolographicCard>
+      </HoloCard>
     </div>
   );
 }

@@ -3,8 +3,8 @@
  * UI; Supabase holds the cross-device copy. Every write here is best-effort so
  * the game keeps working if the network (or a not-yet-applied migration) fails.
  */
-import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import { supabase } from '@/lib/supabase';
+import type { Json } from '@/lib/database.types';
 import { ENERGY_TYPES, type EnergyType, type Intensity } from '@/data/gameConstants';
 import { useActivityStore, type Activity } from '@/stores/activityStore';
 import { useEnergyStore } from '@/stores/energyStore';
@@ -12,6 +12,7 @@ import { useProgressionStore } from '@/stores/progressionStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { useUserStore, type UserGameData } from '@/stores/userStore';
+import { useMembershipStore } from '@/stores/membershipStore';
 
 const OWNER_KEY = 'atw80-local-owner';
 /** Set while this device holds changes the server hasn't confirmed. */
@@ -53,6 +54,7 @@ export function resetLocalGame() {
   useSeasonStore.getState().reset();
   useUserStore.getState().reset();
   useRaidStore.getState().reset();
+  useMembershipStore.getState().reset();
 }
 
 /** Make sure local state belongs to this user before we read or write it. */

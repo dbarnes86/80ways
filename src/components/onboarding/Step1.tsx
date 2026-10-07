@@ -1,8 +1,6 @@
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import foggPortrait from '@/assets/fogg-portrait.jpg';
+import { Button, Card } from '@/components/ui';
 
 export const Step1 = () => {
   const setStep = useOnboardingStore((state) => state.setStep);
@@ -12,11 +10,8 @@ export const Step1 = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-4xl mx-auto pb-8"
+    <div
+      className="max-w-4xl mx-auto pb-8 animate-fade-up"
     >
       <div className="text-center mb-6">
         <h2 className="text-2xl md:text-4xl font-bold mb-2 text-glow">
@@ -38,7 +33,7 @@ export const Step1 = () => {
               <p className="text-foreground/90">
                 At precisely <span className="text-primary font-semibold">8:45 PM</span>, Phileas Fogg made an extraordinary wager: travel around the world in exactly <span className="text-primary font-semibold">80 days</span>.
               </p>
-              
+
               <p className="text-foreground/90">
                 The stakes? <span className="text-primary font-semibold">£20,000</span> (<span className="text-primary font-semibold">2 million credits</span>).
               </p>
@@ -59,28 +54,22 @@ export const Step1 = () => {
           </div>
 
           <div className="order-1 md:order-2">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="relative"
-            >
+            <div
+              className="relative animate-scale-in"
+             style={{ animationDelay: `${0.3}s` }}>
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
               <img 
                 src={foggPortrait} 
                 alt="Phileas Fogg" 
                 className="relative rounded-lg border-2 border-primary/50 shadow-lg w-full max-h-[250px] md:max-h-none object-cover"
               />
-            </motion.div>
+            </div>
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-6 text-center"
-        >
+        <div
+          className="mt-6 text-center animate-fade-up"
+         style={{ animationDelay: `${0.6}s` }}>
           <p className="text-lg font-bold text-primary mb-4">
             Will you join the expedition?
           </p>
@@ -92,8 +81,8 @@ export const Step1 = () => {
           >
             I ACCEPT THE CHALLENGE
           </Button>
-        </motion.div>
+        </div>
       </Card>
-    </motion.div>
+    </div>
   );
 };

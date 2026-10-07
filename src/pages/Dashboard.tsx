@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { HolographicCard } from '@/components/ui/holographic-card';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useProgressionStore } from '@/stores/progressionStore';
 import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
@@ -9,6 +7,7 @@ import { useActivityStore } from '@/stores/activityStore';
 import { useUserStore } from '@/stores/userStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { haptic } from '@/lib/native';
 import { JourneyHero } from '@/components/dashboard/JourneyHero';
 import { EnergyRow } from '@/components/dashboard/EnergyRow';
 import { ActiveChallenge } from '@/components/dashboard/ActiveChallenge';
@@ -22,6 +21,7 @@ import { DAILY_MISSION, ENERGY_TYPES } from '@/data/gameConstants';
 import { formatTimeLeft, getRaidSchedule, getRaidStatus } from '@/data/raids';
 import { computeStreak, getPlayerNarrativeDay, toDayKey } from '@/lib/gameEngine';
 import { Plus, Clock, AlertCircle, Sparkles, Flame, ShieldOff, Trophy, Loader2 } from 'lucide-react';
+import { Button, HoloCard } from '@/components/ui';
 
 const Dashboard = () => {
   const energy = useEnergyStore();
@@ -111,14 +111,14 @@ const Dashboard = () => {
 
             <div className="mb-6">
               {journeyDone ? (
-                <HolographicCard glow="magenta" className="p-5 text-center space-y-2">
+                <HoloCard glow="magenta" className="p-5 text-center space-y-2">
                   <Trophy className="w-8 h-8 text-secondary mx-auto" />
                   <p className="font-heading font-bold text-lg">Wager won</p>
                   <p className="text-sm text-muted-foreground">
                     You've made it around the world. Keep charging for raids and climb the leaderboard until the season closes.
                   </p>
                   <Link to="/leaderboard" className="text-sm text-primary hover:underline">See the leaderboard</Link>
-                </HolographicCard>
+                </HoloCard>
               ) : (
                 <ActiveChallenge
                   title={currentLeg.narrative.title}
@@ -160,7 +160,7 @@ const Dashboard = () => {
 
         {/* Secondary info */}
         <div className="space-y-3">
-          <HolographicCard glow="purple" corners={false} className="p-4">
+          <HoloCard glow="purple" corners={false} className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
                 <Clock className="w-4 h-4 text-accent" />
@@ -176,10 +176,10 @@ const Dashboard = () => {
                 <p className="text-[9px] text-muted-foreground">Resets {formatTimeLeft(midnight)}</p>
               </div>
             </div>
-          </HolographicCard>
+          </HoloCard>
 
           {streak > 0 && (
-            <HolographicCard glow="none" corners={false} className="p-4">
+            <HoloCard glow="none" corners={false} className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-secondary/10 border border-secondary/30 flex items-center justify-center flex-shrink-0">
                   <Flame className="w-4 h-4 text-secondary" />
@@ -189,12 +189,12 @@ const Dashboard = () => {
                   <p className="text-[10px] text-muted-foreground">Log something every day to keep it going</p>
                 </div>
               </div>
-            </HolographicCard>
+            </HoloCard>
           )}
 
           <Link to="/raids" className="block">
             {activeRaid ? (
-              <HolographicCard glow="magenta" className="p-4">
+              <HoloCard glow="magenta" className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center flex-shrink-0">
                     <AlertCircle className="w-4 h-4 text-destructive" />
@@ -202,13 +202,13 @@ const Dashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-heading font-bold text-destructive">RAID: {activeRaid.name.toUpperCase()}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {(raidTotals[activeRaid.key]?.total ?? 0).toFixed(0)} / {activeRaid.goalKwh} kWh · ends in {formatTimeLeft(activeRaid.end)}
+                      Fix has {Math.max(0, activeRaid.goalKwh - (raidTotals[activeRaid.key]?.total ?? 0)).toFixed(0)} HP left · ends in {formatTimeLeft(activeRaid.end)}
                     </p>
                   </div>
                 </div>
-              </HolographicCard>
+              </HoloCard>
             ) : (
-              <HolographicCard glow="none" corners={false} className="p-4">
+              <HoloCard glow="none" corners={false} className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-muted/10 border border-muted flex items-center justify-center flex-shrink-0">
                     <AlertCircle className="w-4 h-4 text-muted-foreground" />
@@ -220,11 +220,11 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-              </HolographicCard>
+              </HoloCard>
             )}
           </Link>
 
-          <HolographicCard glow="cyan" corners={false} className="p-4">
+          <HoloCard glow="cyan" corners={false} className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
                 <Sparkles className="w-4 h-4 text-primary" />
@@ -236,15 +236,18 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-          </HolographicCard>
+          </HoloCard>
         </div>
       </div>
 
       {/* Sticky LOG ACTIVITY button */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 bg-gradient-to-t from-background via-background/95 to-transparent p-4 pb-3 lg:bottom-0 lg:pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="max-w-md mx-auto">
           <Button
-            onClick={() => setActivityLoggerOpen(true)}
+            onClick={() => {
+              haptic('tap');
+              setActivityLoggerOpen(true);
+            }}
             className="w-full text-lg py-7 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.4)] font-heading tracking-wider"
           >
             <Plus className="mr-2 h-5 w-5" />
