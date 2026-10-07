@@ -45,8 +45,14 @@ describe('connectHealth', () => {
     const { useActivityStore } = await import('@/stores/activityStore');
     const item = useInboxStore.getState().items[0];
     const r = collectItem(item);
-    expect(r.energy).toBeGreaterThan(0);
+    expect(r?.energy).toBeGreaterThan(0);
     expect(useInboxStore.getState().items).toHaveLength(0);
     expect(useActivityStore.getState().activities[0].id).toBe(item.id);
+
+    // The same workout again (say, re-imported before the server copy arrived) pays nothing.
+    useInboxStore.getState().add([item]);
+    expect(collectItem(item)).toBeNull();
+    expect(useInboxStore.getState().items).toHaveLength(0);
+    expect(useActivityStore.getState().activities.filter((a) => a.id === item.id)).toHaveLength(1);
   });
 });

@@ -55,7 +55,7 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
 
   if (!items.length && !busy) return null;
 
-  const collectOne = async (item: InboxItem, pitch: number, boosters: { amplifier?: boolean; multiCharge?: boolean } = {}): Promise<LogActivityResult> => {
+  const collectOne = async (item: InboxItem, pitch: number, boosters: { amplifier?: boolean; multiCharge?: boolean } = {}): Promise<LogActivityResult | null> => {
     const el = refs.current.get(item.id);
     if (el) void flyOrbs(centreOf(el), item.targetType, 6 + Math.min(10, Math.round(previewEnergy(item) * 6)));
     play('collect', pitch);
@@ -74,7 +74,8 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
     const best = queue.reduce((b, i) => (previewEnergy(i) > previewEnergy(b) ? i : b), queue[0]);
     for (let i = 0; i < queue.length; i++) {
       const boost = queue[i] === best ? { amplifier: useAmp, multiCharge: useMulti } : {};
-      results.push(await collectOne(queue[i], Math.min(i * 2, 12), boost));
+      const r = await collectOne(queue[i], Math.min(i * 2, 12), boost);
+      if (r) results.push(r);
     }
     setUseAmp(false);
     setUseMulti(false);

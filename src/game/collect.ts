@@ -5,6 +5,7 @@
 import { logActivity, type LogActivityResult } from '@/lib/gameActions';
 import { calculateActivityEnergy } from '@/lib/gameEngine';
 import { useInboxStore, type InboxItem } from '@/stores/inboxStore';
+import { useActivityStore } from '@/stores/activityStore';
 import { announce } from './rewards';
 
 /** Energy an inbox workout will give, for showing on its card before it's collected. */
@@ -18,7 +19,12 @@ export const previewEnergy = (item: InboxItem) =>
   }).actualEnergy;
 
 /** Turn one inbox workout into an activity. Floats its numbers; big moments are announced by the caller. */
-export function collectItem(item: InboxItem, boosters: { amplifier?: boolean; multiCharge?: boolean } = {}): LogActivityResult {
+export function collectItem(item: InboxItem, boosters: { amplifier?: boolean; multiCharge?: boolean } = {}): LogActivityResult | null {
+  // Already an activity (synced from another device, or a re-import): drop it, pay nothing.
+  if (useActivityStore.getState().activities.some((a) => a.id === item.id)) {
+    useInboxStore.getState().remove(item.id);
+    return null;
+  }
   const r = logActivity({
     id: item.id,
     activityType: item.activityType,

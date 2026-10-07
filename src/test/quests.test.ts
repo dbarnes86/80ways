@@ -31,6 +31,7 @@ const ctx = (over: Partial<QuestContext> = {}): QuestContext => ({
   joinedSeason: false,
   currentLeg: 0,
   journeyComplete: false,
+  member: false,
   raidsJoined: 0,
   claimed: new Set(),
   ...over,
@@ -113,6 +114,21 @@ describe('story', () => {
     const last = storyQuests(ctx({ joinedSeason: true, currentLeg: 10, journeyComplete: true })).at(-1)!;
     expect(last.title).toBe('Reach London');
     expect(last.complete).toBe(true);
+  });
+});
+
+describe('fairness', () => {
+  it('boarding mid-week does not swap out a claimed weekly quest', () => {
+    const before = weeklyQuests(ctx({ level: 2 }))[2];
+    expect(before.id).toBe('w:2026-10-05:variety');
+    const after = weeklyQuests(ctx({ level: 3, joinedSeason: true, claimed: new Set([before.id]) }))[2];
+    expect(after.id).toBe(before.id);
+  });
+
+  it('the raid chapter only appears for pass holders, so free players are never stuck on it', () => {
+    const titles = (member: boolean) => storyQuests(ctx({ member })).map((q) => q.title);
+    expect(titles(false)).not.toContain('Face Detective Fix');
+    expect(titles(true)).toContain('Face Detective Fix');
   });
 });
 

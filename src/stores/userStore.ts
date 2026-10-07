@@ -127,9 +127,9 @@ export const useUserStore = create<UserStore>()(
         stats: { ...s.stats, ...data.stats },
         settings: { ...s.settings, ...data.settings },
         lastDailyMission: data.lastDailyMission ?? s.lastDailyMission,
-        raidXpAwarded: data.raidXpAwarded ?? s.raidXpAwarded,
-        raidRewardsClaimed: data.raidRewardsClaimed ?? s.raidRewardsClaimed,
-        // Union, so a claim on this device isn't lost to an older server copy.
+        // Unions, so a reward claimed on any device stays claimed everywhere.
+        raidXpAwarded: Array.from(new Set([...s.raidXpAwarded, ...(data.raidXpAwarded ?? [])])),
+        raidRewardsClaimed: Array.from(new Set([...s.raidRewardsClaimed, ...(data.raidRewardsClaimed ?? [])])),
         questsClaimed: Array.from(new Set([...s.questsClaimed, ...(data.questsClaimed ?? [])])),
         deployLog: { ...s.deployLog, ...data.deployLog },
         discipline: data.discipline ?? s.discipline,

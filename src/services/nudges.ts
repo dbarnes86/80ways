@@ -5,7 +5,9 @@
  */
 import { Capacitor } from '@capacitor/core';
 import { getRaidSchedule, type ScheduledRaid } from '@/data/raids';
-import { toDayKey } from '@/lib/gameEngine';
+import { computeStreak, toDayKey } from '@/lib/gameEngine';
+import { useActivityStore } from '@/stores/activityStore';
+import { useSeasonStore } from '@/stores/seasonStore';
 
 const FLAG = 'atw80-nudges';
 const IDS = { streak: 101, quests: 102, raidStart: 103, raidLast: 104, inbox: 105 };
@@ -102,4 +104,16 @@ export async function refreshNudges(input: NudgeInput) {
   await LocalNotifications.schedule({
     notifications: planned.map((p) => ({ id: p.id, title: p.title, body: p.body, schedule: { at: p.at, allowWhileIdle: true } })),
   });
+}
+
+/** Re-plan from where the player is now. Safe to call any time; does nothing until enabled. */
+export function replanNudges() {
+  const dates = useActivityStore.getState().activities.map((a) => a.timestamp);
+  const season = useSeasonStore.getState().activeSeason;
+  void refreshNudges({
+    now: new Date(),
+    workoutDays: new Set(dates.map(toDayKey)),
+    streak: computeStreak(dates),
+    season: season ? { startDate: season.startDate, endDate: season.endDate } : null,
+  }).catch((e) => console.warn('Couldn’t schedule notifications:', e));
 }

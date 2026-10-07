@@ -12,7 +12,7 @@ import { haptic, isNativeApp } from '@/lib/native';
 import { supabase } from '@/lib/supabase';
 import { signInWithApple } from '@/services/appleAuth';
 import { isHealthConnected, isHealthPlatform } from '@/services/healthService';
-import { enableNudges, nudgesSupported } from '@/services/nudges';
+import { enableNudges, nudgesSupported, replanNudges } from '@/services/nudges';
 import { useConnectHealth } from '@/features/health';
 import { useUserStore, type Discipline } from '@/stores/userStore';
 import { useInboxStore } from '@/stores/inboxStore';
@@ -403,6 +403,7 @@ function Nudges({ onDone }: { onDone: () => void }) {
           onClick={() => {
             setBusy(true);
             void enableNudges()
+              .then((on) => on && replanNudges())
               .catch(() => false)
               .finally(onDone);
           }}

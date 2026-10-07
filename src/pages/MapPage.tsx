@@ -8,6 +8,7 @@ import { ENERGY_THEME } from '@/data/energyTheme';
 import { ENERGY_TYPES } from '@/data/gameConstants';
 import { getDistanceCovered, getPlayerNarrativeDay } from '@/lib/gameEngine';
 import { haptic } from '@/lib/native';
+import { needsPass } from '@/lib/gameActions';
 import { cn, Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
 import { Orb, Stamp } from '@/game/art';
@@ -85,6 +86,7 @@ export default function MapPage() {
   const day = participation ? getPlayerNarrativeDay(currentLegIndex, legFraction, journeyDone) : 1;
   const stamps = participation ? JOURNEY_LEGS.slice(1).filter((_, i) => legStatus(i + 1) === 'complete').length : 0;
   const hasEnergy = ENERGY_TYPES.some((t) => energy[t].current >= 0.1);
+  const locked = needsPass(participation);
 
   // London, then each leg's destination.
   const pathCities = [CITY_POINTS['London'], ...JOURNEY_LEGS.map((leg) => CITY_POINTS[leg.to])];
@@ -216,7 +218,15 @@ export default function MapPage() {
                   {active ? `${participation!.legProgress.toFixed(1)}/${leg.requiredEnergy.amount}` : leg.requiredEnergy.amount}
                 </span>
               </button>
-              {active && hasEnergy && (
+              {active && locked && (
+                <Link
+                  to="/membership"
+                  className="press shine mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-secondary font-heading text-xl font-bold text-white shadow-[0_0_24px_hsl(var(--secondary)/0.4)]"
+                >
+                  Keep sailing with the Season Pass
+                </Link>
+              )}
+              {active && !locked && hasEnergy && (
                 <button
                   type="button"
                   onClick={() => {

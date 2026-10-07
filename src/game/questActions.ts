@@ -2,7 +2,9 @@
  * Claiming quests and opening chests. Each claim pays out through the reward bus, so it gets the
  * same celebration as everything else.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { toDayKey } from '@/lib/gameEngine';
+import { useMembershipStore } from '@/stores/membershipStore';
 import type { BoosterId } from '@/data/gameConstants';
 import { schedulePush } from '@/lib/gameSync';
 import { useActivityStore } from '@/stores/activityStore';
@@ -37,9 +39,25 @@ export function questContext(now = new Date()): QuestContext {
     joinedSeason: joined,
     currentLeg: joined ? season.participation!.currentLeg : 0,
     journeyComplete: joined && season.participation!.status === 'completed',
+    member: useMembershipStore.getState().membership?.tier === 'member',
     raidsJoined: u.raidXpAwarded.length,
     claimed: new Set(u.questsClaimed),
   };
+}
+
+/** Today's date key, refreshed each minute and on returning to the app, so quests roll over at midnight. */
+function useDayKey(): string {
+  const [day, setDay] = useState(() => toDayKey(new Date()));
+  useEffect(() => {
+    const check = () => setDay(toDayKey(new Date()));
+    const timer = setInterval(check, 60_000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, []);
+  return day;
 }
 
 /** Re-renders when anything a quest depends on changes. */
@@ -52,8 +70,9 @@ export function useQuestContext(): QuestContext {
   const raids = useUserStore((s) => s.raidXpAwarded);
   const participation = useSeasonStore((s) => s.participation);
   const season = useSeasonStore((s) => s.activeSeason);
-  // Day rollover: recompute at least once a minute while mounted is overkill; the date is read fresh each render.
-  return useMemo(() => questContext(), [activities, level, starter, claimed, deployLog, raids, participation, season]);
+  const membership = useMembershipStore((s) => s.membership);
+  const day = useDayKey();
+  return useMemo(() => questContext(), [activities, level, starter, claimed, deployLog, raids, participation, season, membership, day]);
 }
 
 export function useQuests() {

@@ -7,9 +7,7 @@ import { useSeasonStore } from '@/stores/seasonStore';
 import { useUserStore } from '@/stores/userStore';
 import { useMembershipStore } from '@/stores/membershipStore';
 import { isHealthPlatform, syncHealth } from '@/services/healthService';
-import { refreshNudges } from '@/services/nudges';
-import { useActivityStore } from '@/stores/activityStore';
-import { computeStreak, toDayKey } from '@/lib/gameEngine';
+import { replanNudges } from '@/services/nudges';
 import { announceArrivals } from '@/features/health';
 
 const DECAY_TICK_MS = 15 * 60 * 1000;
@@ -25,18 +23,6 @@ async function importFromHealth(userId: string) {
     return null;
   });
   if (result?.arrived) announceArrivals(result.arrived);
-}
-
-/** Re-plan the local notifications from where the player is now. */
-function replanNudges() {
-  const dates = useActivityStore.getState().activities.map((a) => a.timestamp);
-  const season = useSeasonStore.getState().activeSeason;
-  void refreshNudges({
-    now: new Date(),
-    workoutDays: new Set(dates.map(toDayKey)),
-    streak: computeStreak(dates),
-    season: season ? { startDate: season.startDate, endDate: season.endDate } : null,
-  }).catch((e) => console.warn('Couldn’t schedule notifications:', e));
 }
 
 /** Loads the signed-in player's game and keeps background systems (decay, season) running. */
@@ -55,11 +41,11 @@ export function GameSync() {
 
     (async () => {
       void useMembershipStore.getState().fetch(userId);
-      await pullGameState(userId);
+      const pulled = await pullGameState(userId);
       if (cancelled) return;
       tickDecay();
-      // After the pull, so workouts already saved from another device aren't imported twice.
-      void importFromHealth(userId);
+      // Only after a good pull, so workouts already saved from another device aren't queued again.
+      if (pulled) void importFromHealth(userId);
 
       await useSeasonStore.getState().fetchActiveSeason();
       if (cancelled) return;
@@ -77,8 +63,11 @@ export function GameSync() {
     if (isHealthPlatform()) {
       void import('@capacitor/app').then(({ App }) =>
         App.addListener('resume', () => {
-          void importFromHealth(userId);
-          replanNudges();
+          // Catch up with anything claimed or logged on another device, then look for new workouts.
+          void pullGameState(userId).then((ok) => {
+            if (ok) void importFromHealth(userId);
+            replanNudges();
+          });
         }).then((h) => {
           if (cancelled) void h.remove();
           else resume = h;

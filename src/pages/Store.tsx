@@ -4,7 +4,6 @@ import {
   BOOSTERS,
   CREDITS_PER_ACTIVITY,
   CREDITS_PER_LEG_BASE,
-  CREDITS_RAID_SUCCESS,
   type BoosterId,
 } from "@/data/gameConstants";
 import { activateDecayInhibitor, buyBooster } from "@/lib/gameActions";
@@ -71,7 +70,7 @@ export default function Store() {
           </div>
           <div className="text-xs text-muted-foreground space-y-0.5 sm:text-right">
             <p>+{CREDITS_PER_ACTIVITY} per workout · quests and chests</p>
-            <p>+{CREDITS_PER_LEG_BASE}+ per leg · +{CREDITS_RAID_SUCCESS} per raid won</p>
+            <p>+{CREDITS_PER_LEG_BASE}+ per leg · a chest per raid won</p>
           </div>
         </div>
       </HoloCard>

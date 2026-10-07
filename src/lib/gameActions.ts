@@ -10,7 +10,6 @@ import {
   CREDITS_PER_ACTIVITY,
   CREDITS_PER_LEG_BASE,
   CREDITS_PER_LEG_STEP,
-  CREDITS_RAID_SUCCESS,
   CREDITS_STARTER_EVENT,
   DAILY_MISSION,
   DECAY_INHIBITOR_HOURS,
@@ -78,6 +77,9 @@ export interface LogActivityResult extends Rewards {
 }
 
 export function logActivity(input: LogActivityInput): LogActivityResult {
+  if (input.id && useActivityStore.getState().activities.some((a) => a.id === input.id)) {
+    throw new Error('That workout is already in your logbook.');
+  }
   const user = useUserStore.getState();
   const amplifier = input.useAmplifier && user.consumeBooster('energyAmplifier');
   const multiCharge = input.useMultiCharge && useUserStore.getState().consumeBooster('multiCharge');
@@ -201,6 +203,24 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   const newProgress = Math.min(required, participation.legProgress + plan.totalEffective);
   const legCompleted = newProgress >= required - 1e-6;
 
+  // Record it before the leg advances: on the last free leg, the server only accepts deployments
+  // while the player is still on it.
+  const userId = getActiveUserId();
+  if (userId) {
+    const { error } = await supabase.from('energy_deployments').insert(
+      plan.lines.map((l) => ({
+        user_id: userId,
+        season_id: season.activeSeason!.id,
+        leg_id: leg.id,
+        energy_type: l.type,
+        amount: l.amount,
+        efficiency: l.efficiency,
+        effective_amount: l.effective,
+      })),
+    );
+    if (error) console.warn('Failed to record deployment:', error.message);
+  }
+
   let xp = Math.round(plan.totalDeployed * XP_PER_ENERGY_DEPLOYED);
   let credits = 0;
   let journeyComplete = false;
@@ -220,21 +240,6 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   const [, levelUp] = withLevelTracking(() => useProgressionStore.getState().addXP(xp));
   if (credits) useUserStore.getState().addCredits(credits);
 
-  const userId = getActiveUserId();
-  if (userId) {
-    const { error } = await supabase.from('energy_deployments').insert(
-      plan.lines.map((l) => ({
-        user_id: userId,
-        season_id: season.activeSeason!.id,
-        leg_id: leg.id,
-        energy_type: l.type,
-        amount: l.amount,
-        efficiency: l.efficiency,
-        effective_amount: l.effective,
-      })),
-    );
-    if (error) console.warn('Failed to record deployment:', error.message);
-  }
   schedulePush();
 
   return { plan, legCompleted, journeyComplete, legIndex, newProgress, xp, credits, levelUp };
@@ -297,10 +302,10 @@ export function claimRaidReward(seasonId: string, raidKey: string): Rewards | nu
   const key = `${seasonId}:${raidKey}`;
   const user = useUserStore.getState();
   if (user.raidRewardsClaimed.includes(key)) return null;
+  // The payout is the chest the caller opens; this is the ledger that stops a second one.
   user.markRaidRewardClaimed(key);
-  user.addCredits(CREDITS_RAID_SUCCESS);
   schedulePush();
-  return { xp: 0, credits: CREDITS_RAID_SUCCESS };
+  return { xp: 0, credits: 0 };
 }
 
 // ─── Store ──────────────────────────────────────────────────────

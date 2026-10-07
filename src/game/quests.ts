@@ -28,6 +28,8 @@ export interface QuestContext {
   joinedSeason: boolean;
   currentLeg: number;
   journeyComplete: boolean;
+  /** Has the Season Pass (raids are on it). */
+  member: boolean;
   raidsJoined: number;
   claimed: Set<string>;
 }
@@ -120,14 +122,16 @@ export function dailyQuests(ctx: QuestContext): Quest[] {
     energy,
   });
 
-  const thirdOptions = [
-    make('daily', day, 'kwh', ctx, { title: 'Generate 1 kWh', progress: kwh, target: 1, unit: 'kWh' }),
-    make('daily', day, 'active30', ctx, { title: '30 active minutes', progress: minutes, target: 30, unit: 'min' }),
-  ];
-  if (ctx.joinedSeason) {
-    thirdOptions.push(make('daily', day, 'stoke', ctx, { title: 'Stoke the boiler', hint: 'Spend energy to sail', progress: ctx.deployLog[day] ?? 0, target: 0.5, unit: 'kWh', action: 'deploy' }));
-  }
-  const third = thirdOptions[(s >> 3) % thirdOptions.length];
+  // The slot is fixed for the day; Stoke the boiler stands in only once you've boarded, and never
+  // replaces a quest you've already claimed today.
+  const kwhQuest = make('daily', day, 'kwh', ctx, { title: 'Generate 1 kWh', progress: kwh, target: 1, unit: 'kWh' });
+  const pick = (s >> 3) % 3;
+  const third =
+    pick === 1
+      ? make('daily', day, 'active30', ctx, { title: '30 active minutes', progress: minutes, target: 30, unit: 'min' })
+      : pick === 2 && ctx.joinedSeason && !kwhQuest.claimed
+        ? make('daily', day, 'stoke', ctx, { title: 'Stoke the boiler', hint: 'Spend energy to sail', progress: ctx.deployLog[day] ?? 0, target: 0.5, unit: 'kWh', action: 'deploy' })
+        : kwhQuest;
 
   return [first, second, third];
 }
@@ -153,7 +157,8 @@ export function weeklyQuests(ctx: QuestContext): Quest[] {
   return [
     make('weekly', week, 'workouts', ctx, { title: '3 workouts this week', progress: acts.length, target: 3 }),
     make('weekly', week, 'minutes', ctx, { title: '90 active minutes', progress: acts.reduce((t, a) => t + a.duration, 0), target: 90, unit: 'min' }),
-    ctx.joinedSeason
+    // Same rule as the daily slot: boarding mid-week doesn't swap out a quest already claimed.
+    ctx.joinedSeason && !ctx.claimed.has(`w:${week}:variety`)
       ? make('weekly', week, 'deploy', ctx, { title: 'Sail 3 kWh this week', progress: deployed, target: 3, unit: 'kWh', action: 'deploy' })
       : make('weekly', week, 'variety', ctx, { title: 'Charge 2 different reserves', progress: types.size, target: 2 }),
   ];
@@ -180,7 +185,8 @@ export function storyQuests(ctx: QuestContext): Quest[] {
         action: 'deploy',
       }),
     );
-    if (legIndex === 1) {
+    // Raids are on the Season Pass, so the chapter only appears for players who can do it.
+    if (legIndex === 1 && (ctx.member || ctx.raidsJoined > 0)) {
       list.push(make('story', '', 'raid', ctx, { title: 'Face Detective Fix', hint: 'Hit him once in a raid', progress: ctx.raidsJoined, target: 1, xp: 100, credits: 50, action: 'raid' }));
     }
   });

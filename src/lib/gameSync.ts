@@ -57,6 +57,16 @@ export function resetLocalGame() {
   useRaidStore.getState().reset();
   useMembershipStore.getState().reset();
   useInboxStore.getState().reset();
+  // The inbox is gone, so Health has to look back far enough to bring uncollected workouts again.
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith('atw80-health:')) continue;
+      const state = JSON.parse(localStorage.getItem(key) ?? '{}');
+      localStorage.setItem(key, JSON.stringify({ connected: !!state.connected }));
+    }
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 /** Make sure local state belongs to this user before we read or write it. */
@@ -68,6 +78,11 @@ export function claimLocalState(userId: string) {
     storage.remove(DIRTY_KEY);
   }
   storage.set(OWNER_KEY, userId);
+}
+
+/** After sign-out the device belongs to nobody, so a new player's pre-sign-up choices survive. */
+export function forgetLocalOwner() {
+  storage.remove(OWNER_KEY);
 }
 
 export function releaseLocalState() {
@@ -101,6 +116,20 @@ const buildGameState = (): GameState => {
       discipline: u.discipline,
     },
   };
+};
+
+/** Just the "already paid" ledgers from a server copy, merged into this device's. */
+const mergeClaims = (raw: Json | undefined) => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+  const u = (raw as unknown as Partial<GameState>).user;
+  if (!u) return;
+  const s = useUserStore.getState();
+  const union = (a: string[], b?: string[]) => Array.from(new Set([...a, ...(b ?? [])]));
+  useUserStore.setState({
+    questsClaimed: union(s.questsClaimed, u.questsClaimed),
+    raidRewardsClaimed: union(s.raidRewardsClaimed, u.raidRewardsClaimed),
+    raidXpAwarded: union(s.raidXpAwarded, u.raidXpAwarded),
+  });
 };
 
 const applyGameState = (raw: Json | undefined) => {
@@ -145,8 +174,11 @@ export const activityToRow = (a: Activity, userId: string) => ({
   performed_at: a.timestamp,
 });
 
-/** Load the player's saved game from Supabase into the local stores. */
-export async function pullGameState(userId: string) {
+/**
+ * Load the player's saved game from Supabase into the local stores. Returns false if the server
+ * couldn't be read, so callers that dedupe against server data (Health import) can wait.
+ */
+export async function pullGameState(userId: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('player_progression')
     .select('*')
@@ -155,6 +187,7 @@ export async function pullGameState(userId: string) {
 
   if (error) {
     console.error('Failed to load progression:', error);
+    return false;
   } else if (data) {
     // Server wins, unless this device holds changes the server never received.
     if (!storage.get(DIRTY_KEY)) {
@@ -167,6 +200,8 @@ export async function pullGameState(userId: string) {
       });
       applyGameState(data.game_state);
     } else {
+      // This device's game wins, but rewards claimed elsewhere stay claimed.
+      mergeClaims(data.game_state);
       await pushGameState(userId);
     }
   } else {
@@ -182,7 +217,7 @@ export async function pullGameState(userId: string) {
 
   if (acts.error) {
     console.warn('Activity history unavailable on server:', acts.error.message);
-    return;
+    return false;
   }
 
   const serverIds = new Set(acts.data.map((r) => r.id));
@@ -196,6 +231,7 @@ export async function pullGameState(userId: string) {
       .upsert(missing.map((a) => activityToRow(a, userId)), { onConflict: 'id', ignoreDuplicates: true });
     if (upErr) console.warn('Failed to backfill activities:', upErr.message);
   }
+  return true;
 }
 
 /** Save progression + game state. Core columns and game_state go separately so one can't block the other. */
