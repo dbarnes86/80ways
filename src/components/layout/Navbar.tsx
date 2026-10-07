@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BookOpen, LayoutDashboard, LogOut, Map, ShoppingBag, Swords, Trophy, User } from 'lucide-react';
+import { BookOpen, Crown, LayoutDashboard, LogOut, Map, ShoppingBag, Swords, Trophy, User } from 'lucide-react';
 import { Button, cn } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSeasonStore } from '@/stores/seasonStore';
@@ -13,6 +13,7 @@ const DESKTOP_NAV = [
   { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
   { to: '/activity-history', icon: BookOpen, label: 'Logbook' },
   { to: '/store', icon: ShoppingBag, label: 'Store' },
+  { to: '/membership', icon: Crown, label: 'Membership' },
   { to: '/profile', icon: User, label: 'Profile' },
 ];
 

@@ -1,5 +1,7 @@
-import { Zap, Rocket, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Zap, Rocket, Lock, Crown } from 'lucide-react';
 import { useProgressionStore } from '@/stores/progressionStore';
+import { selectIsMember, useMembershipStore } from '@/stores/membershipStore';
 import {
   STARTER_EVENT,
   MAIN_JOURNEY_UNLOCK_LEVEL,
@@ -14,6 +16,8 @@ export const StarterEvent = () => {
     level,
     canJoinMainJourney,
   } = useProgressionStore();
+  const isMember = useMembershipStore(selectIsMember);
+  const membershipLoaded = useMembershipStore((s) => s.loaded);
 
   const progress = starterEventProgress / STARTER_EVENT.requiredEnergy;
 
@@ -98,6 +102,15 @@ export const StarterEvent = () => {
         )}
       </div>
 
+      {membershipLoaded && !isMember && (
+        <Link
+          to="/membership"
+          className="flex items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
+        >
+          <Crown className="size-3.5 text-secondary" />
+          The season expedition, raids and leaderboard are for members. See membership
+        </Link>
+      )}
     </div>
   );
 };
