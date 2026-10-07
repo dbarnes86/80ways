@@ -33,7 +33,7 @@ export function Privacy() {
       <ul>
         <li>Change your display name any time from your profile.</li>
         <li>Export your activity log as CSV from the Logbook.</li>
-        <li>To delete your account and everything in it, email <a className="text-primary underline" href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a> and we'll do it within 30 days.</li>
+        <li>Delete your account and everything in it any time from Profile, Delete account. It happens immediately.</li>
       </ul>
       <h2>Contact</h2>
       <p>

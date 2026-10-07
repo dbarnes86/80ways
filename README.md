@@ -1,44 +1,60 @@
 # Around the World in 80 Ways
 
-A fitness game that follows Phileas Fogg's route round the world. Real workouts charge energy reserves; players spend that energy to move their expedition from London to London across 11 legs in a 180-day season, and team up in community raids against Detective Fix.
+A fitness game that follows Phileas Fogg's route. Real workouts charge energy reserves; players
+spend that energy to move their expedition from London to London across 11 legs in a 180-day
+season, and fight Detective Fix together in raid boss battles.
 
-Built with Vite, React, TypeScript, Tailwind/shadcn, zustand and Supabase (via Lovable Cloud). Capacitor wraps it for iOS/Android.
+Web app at the root, iOS app in `ios/` (Capacitor 8), backend on Supabase.
+
+## Stack
+
+Same shape as Kadar: Vite, React 18, strict TypeScript, Tailwind v4 (tokens in `src/styles.css`),
+one small in-house component kit (`src/components/ui.tsx`), zustand, supabase-js, Vitest. Web
+deploys to Cloudflare Pages on green CI; migrations reach production through the Supabase GitHub
+integration on merge to `main`; Edge Functions deploy from `.github/workflows/deploy.yml`.
 
 ## The game loop
 
-1. **Log an activity.** Duration × intensity (+0.1 kWh per km) charges one of four reserves: Nautical, Terrestrial, Transport, Strength. The activity's native reserve charges at 100%, any other at 50%. Reserves cap at 10 kWh and decay 5% a day.
-2. **Lift Off.** New players fill a 5 kWh starter meter. Completing it awards 150 XP, enough for level 3, which unlocks the season.
-3. **Board the season.** Late joiners start at the leg the season calendar has reached.
-4. **Deploy energy** to the current leg. Matching reserves count 100%, related ones 75%, the rest 50%. Nothing is wasted past what the leg needs.
-5. **Raids** run for 72 hours every 14 days. Everyone pools energy towards a goal; beating it pays credits to every contributor.
-6. **Credits** come from activities, the daily mission, legs and raids, and buy boosters (Energy Amplifier, Multi-Charge, Decay Inhibitor).
+1. **Log a workout.** Duration × intensity (+0.1 kWh per km) charges one of four reserves:
+   Nautical, Terrestrial, Transport, Strength. The native reserve charges at 100%, others at 50%.
+   Reserves cap at 10 kWh and decay 5% a day.
+2. **Lift Off** (free). Fill a 5 kWh starter meter to reach level 3.
+3. **Membership** unlocks the season. Late joiners start at the leg the calendar has reached.
+4. **Deploy energy** to the current leg. Matching reserves count 100%, related ones 75%, the rest 50%.
+5. **Raids**: every 14 days Detective Fix appears as a raid boss for 72 hours. His HP is the
+   community goal; the right energy type lands critical hits; beating him pays credits.
+6. **Credits** from activities, the daily mission, legs and raids buy boosters.
 
-Rules live in `src/data/gameConstants.ts`, `src/data/journeyLegs.ts`, `src/data/raids.ts` and `src/lib/gameEngine.ts`. Player actions (log, deploy, raid, buy) are in `src/lib/gameActions.ts`.
+Rules: `src/data/gameConstants.ts`, `src/data/journeyLegs.ts`, `src/data/raids.ts`,
+`src/lib/gameEngine.ts`. Player actions: `src/lib/gameActions.ts`. Local-first sync:
+`src/lib/gameSync.ts`.
 
-## Data and sync
+## Membership and billing
 
-Local zustand stores drive the UI so everything responds instantly. `src/lib/gameSync.ts` mirrors them to Supabase:
+`entitlements` is the single source of truth, written only by the server; row level security
+gates the season, deployments and raids on it. The client never decides membership.
 
-| Table / RPC | Holds |
+| Path | Writes entitlements from |
 |---|---|
-| `player_progression` | XP, starter event, totals, plus `game_state` (reserves, credits, boosters) |
-| `season_participation` | Current leg and progress per season |
-| `activities` | Activity history |
-| `energy_deployments`, `raid_contributions` | Spend history |
-| `get_current_season()` | Marks seasons active/completed by date and opens the next 180-day season when one ends |
-| `get_season_leaderboard()`, `get_raid_totals()`, `get_raid_top_contributors()` | Cross-player aggregates |
+| Web | Stripe Checkout → `stripe-webhook` (signature-verified, idempotent via `billing_events`) |
+| iOS | StoreKit 2 → `apple-iap` (x5c chain to Apple Root CA G3, account token = user id) and `appstore-notifications` (renewals, grace, refunds) |
 
-If the server is unreachable the game keeps working locally and syncs on the next load.
+Setup steps and secrets: `docs/IOS.md`. Store listing and privacy answers: `docs/APP_STORE.md`.
 
 ## Running locally
 
 ```sh
-npm install
-npm run dev      # http://localhost:8080
-npm test         # game rule unit tests
+npm ci
+cp .env.example .env.local   # Supabase URL and publishable key
+npm run dev                  # http://localhost:5173
+npm test                     # game rules, billing and App Store verification, UI
 npm run build
 ```
 
-`.env` needs `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and `VITE_SUPABASE_PROJECT_ID`.
+iOS: `npm run cap:sync && npx cap open ios`, then see `docs/IOS.md`.
 
-Database changes are in `supabase/migrations/`. Apply new migrations to the project (Lovable Cloud, or `supabase db push`) before shipping the client that uses them.
+## Before launch
+
+- Fill in `src/data/company.ts` (legal entity, support email) and the URLs in `docs/APP_STORE.md`.
+- Create Stripe prices and App Store products; set the secrets listed in `docs/IOS.md`.
+- Point the Supabase GitHub integration at this repo so the migrations apply.

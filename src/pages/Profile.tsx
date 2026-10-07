@@ -11,6 +11,7 @@ import { getLevelFromXP, KM_PER_MILE, type EnergyType } from "@/data/gameConstan
 import { ACHIEVEMENTS } from "@/data/achievements";
 import { computeStreak, longestStreak } from "@/lib/gameEngine";
 import { schedulePush } from "@/lib/gameSync";
+import { DeleteAccount } from "@/features/DeleteAccount";
 import { toast } from '@/components/toast';
 import { Button, Input, Badge, Switch, HoloCard, SegmentedProgress } from '@/components/ui';
 
@@ -243,9 +244,12 @@ export default function Profile() {
                 />
               </div>
 
-              <Button variant="outline" className="w-full sm:w-auto" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" /> Sign out
-              </Button>
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+                <Button variant="outline" onClick={() => void handleSignOut()}>
+                  <LogOut /> Sign out
+                </Button>
+                <DeleteAccount />
+              </div>
             </div>
           </HoloCard>
         </div>
