@@ -50,9 +50,31 @@ export interface HealthSyncResult extends Rewards {
 
 const EMPTY: HealthSyncResult = { imported: 0, energy: 0, xp: 0, credits: 0, starterCompleted: false, dailyMissionCompleted: false, activities: [] };
 
+/**
+ * Wrapped in an object on purpose: a Capacitor plugin answers every property as a native method,
+ * `then` included, so returning it bare from an async function makes it look like a promise that
+ * never settles.
+ */
 async function plugin() {
   const { Health } = await import('@capgo/capacitor-health');
-  return Health;
+  return { Health };
+}
+
+/** Health calls that never answer shouldn't leave a spinner running forever. */
+function within<T>(promise: Promise<T>, ms: number, step: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Apple Health didn’t respond (${step}). Try again, or log by hand for now.`)), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
 }
 
 /**
@@ -61,10 +83,11 @@ async function plugin() {
  */
 export async function connectHealth(userId: string): Promise<HealthSyncResult> {
   if (!isHealthPlatform()) return EMPTY;
-  const Health = await plugin();
-  const { available } = await Health.isAvailable();
+  const { Health } = await plugin();
+  const { available } = await within(Health.isAvailable(), 10_000, 'availability');
   if (!available) throw new Error('Apple Health isn’t available on this device.');
-  await Health.requestAuthorization({ read: ['workouts'] });
+  // Generous: the player may be reading the permission sheet.
+  await within(Health.requestAuthorization({ read: ['workouts'] }), 120_000, 'permission');
   writeState(userId, { connected: true });
   return syncHealth(userId);
 }
@@ -81,14 +104,18 @@ export function syncHealth(userId: string): Promise<HealthSyncResult> {
 }
 
 async function runSync(userId: string): Promise<HealthSyncResult> {
-  const Health = await plugin();
+  const { Health } = await plugin();
   const state = readState(userId);
   const now = new Date();
   const since = state.lastSync
     ? new Date(new Date(state.lastSync).getTime() - OVERLAP_MS)
     : new Date(now.getTime() - BACKFILL_DAYS * DAY_MS);
 
-  const { workouts } = await Health.queryWorkouts({ startDate: since.toISOString(), endDate: now.toISOString(), limit: 200, ascending: true });
+  const { workouts } = await within(
+    Health.queryWorkouts({ startDate: since.toISOString(), endDate: now.toISOString(), limit: 200, ascending: true }),
+    30_000,
+    'reading workouts',
+  );
 
   const known = new Set(useActivityStore.getState().activities.map((a) => a.id));
   const withIds = await Promise.all(
