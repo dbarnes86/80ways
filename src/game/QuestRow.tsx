@@ -1,4 +1,6 @@
-import { Check } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/components/ui';
 import { haptic } from '@/lib/native';
 import { Chest, Coin, Orb } from './art';
@@ -30,14 +32,28 @@ function Ring({ value, done }: { value: number; done: boolean }) {
 const fmt = (q: Quest, n: number) => (q.unit === 'kWh' ? n.toFixed(1) : String(Math.floor(n)));
 
 /** One quest: progress ring, title, reward, and a glowing Claim when it's done. */
+const HELP: Record<Quest['action'], { text: string; cta?: string; to?: string }> = {
+  log: { text: 'Apple Health brings workouts in on their own. Or log one by hand.', cta: 'Log a workout', to: '/dashboard?log=1' },
+  deploy: { text: 'Spend energy from your reserves to sail the ship onward.', cta: 'Stoke the boiler', to: '/dashboard?deploy=1' },
+  board: { text: 'Finish Lift Off, then board from Home.', cta: 'Go to Home', to: '/dashboard' },
+  raid: { text: 'When Fix attacks, spend energy on the Raids tab to hit him.', cta: 'Go to Raids', to: '/raids' },
+  quests: { text: '' },
+};
+
 export function QuestRow({ quest, compact = false }: { quest: Quest; compact?: boolean }) {
   const ready = quest.complete && !quest.claimed;
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const help = HELP[quest.action];
+  const canHelp = !quest.complete && !quest.claimed && !!help.cta;
   return (
+    <div className={cn('rounded-2xl border bg-card/80 transition-colors', ready ? 'border-success/60 shadow-[0_0_20px_hsl(var(--success)/0.25)]' : 'border-border', quest.claimed && 'opacity-50')}>
     <div
+      role={canHelp ? 'button' : undefined}
+      tabIndex={canHelp ? 0 : undefined}
+      onClick={() => canHelp && setOpen((o) => !o)}
       className={cn(
-        'flex items-center gap-3 rounded-2xl border bg-card/80 p-3 transition-colors',
-        ready ? 'border-success/60 shadow-[0_0_20px_hsl(var(--success)/0.25)]' : 'border-border',
-        quest.claimed && 'opacity-50',
+        'flex items-center gap-3 p-3',
       )}
     >
       <div className="relative">
@@ -64,6 +80,8 @@ export function QuestRow({ quest, compact = false }: { quest: Quest; compact?: b
         >
           Claim
         </button>
+      ) : canHelp ? (
+        <ChevronDown className={cn('size-5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
       ) : (
         !quest.claimed && (
           <div className="flex shrink-0 flex-col items-end gap-0.5 text-sm font-bold">
@@ -83,6 +101,20 @@ export function QuestRow({ quest, compact = false }: { quest: Quest; compact?: b
           </div>
         )
       )}
+    </div>
+    {open && canHelp && (
+      <div className="animate-fade-up space-y-3 border-t border-border p-3">
+        <p className="text-sm text-muted-foreground">{quest.hint ? `${quest.hint}. ` : ''}{help.text}</p>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-bold">
+            Reward: {quest.chest ? 'a chest' : `${quest.xp ? `+${quest.xp} XP` : ''}${quest.credits ? ` · ${quest.credits} coins` : ''}`}
+          </span>
+          <button type="button" onClick={() => navigate(help.to!)} className="press rounded-xl bg-primary px-4 py-2.5 font-heading text-base font-bold text-primary-foreground">
+            {help.cta}
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

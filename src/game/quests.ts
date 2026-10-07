@@ -48,7 +48,11 @@ export interface Quest {
   complete: boolean;
   claimed: boolean;
   energy?: EnergyType;
+  /** Where tapping the quest takes you to make progress. */
+  action: QuestAction;
 }
+
+export type QuestAction = 'log' | 'deploy' | 'board' | 'raid' | 'quests';
 
 export const DAILY_REWARD = { xp: 30, credits: 15 };
 export const WEEKLY_REWARD = { xp: 100, credits: 50 };
@@ -77,13 +81,14 @@ function make(
   key: string,
   slot: string,
   ctx: QuestContext,
-  q: Omit<Quest, 'id' | 'period' | 'complete' | 'claimed' | 'xp' | 'credits'> & { xp?: number; credits?: number },
+  q: Omit<Quest, 'id' | 'period' | 'complete' | 'claimed' | 'xp' | 'credits' | 'action'> & { xp?: number; credits?: number; action?: QuestAction },
 ): Quest {
   const id = period === 'story' ? `s:${slot}` : `${period === 'daily' ? 'd' : 'w'}:${key}:${slot}`;
   const reward = period === 'daily' ? DAILY_REWARD : WEEKLY_REWARD;
   return {
     xp: reward.xp,
     credits: reward.credits,
+    action: 'log',
     ...q,
     id,
     period,
@@ -120,14 +125,14 @@ export function dailyQuests(ctx: QuestContext): Quest[] {
     make('daily', day, 'active30', ctx, { title: '30 active minutes', progress: minutes, target: 30, unit: 'min' }),
   ];
   if (ctx.joinedSeason) {
-    thirdOptions.push(make('daily', day, 'stoke', ctx, { title: 'Stoke the boiler', hint: 'Spend energy on the expedition', progress: ctx.deployLog[day] ?? 0, target: 0.5, unit: 'kWh' }));
+    thirdOptions.push(make('daily', day, 'stoke', ctx, { title: 'Stoke the boiler', hint: 'Spend energy to sail', progress: ctx.deployLog[day] ?? 0, target: 0.5, unit: 'kWh', action: 'deploy' }));
   }
   const third = thirdOptions[(s >> 3) % thirdOptions.length];
 
   return [first, second, third];
 }
 
-function chargeHint(type: EnergyType): string {
+export function chargeHint(type: EnergyType): string {
   return {
     nautical: 'Swim, row or paddle',
     terrestrial: 'Run, walk or hike',
@@ -149,7 +154,7 @@ export function weeklyQuests(ctx: QuestContext): Quest[] {
     make('weekly', week, 'workouts', ctx, { title: '3 workouts this week', progress: acts.length, target: 3 }),
     make('weekly', week, 'minutes', ctx, { title: '90 active minutes', progress: acts.reduce((t, a) => t + a.duration, 0), target: 90, unit: 'min' }),
     ctx.joinedSeason
-      ? make('weekly', week, 'deploy', ctx, { title: 'Spend 3 kWh on the expedition', progress: deployed, target: 3, unit: 'kWh' })
+      ? make('weekly', week, 'deploy', ctx, { title: 'Sail 3 kWh this week', progress: deployed, target: 3, unit: 'kWh', action: 'deploy' })
       : make('weekly', week, 'variety', ctx, { title: 'Charge 2 different reserves', progress: types.size, target: 2 }),
   ];
 }
@@ -159,7 +164,7 @@ export function storyQuests(ctx: QuestContext): Quest[] {
   const list: Quest[] = [
     make('story', '', 'fuel', ctx, { title: 'Fuel the engine', hint: 'Bring in your first workout', progress: ctx.activities.length, target: 1, xp: 50, credits: 25 }),
     make('story', '', 'liftoff', ctx, { title: 'Lift Off', hint: 'Fill the departure meter', progress: ctx.starterEventCompleted ? 1 : 0, target: 1, xp: 0, credits: 0, chest: 'bronze' }),
-    make('story', '', 'board', ctx, { title: 'Board the expedition', hint: 'Join the season with a Season Pass', progress: ctx.joinedSeason ? 1 : 0, target: 1, xp: 100, credits: 50 }),
+    make('story', '', 'board', ctx, { title: 'Board the ship', hint: 'Set sail once Lift Off is done', progress: ctx.joinedSeason ? 1 : 0, target: 1, xp: 100, credits: 50, action: 'board' }),
   ];
   JOURNEY_LEGS.slice(1).forEach((leg, i) => {
     const legIndex = i + 1;
@@ -172,10 +177,11 @@ export function storyQuests(ctx: QuestContext): Quest[] {
         xp: 150,
         credits: 75,
         chest: legIndex % 3 === 0 ? 'silver' : undefined,
+        action: 'deploy',
       }),
     );
     if (legIndex === 1) {
-      list.push(make('story', '', 'raid', ctx, { title: 'Face Detective Fix', hint: 'Hit him once in a raid', progress: ctx.raidsJoined, target: 1, xp: 100, credits: 50 }));
+      list.push(make('story', '', 'raid', ctx, { title: 'Face Detective Fix', hint: 'Hit him once in a raid', progress: ctx.raidsJoined, target: 1, xp: 100, credits: 50, action: 'raid' }));
     }
   });
   return list;

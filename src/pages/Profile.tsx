@@ -1,61 +1,67 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { User, MapPin, Award, Zap, Flame, Activity, Globe, LogOut, Loader2, BookOpen, ShoppingBag, Crown, Trophy } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { useProgressionStore } from "@/stores/progressionStore";
-import { useActivityStore } from "@/stores/activityStore";
-import { useUserStore } from "@/stores/userStore";
-import { selectHasJoined, useSeasonStore } from "@/stores/seasonStore";
-import { getLevelFromXP, KM_PER_MILE, type EnergyType } from "@/data/gameConstants";
-import { ACHIEVEMENTS } from "@/data/achievements";
-import { computeStreak, longestStreak } from "@/lib/gameEngine";
-import { schedulePush } from "@/lib/gameSync";
-import { DeleteAccount } from "@/features/DeleteAccount";
-import { HealthSetting } from "@/features/health";
-import { Passport } from "@/game/Passport";
-import { isMuted, play, setMuted } from "@/game/sfx";
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BookOpen, Crown, Loader2, LogOut, Pencil, ShoppingBag, Trophy } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useProgressionStore } from '@/stores/progressionStore';
+import { useActivityStore } from '@/stores/activityStore';
+import { useUserStore } from '@/stores/userStore';
+import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
+import { KM_PER_MILE, type EnergyType } from '@/data/gameConstants';
+import { ACHIEVEMENTS } from '@/data/achievements';
+import { longestStreak } from '@/lib/gameEngine';
+import { schedulePush } from '@/lib/gameSync';
+import { haptic } from '@/lib/native';
+import { DeleteAccount } from '@/features/DeleteAccount';
+import { HealthSetting } from '@/features/health';
+import { Passport } from '@/game/Passport';
+import { DISCIPLINE_ICON } from '@/game/Hud';
+import { floatReward } from '@/game/rewards';
+import { isMuted, play, setMuted } from '@/game/sfx';
 import { toast } from '@/components/toast';
-import { Button, Input, Badge, Switch, HoloCard, SegmentedProgress } from '@/components/ui';
+import { Button, Input, Switch, cn } from '@/components/ui';
 
-const rarityRing: Record<string, string> = {
-  legendary: "glow-magenta",
-  epic: "glow-purple",
-  rare: "glow-cyan",
-  common: "",
+const RARITY_RING: Record<string, string> = {
+  legendary: 'border-warning shadow-[0_0_16px_hsl(var(--warning)/0.6)]',
+  epic: 'border-accent shadow-[0_0_14px_hsl(var(--accent)/0.6)]',
+  rare: 'border-primary shadow-[0_0_12px_hsl(var(--primary)/0.5)]',
+  common: 'border-success/60',
 };
 
-const rarityText: Record<string, string> = {
-  legendary: "text-warning",
-  epic: "text-accent",
-  rare: "text-primary",
-  common: "text-muted-foreground",
-};
+function Tile({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card/70 px-1 py-3 text-center">
+      <p className="font-heading text-2xl font-bold leading-none">{value}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
+    </div>
+  );
+}
 
+/** You: who you are, what you've done, what you've collected, and the settings at the bottom. */
 export default function Profile() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-
   const progression = useProgressionStore();
   const activities = useActivityStore((s) => s.activities);
-  const { stats, settings, raidXpAwarded, setUnits } = useUserStore();
+  const { stats, settings, raidXpAwarded, setUnits, discipline } = useUserStore();
   const season = useSeasonStore();
   const hasJoined = useSeasonStore(selectHasJoined);
 
-  const [displayName, setDisplayName] = useState("");
-  const [savedName, setSavedName] = useState("");
+  const [displayName, setDisplayName] = useState('');
+  const [savedName, setSavedName] = useState('');
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [soundOn, setSoundOn] = useState(() => !isMuted());
 
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("user_id", user.id)
+      .from('profiles')
+      .select('display_name')
+      .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data }) => {
-        const name = data?.display_name || (user.user_metadata?.display_name as string | undefined) || "";
+        const name = data?.display_name || (user.user_metadata?.display_name as string | undefined) || '';
         setDisplayName(name);
         setSavedName(name);
       });
@@ -65,25 +71,24 @@ export default function Profile() {
     if (!user) return;
     const name = displayName.trim();
     if (name.length < 2 || name.length > 50) {
-      toast({ title: "Name must be 2–50 characters", variant: "destructive" });
+      toast({ title: 'Name must be 2–50 characters', variant: 'destructive' });
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("profiles").upsert({ user_id: user.id, display_name: name }, { onConflict: "user_id" });
+    const { error } = await supabase.from('profiles').upsert({ user_id: user.id, display_name: name }, { onConflict: 'user_id' });
     setSaving(false);
     if (error) {
-      toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
+      toast({ title: 'Couldn’t save', description: error.message, variant: 'destructive' });
     } else {
       setSavedName(name);
-      toast({ title: "Name updated", description: "This is how you'll appear on leaderboards." });
+      setEditing(false);
+      haptic('success');
     }
   };
 
-  const levelInfo = getLevelFromXP(progression.xp);
-  const imperial = settings.units === "imperial";
+  const imperial = settings.units === 'imperial';
   const distance = imperial ? stats.totalDistance / KM_PER_MILE : stats.totalDistance;
-  const dates = activities.map((a) => a.timestamp);
-  const currentStreak = computeStreak(dates);
+  const best = longestStreak(activities.map((a) => a.timestamp));
 
   const achievements = useMemo(() => {
     const participation = hasJoined ? season.participation : null;
@@ -95,190 +100,136 @@ export default function Profile() {
       starterEventCompleted: progression.starterEventCompleted,
       joinedSeason: !!participation,
       currentLeg: participation?.currentLeg ?? 0,
-      journeyComplete: participation?.status === "completed",
+      journeyComplete: participation?.status === 'completed',
       journeysCompleted: stats.journeysCompleted,
-      longestStreak: longestStreak(activities.map((a) => a.timestamp)),
+      longestStreak: best,
       energyTypesUsed: new Set<EnergyType>(activities.map((a) => a.targetEnergyType)),
       raidsJoined: raidXpAwarded.length,
     };
     return ACHIEVEMENTS.map((a) => ({ ...a, isEarned: a.earned(ctx) }));
-  }, [progression, stats, activities, raidXpAwarded, season.participation, hasJoined]);
+  }, [progression, stats, activities, raidXpAwarded, season.participation, hasJoined, best]);
 
-  const earnedCount = achievements.filter((a) => a.isEarned).length;
-
-  const statCards = [
-    { label: "Activities", value: progression.totalActivities.toString(), icon: Activity, glow: "cyan" as const },
-    { label: imperial ? "Miles" : "Kilometres", value: distance.toFixed(1), icon: MapPin, glow: "purple" as const },
-    { label: "kWh generated", value: progression.totalEnergyGenerated.toFixed(1), icon: Zap, glow: "magenta" as const },
-    { label: "Journeys", value: stats.journeysCompleted.toString(), icon: Globe, glow: "cyan" as const },
-  ];
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/login");
-  };
-
-  const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" }) : "—";
+  const earned = achievements.filter((a) => a.isEarned).length;
+  const Icon = DISCIPLINE_ICON[discipline ?? 'runner'];
+  const since = user?.created_at ? new Date(user.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '';
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-heading mb-2 text-glow-cyan">Profile</h1>
-        <p className="text-muted-foreground">Your expedition record</p>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <HoloCard glow="cyan" className="p-6">
-            <div className="text-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto mb-4 flex items-center justify-center glow-purple">
-                <User className="w-10 h-10 text-primary-foreground" />
-              </div>
-              <h2 className="text-2xl font-heading mb-1 break-words">{savedName || "Explorer"}</h2>
-              <p className="text-muted-foreground text-sm break-all">{user?.email}</p>
-            </div>
-
-            <div className="mb-6 p-4 rounded-lg bg-muted/20 border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  Level {progression.level} · {progression.levelName}
-                </span>
-              </div>
-              <SegmentedProgress value={levelInfo.progress * 100} segments={10} glow="cyan" size="sm" />
-              <p className="text-xs text-muted-foreground mt-1 text-right font-mono">
-                {progression.xp} XP{levelInfo.xpForNext > 0 && levelInfo.progress < 1 ? ` · ${levelInfo.xpForNext - levelInfo.xpInLevel} to next` : ""}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-sm text-muted-foreground">Member since</span>
-              <span className="text-sm font-mono">{memberSince}</span>
-            </div>
-          </HoloCard>
-
-          <HoloCard glow="magenta" className="p-6 text-center">
-            <Flame className="w-10 h-10 mx-auto mb-2 text-secondary" />
-            <p className="text-3xl font-mono font-bold text-secondary">{currentStreak}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Day streak</p>
-          </HoloCard>
+    <div className="mx-auto max-w-md space-y-6 px-4 pb-6 pt-4">
+      {/* Who */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 ring-2 ring-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.4)]">
+          <Icon className="size-10 text-primary" />
+          <span className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-primary font-heading text-lg font-bold text-primary-foreground ring-4 ring-background">
+            {progression.level}
+          </span>
         </div>
-
-        <div className="lg:col-span-2 space-y-6">
-          <nav className="grid grid-cols-4 gap-2" aria-label="More">
-            {[
-              { to: '/leaderboard', label: 'Ranks', icon: Trophy },
-              { to: '/activity-history', label: 'Logbook', icon: BookOpen },
-              { to: '/store', label: 'Store', icon: ShoppingBag },
-              { to: '/membership', label: 'Season Pass', icon: Crown },
-            ].map((l) => (
-              <Link key={l.to} to={l.to} className="press flex flex-col items-center gap-1.5 rounded-2xl border border-primary/25 bg-card/60 px-1 py-3 text-xs font-semibold transition-colors hover:border-primary/60">
-                <l.icon className="size-7 text-primary" /> {l.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {statCards.map((stat, index) => (
-              <div className="animate-fade-up" key={stat.label} style={{ animationDelay: `${index * 0.08}s` }}>
-                <HoloCard glow={stat.glow} className="p-4">
-                  <stat.icon className="w-5 h-5 text-primary mb-2" />
-                  <div className="text-xl font-mono mb-1">{stat.value}</div>
-                  <div className="text-xs text-muted-foreground">{stat.label}</div>
-                </HoloCard>
-              </div>
-            ))}
-          </div>
-
-          <Passport />
-
-          <HoloCard glow="purple" className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-heading flex items-center gap-2">
-                <Award className="w-5 h-5 text-accent" /> Achievements
-              </h2>
-              <Badge variant="secondary">
-                {earnedCount} / {achievements.length}
-              </Badge>
+        <div className="min-w-0 flex-1">
+          {editing ? (
+            <div className="flex gap-2">
+              <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={50} className="h-11 text-base" autoFocus aria-label="Display name" />
+              <Button onClick={() => void saveName()} disabled={saving} className="h-11">
+                {saving ? <Loader2 className="animate-spin" /> : 'Save'}
+              </Button>
             </div>
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
-              {achievements.map((badge, index) => (
-                <div
-                  key={badge.id}
-                  className={`text-center ${badge.isEarned ? "" : "opacity-35 grayscale"} animate-scale-in`}
-                  title={badge.description}
-                 style={{ animationDelay: `${index * 0.03}s` }}>
-                  <div
-                    className={`w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-2 ${
-                      badge.isEarned ? rarityRing[badge.rarity] : ""
-                    }`}
-                  >
-                    <span className="text-2xl">{badge.icon}</span>
-                  </div>
-                  <div className="text-xs font-medium leading-tight">{badge.name}</div>
-                  <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{badge.description}</div>
-                  <div className={`text-[9px] uppercase tracking-wider mt-0.5 ${rarityText[badge.rarity]}`}>{badge.rarity}</div>
-                </div>
-              ))}
-            </div>
-          </HoloCard>
-
-          <HoloCard glow="none" className="p-6">
-            <h2 className="text-2xl font-heading mb-6">Settings</h2>
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="display-name" className="text-sm font-medium mb-2 block">
-                  Display name <span className="text-muted-foreground font-normal">(shown on leaderboards)</span>
-                </label>
-                <div className="flex gap-2">
-                  <Input id="display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={50} />
-                  <Button onClick={saveName} disabled={saving || displayName.trim() === savedName}>
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-                  </Button>
-                </div>
-              </div>
-
-              {user && <HealthSetting userId={user.id} />}
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Sound effects</p>
-                  <p className="text-xs text-muted-foreground">Chimes, coins and fanfares</p>
-                </div>
-                <Switch
-                  checked={soundOn}
-                  label="Sound effects"
-                  onChange={(c) => {
-                    setMuted(!c);
-                    setSoundOn(c);
-                    if (c) play('chime');
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Imperial units</p>
-                  <p className="text-xs text-muted-foreground">Show distances in miles</p>
-                </div>
-                <Switch
-                  checked={imperial}
-                  label="Imperial units"
-                  onChange={(c) => {
-                    setUnits(c ? "imperial" : "metric");
-                    schedulePush();
-                  }}
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-                <Button variant="outline" onClick={() => void handleSignOut()}>
-                  <LogOut /> Sign out
-                </Button>
-                <DeleteAccount />
-              </div>
-            </div>
-          </HoloCard>
+          ) : (
+            <button type="button" onClick={() => setEditing(true)} className="flex max-w-full items-center gap-2 text-left">
+              <span className="truncate font-heading text-3xl font-bold">{savedName || 'Explorer'}</span>
+              <Pencil className="size-4 shrink-0 text-muted-foreground" />
+            </button>
+          )}
+          <p className="font-heading text-lg text-primary">{progression.levelName}</p>
+          {since && <p className="text-xs text-muted-foreground">On the crew since {since}</p>}
         </div>
       </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        <Tile value={String(progression.totalActivities)} label="Workouts" />
+        <Tile value={distance >= 100 ? Math.round(distance).toString() : distance.toFixed(1)} label={imperial ? 'Miles' : 'Km'} />
+        <Tile value={progression.totalEnergyGenerated.toFixed(0)} label="kWh" />
+        <Tile value={String(best)} label="Best streak" />
+      </div>
+
+      <nav className="grid grid-cols-4 gap-2" aria-label="More">
+        {[
+          { to: '/leaderboard', label: 'Ranks', icon: Trophy },
+          { to: '/activity-history', label: 'Logbook', icon: BookOpen },
+          { to: '/store', label: 'Store', icon: ShoppingBag },
+          { to: '/membership', label: 'Season Pass', icon: Crown },
+        ].map((l) => (
+          <Link key={l.to} to={l.to} className="press flex flex-col items-center gap-1.5 rounded-2xl border border-primary/25 bg-card/60 px-1 py-3 text-xs font-semibold hover:border-primary/60">
+            <l.icon className="size-7 text-primary" /> {l.label}
+          </Link>
+        ))}
+      </nav>
+
+      <Passport />
+
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-heading text-2xl font-bold">Badges</h2>
+          <span className="font-heading text-lg font-bold text-primary">
+            {earned} / {achievements.length}
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          {achievements.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                play('tick');
+                floatReward(`${a.name}: ${a.description}`, a.isEarned ? 'xp' : 'streak');
+              }}
+              className="flex flex-col items-center gap-1"
+              aria-label={`${a.name}. ${a.description}. ${a.isEarned ? 'Earned' : 'Not yet'}`}
+            >
+              <span
+                className={cn(
+                  'flex size-16 items-center justify-center rounded-full border-2 bg-card text-3xl',
+                  a.isEarned ? RARITY_RING[a.rarity] : 'border-border opacity-30 grayscale',
+                )}
+              >
+                {a.icon}
+              </span>
+              <span className={cn('line-clamp-2 text-center text-[11px] font-semibold leading-tight', !a.isEarned && 'text-muted-foreground')}>{a.name}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-5 rounded-3xl border border-border bg-card/50 p-5">
+        <h2 className="font-heading text-2xl font-bold">Settings</h2>
+        {user && <HealthSetting userId={user.id} />}
+        <div className="flex items-center justify-between">
+          <p className="font-medium">Sound effects</p>
+          <Switch
+            checked={soundOn}
+            label="Sound effects"
+            onChange={(c) => {
+              setMuted(!c);
+              setSoundOn(c);
+              if (c) play('chime');
+            }}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="font-medium">Miles instead of km</p>
+          <Switch
+            checked={imperial}
+            label="Imperial units"
+            onChange={(c) => {
+              setUnits(c ? 'imperial' : 'metric');
+              schedulePush();
+            }}
+          />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+          <Button variant="outline" onClick={() => void signOut().then(() => navigate('/login'))}>
+            <LogOut /> Sign out
+          </Button>
+          <DeleteAccount />
+        </div>
+      </section>
     </div>
   );
 }

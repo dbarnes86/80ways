@@ -96,6 +96,9 @@ function ChestMoment({ m, onDone }: { m: Extract<RewardMoment, { kind: 'chest' }
               + {BOOSTERS[m.booster].name}
             </p>
           )}
+          <p className="animate-pop text-sm text-muted-foreground" style={{ animationDelay: '0.8s' }}>
+            {m.booster ? 'Use it when you collect your next workout.' : 'Coins buy boosters in the Store.'}
+          </p>
         </div>
       ) : (
         <p className="animate-pulse-soft font-heading text-2xl font-bold">Tap to open</p>

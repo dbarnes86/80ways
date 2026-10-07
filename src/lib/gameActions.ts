@@ -15,6 +15,7 @@ import {
   DAILY_MISSION,
   DECAY_INHIBITOR_HOURS,
   ENERGY_TYPES,
+  FREE_LEGS,
   XP_PER_ENERGY_DEPLOYED,
   XP_PER_LEG_COMPLETED,
   type BoosterId,
@@ -160,6 +161,13 @@ export function logActivity(input: LogActivityInput): LogActivityResult {
 }
 
 // ─── Deploy energy to the current leg ───────────────────────────
+/** Past the free legs without a Season Pass: the voyage waits for the pass. */
+export function needsPass(participation: { currentLeg: number; joinedAtLeg: number } | null): boolean {
+  if (!participation) return false;
+  const member = useMembershipStore.getState().membership?.tier === 'member';
+  return !member && participation.currentLeg >= participation.joinedAtLeg + FREE_LEGS;
+}
+
 export interface DeployResult extends Rewards {
   plan: DeploymentPlan;
   legCompleted: boolean;
@@ -173,7 +181,7 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   const participation = season.participation;
   if (!participation || !season.activeSeason) throw new Error('Join the expedition first.');
   if (participation.status === 'completed') throw new Error('Your journey is already complete.');
-  if (useMembershipStore.getState().membership?.tier !== 'member') throw new Error('Your Season Pass has lapsed. Renew it to keep travelling.');
+  if (needsPass(participation)) throw new Error('The rest of the voyage is on the Season Pass.');
 
   const legIndex = participation.currentLeg;
   const leg = JOURNEY_LEGS[legIndex];
