@@ -7,6 +7,8 @@ Everything App Store Connect asks for, ready to paste. Screenshots are in `resou
 
 | Field | Value |
 |---|---|
+| Seller / developer | Auguris OÜ (App Store Connect shows the legal entity on the Developer account) |
+| Copyright | 2026 Auguris OÜ |
 | Name | 80 Ways: Fitness Adventure |
 | Subtitle | Race Fogg around the world |
 | Bundle ID | com.atw80ways.app |

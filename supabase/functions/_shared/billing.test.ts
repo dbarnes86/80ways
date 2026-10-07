@@ -60,12 +60,14 @@ describe('checkoutParams', () => {
       metadata: { user_id: 'u1' },
       subscription_data: { metadata: { user_id: 'u1' }, trial_period_days: 7 },
       customer_email: 'a@b.c',
+      automatic_tax: { enabled: true },
     })
   })
 
   it('reuses a known customer and skips the trial when there is none', () => {
     const p = checkoutParams({ userId: 'u1', customerId: 'cus_1', priceId: 'price_1', successUrl: 's', cancelUrl: 'c' })
     expect(p.customer).toBe('cus_1')
+    expect(p.customer_update).toEqual({ address: 'auto', name: 'auto' })
     expect(p.customer_email).toBeUndefined()
     expect(p.subscription_data.trial_period_days).toBeUndefined()
   })

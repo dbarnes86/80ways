@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ArrowRight, User, Zap, Users, Globe } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { isNativeApp } from "@/lib/native";
+import { COMPANY } from "@/data/company";
 import foggPortrait from "@/assets/fogg-portrait.jpg";
 import passepartoutPortrait from "@/assets/passepartout-portrait.jpg";
 import fixPortrait from "@/assets/fix-portrait.jpg";
@@ -288,24 +289,17 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="text-center">
             <div className="mb-6">
-              <a 
-                href="https://lud.is" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xl font-heading text-primary hover:text-glow-cyan transition-smooth"
-              >
-                A Ludis Production
-              </a>
+              <p className="text-xl font-heading text-primary">An Auguris Games production</p>
             </div>
             <div className="flex justify-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-smooth">Privacy</a>
+              <Link to="/privacy" className="hover:text-primary transition-smooth">Privacy</Link>
               <span>•</span>
-              <a href="#" className="hover:text-primary transition-smooth">Terms</a>
+              <Link to="/terms" className="hover:text-primary transition-smooth">Terms</Link>
               <span>•</span>
-              <a href="#" className="hover:text-primary transition-smooth">Contact</a>
+              <a href={`mailto:${COMPANY.supportEmail}`} className="hover:text-primary transition-smooth">Contact</a>
             </div>
             <div className="mt-6 text-xs text-muted-foreground font-mono">
-              © 2084 Ludis. All rights reserved.
+              © {new Date().getFullYear()} Auguris OÜ. All rights reserved.
             </div>
           </div>
         </div>

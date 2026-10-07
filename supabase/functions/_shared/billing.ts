@@ -152,11 +152,22 @@ export function checkoutParams(opts: {
       ...(opts.trialDays && opts.trialDays > 0 ? { trial_period_days: opts.trialDays } : {}),
     },
     allow_promotion_codes: true,
+    // Stripe Tax, as in Kadar. Auguris OÜ is not VAT registered, so with no registration in the
+    // Stripe dashboard nothing is charged; once a registration (UK, or EU OSS) is added there, the
+    // right rate applies on its own with no code change. Prices are tax-inclusive.
+    automatic_tax: { enabled: true },
+    // Stripe Tax needs the customer's country.
+    billing_address_collection: 'auto',
     success_url: opts.successUrl,
     cancel_url: opts.cancelUrl,
   }
-  if (opts.customerId) params.customer = opts.customerId
-  else if (opts.email) params.customer_email = opts.email
+  if (opts.customerId) {
+    params.customer = opts.customerId
+    // Required with automatic tax on an existing customer.
+    params.customer_update = { address: 'auto', name: 'auto' }
+  } else if (opts.email) {
+    params.customer_email = opts.email
+  }
   return params
 }
 
