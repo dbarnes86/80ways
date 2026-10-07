@@ -5,7 +5,19 @@ project_id = "80ways"
 
 [functions.billing]
 verify_jwt = true
+import_map = "./functions/import_map.json"
 
 # Stripe signs the request; it carries no Supabase token.
 [functions.stripe-webhook]
 verify_jwt = false
+import_map = "./functions/import_map.json"
+
+# The app sends a StoreKit 2 transaction after a purchase or restore.
+[functions.apple-iap]
+verify_jwt = true
+import_map = "./functions/import_map.json"
+
+# App Store Server Notifications V2. Apple signs the payload; it carries no Supabase token.
+[functions.appstore-notifications]
+verify_jwt = false
+import_map = "./functions/import_map.json"

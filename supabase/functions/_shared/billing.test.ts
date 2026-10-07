@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { checkoutParams, entitlementChange, eventOwner, periodEnd, priceLabel } from './billing'
 

@@ -38,6 +38,7 @@ export interface EntitlementFields {
   current_period_end?: string | null
   stripe_customer_id?: string | null
   stripe_subscription_id?: string | null
+  apple_original_transaction_id?: string | null
 }
 
 export type EventOutcome =

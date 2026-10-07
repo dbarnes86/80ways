@@ -7,6 +7,7 @@ export interface Membership {
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean
   hasBillingAccount: boolean
+  source: 'stripe' | 'app_store' | 'play_store' | null
 }
 
 interface MembershipStore {
@@ -16,7 +17,7 @@ interface MembershipStore {
   reset: () => void
 }
 
-const FREE: Membership = { tier: 'free', billingStatus: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, hasBillingAccount: false }
+const FREE: Membership = { tier: 'free', billingStatus: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, hasBillingAccount: false, source: null }
 
 /**
  * The player's entitlement, read from the row the Stripe webhook writes. Display only:
@@ -36,6 +37,7 @@ export const useMembershipStore = create<MembershipStore>((set) => ({
           currentPeriodEnd: data.current_period_end,
           cancelAtPeriodEnd: data.cancel_at_period_end,
           hasBillingAccount: !!data.stripe_customer_id,
+          source: (data.source as Membership['source']) ?? null,
         }
       : FREE
     set({ membership, loaded: true })

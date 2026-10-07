@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Globe, Map, Calendar, ArrowRight, Loader2 } from 'lucide-react';
 import { useSeasonStore } from '@/stores/seasonStore';
+import { selectIsMember, useMembershipStore } from '@/stores/membershipStore';
+import { Link } from 'react-router-dom';
+import { Crown } from 'lucide-react';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { Button } from '@/components/ui';
 
@@ -10,6 +13,8 @@ interface SeasonJoinProps {
 
 export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
   const { activeSeason, narrativeDay, getJoinLeg } = useSeasonStore();
+  const isMember = useMembershipStore(selectIsMember);
+  const membershipLoaded = useMembershipStore((s) => s.loaded);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,11 +83,23 @@ export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      {isMember || !membershipLoaded ? (
       <Button onClick={handleJoin} disabled={joining} className="w-full gap-2" size="lg">
-        {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-        {isUpcoming ? 'Sign on for the season' : 'Board the expedition'}
-        {!joining && <ArrowRight className="w-4 h-4" />}
-      </Button>
+          {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {isUpcoming ? 'Sign on for the season' : 'Board the expedition'}
+          {!joining && <ArrowRight className="w-4 h-4" />}
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <Link
+            to="/membership"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-8 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Crown className="size-4" /> Become a member to board
+          </Link>
+          <p className="text-center text-xs text-muted-foreground">Lift Off was on us. The expedition, raids and leaderboard are for members.</p>
+        </div>
+      )}
     </div>
   );
 };

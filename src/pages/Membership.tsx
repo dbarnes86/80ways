@@ -4,7 +4,8 @@ import { Check, Crown, Loader2 } from 'lucide-react'
 import { HoloCard } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { selectIsMember, useMembershipStore } from '@/stores/membershipStore'
-import { ManageBillingButton, UpgradeButton, useBillingConfig } from '@/features/billing'
+import { isNative } from '@/services/purchaseService'
+import { ManageBillingButton, RestorePurchasesButton, UpgradeButton, usePlans } from '@/features/billing'
 
 const PERKS = [
   'Board the season expedition: 11 legs, London to London',
@@ -22,7 +23,7 @@ export default function Membership() {
   const [params] = useSearchParams()
   const { membership, loaded, fetch } = useMembershipStore()
   const isMember = useMembershipStore(selectIsMember)
-  const { config, error } = useBillingConfig()
+  const { plans: config, error } = usePlans()
   const checkout = params.get('checkout')
   const [confirming, setConfirming] = useState(checkout === 'success')
 
@@ -90,7 +91,11 @@ export default function Membership() {
             <Link to="/dashboard" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
               Back to the expedition
             </Link>
-            {membership?.hasBillingAccount && <ManageBillingButton />}
+            {membership?.source === 'app_store' ? (
+              isNative() ? <ManageBillingButton /> : <p className="self-center text-xs text-muted-foreground">Billed by Apple. Manage it on your iPhone: Settings, your name, Subscriptions.</p>
+            ) : (
+              membership?.hasBillingAccount && <ManageBillingButton />
+            )}
           </div>
         </HoloCard>
       ) : (
@@ -124,6 +129,18 @@ export default function Membership() {
               {membership?.hasBillingAccount && <ManageBillingButton />}
             </div>
           )}
+
+          {config?.store === 'app_store' && (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Payment is charged to your Apple ID at confirmation. Subscriptions renew automatically unless cancelled at least 24 hours before the end of the
+              current period, and your account is charged for renewal within 24 hours before it ends. Manage or cancel in Settings, your name, Subscriptions.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <RestorePurchasesButton />
+            <Link to="/terms" className="text-muted-foreground hover:text-primary">Terms</Link>
+            <Link to="/privacy" className="text-muted-foreground hover:text-primary">Privacy</Link>
+          </div>
         </HoloCard>
       )}
     </div>

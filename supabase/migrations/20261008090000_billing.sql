@@ -83,3 +83,10 @@ DROP POLICY IF EXISTS "Users can insert their own raid contributions" ON public.
 CREATE POLICY "Members can contribute to raids"
   ON public.raid_contributions FOR INSERT
   WITH CHECK (auth.uid() = user_id AND public.is_member(auth.uid()));
+
+-- ---------------------------------------------
+-- App Store. A StoreKit subscription is identified by its original transaction id; one
+-- subscription can only ever belong to one player.
+-- ---------------------------------------------
+ALTER TABLE public.entitlements
+  ADD COLUMN IF NOT EXISTS apple_original_transaction_id TEXT UNIQUE;

@@ -67,6 +67,7 @@ export type Database = {
       }
       entitlements: {
         Row: {
+          apple_original_transaction_id: string | null
           billing_status: string | null
           cancel_at_period_end: boolean
           created_at: string
@@ -79,6 +80,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          apple_original_transaction_id?: string | null
           billing_status?: string | null
           cancel_at_period_end?: boolean
           created_at?: string
@@ -91,6 +93,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          apple_original_transaction_id?: string | null
           billing_status?: string | null
           cancel_at_period_end?: boolean
           created_at?: string
