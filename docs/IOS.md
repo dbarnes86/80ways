@@ -71,7 +71,28 @@ Set these on the Supabase project (Project Settings → Edge Functions → Secre
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Web checkout and its webhook |
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` | Web plans (Price ids) |
 | `STRIPE_TRIAL_DAYS` | Optional free trial on the web, e.g. `7` |
-| `APP_URL` | The web app's origin, e.g. `https://app.80ways.app` |
+| `APP_URL` | `https://80ways.co` (no trailing slash) |
+
+### Domain
+
+The app is served at **https://80ways.co** from the Cloudflare Pages project `80ways` (DNS on
+Cloudflare; `www` redirects to the apex). In Supabase → Authentication → URL Configuration set the
+Site URL to `https://80ways.co` and add `https://80ways.co/**` to the redirect URLs, so
+confirmation and password-reset emails land in the app.
+
+### Stripe product (Auguris OÜ account)
+
+One product, **80 Ways Membership**, tax code *SaaS – personal use* (`txcd_10103000`), statement
+descriptor `80 WAYS`, with two tax-inclusive recurring prices in EUR: monthly (lookup key
+`membership_monthly`) and yearly (`membership_annual`). The app shows whatever amount and
+currency the prices carry. Turn on the Customer portal
+(cancel at period end, update payment method, switch between the two prices).
+
+Checkout runs Stripe Tax (`automatic_tax`). With no tax registration in the Stripe dashboard it
+charges nothing; add a registration there and the rate applies with no code change. **UK VAT:** a
+non-UK business selling digital services to UK consumers must register for UK VAT from the first
+sale, so register Auguris (and add the registration in Stripe Tax) before opening web checkout to
+UK customers, or launch on iPhone first, where Apple is the seller of record and handles VAT.
 
 Stripe webhook endpoint: `https://<project-ref>.supabase.co/functions/v1/stripe-webhook`, events
 `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
