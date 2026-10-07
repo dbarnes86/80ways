@@ -5,7 +5,6 @@ import {
   CREDITS_PER_ACTIVITY,
   CREDITS_PER_LEG_BASE,
   CREDITS_RAID_SUCCESS,
-  DAILY_MISSION,
   type BoosterId,
 } from "@/data/gameConstants";
 import { activateDecayInhibitor, buyBooster } from "@/lib/gameActions";
@@ -29,8 +28,8 @@ const rarityBadge = (r: string) =>
       : "bg-muted text-muted-foreground";
 
 const HOW_TO_USE: Record<BoosterId, string> = {
-  energyAmplifier: "Tick it when logging an activity.",
-  multiCharge: "Tick it when logging an activity.",
+  energyAmplifier: "Use it when you collect or log a workout.",
+  multiCharge: "Use it when you collect or log a workout.",
   decayInhibitor: "Activate it here, any time.",
 };
 
@@ -71,7 +70,7 @@ export default function Store() {
             </div>
           </div>
           <div className="text-xs text-muted-foreground space-y-0.5 sm:text-right">
-            <p>+{CREDITS_PER_ACTIVITY} per activity · +{DAILY_MISSION.creditReward} daily mission</p>
+            <p>+{CREDITS_PER_ACTIVITY} per workout · quests and chests</p>
             <p>+{CREDITS_PER_LEG_BASE}+ per leg · +{CREDITS_RAID_SUCCESS} per raid won</p>
           </div>
         </div>
@@ -133,7 +132,7 @@ export default function Store() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Nothing active. Amplifiers and Multi-Charges apply when you log an activity.</p>
+          <p className="text-sm text-muted-foreground">Nothing active. Amplifiers and Multi-Charges apply when you collect or log a workout.</p>
         )}
       </HoloCard>
     </div>

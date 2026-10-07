@@ -4,6 +4,7 @@ import { haptic } from '@/lib/native';
 import { cn } from '@/components/ui';
 import type { LogActivityResult } from '@/lib/gameActions';
 import { useInboxStore, type InboxItem } from '@/stores/inboxStore';
+import { useUserStore } from '@/stores/userStore';
 import { Orb } from './art';
 import { announceMilestones, collectItem, previewEnergy } from './collect';
 import { centreOf, flyOrbs } from './fx';
@@ -16,6 +17,26 @@ const day = (iso: string) => {
   return diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : d.toLocaleDateString(undefined, { weekday: 'short' });
 };
 
+function BoosterChip({ on, onClick, label, count }: { on: boolean; onClick: () => void; label: string; count: number }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        haptic('select');
+        play('tick');
+        onClick();
+      }}
+      className={cn(
+        'press flex-1 rounded-xl border-2 px-3 py-2 font-heading text-base font-bold',
+        on ? 'border-secondary bg-secondary/20 text-secondary shadow-[0_0_14px_hsl(var(--secondary)/0.5)]' : 'border-border text-muted-foreground',
+      )}
+    >
+      {on ? '✓ ' : ''}
+      {label} <span className="text-xs opacity-70">×{count}</span>
+    </button>
+  );
+}
+
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -27,25 +48,36 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
   const [busy, setBusy] = useState(false);
   const [gone, setGone] = useState<Set<string>>(new Set());
   const refs = useRef(new Map<string, HTMLElement>());
+  const amplifiers = useUserStore((s) => s.inventory.energyAmplifier);
+  const multiCharges = useUserStore((s) => s.inventory.multiCharge);
+  const [useAmp, setUseAmp] = useState(false);
+  const [useMulti, setUseMulti] = useState(false);
 
   if (!items.length && !busy) return null;
 
-  const collectOne = async (item: InboxItem, pitch: number): Promise<LogActivityResult> => {
+  const collectOne = async (item: InboxItem, pitch: number, boosters: { amplifier?: boolean; multiCharge?: boolean } = {}): Promise<LogActivityResult> => {
     const el = refs.current.get(item.id);
     if (el) void flyOrbs(centreOf(el), item.targetType, 6 + Math.min(10, Math.round(previewEnergy(item) * 6)));
     play('collect', pitch);
     haptic('tap');
     setGone((g) => new Set(g).add(item.id));
     await wait(260);
-    return collectItem(item);
+    return collectItem(item, boosters);
   };
 
   const collectAll = async () => {
     if (busy) return;
     setBusy(true);
     const results: LogActivityResult[] = [];
+    // Boosters go on the biggest workout, where they're worth the most.
     const queue = [...useInboxStore.getState().items];
-    for (let i = 0; i < queue.length; i++) results.push(await collectOne(queue[i], Math.min(i * 2, 12)));
+    const best = queue.reduce((b, i) => (previewEnergy(i) > previewEnergy(b) ? i : b), queue[0]);
+    for (let i = 0; i < queue.length; i++) {
+      const boost = queue[i] === best ? { amplifier: useAmp, multiCharge: useMulti } : {};
+      results.push(await collectOne(queue[i], Math.min(i * 2, 12), boost));
+    }
+    setUseAmp(false);
+    setUseMulti(false);
     await wait(500);
     play('coin');
     announceMilestones(results);
@@ -97,6 +129,17 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
         })}
         {items.length > shown.length && <li className="text-center text-sm text-muted-foreground">and {items.length - shown.length} more</li>}
       </ul>
+
+      {(amplifiers > 0 || multiCharges > 0) && !busy && (
+        <div className="flex gap-2">
+          {amplifiers > 0 && (
+            <BoosterChip on={useAmp} onClick={() => setUseAmp((v) => !v)} label="Amplifier ×2" count={amplifiers} />
+          )}
+          {multiCharges > 0 && (
+            <BoosterChip on={useMulti} onClick={() => setUseMulti((v) => !v)} label="Multi-Charge" count={multiCharges} />
+          )}
+        </div>
+      )}
 
       <button
         type="button"

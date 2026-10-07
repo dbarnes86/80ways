@@ -18,7 +18,7 @@ export const previewEnergy = (item: InboxItem) =>
   }).actualEnergy;
 
 /** Turn one inbox workout into an activity. Floats its numbers; big moments are announced by the caller. */
-export function collectItem(item: InboxItem): LogActivityResult {
+export function collectItem(item: InboxItem, boosters: { amplifier?: boolean; multiCharge?: boolean } = {}): LogActivityResult {
   const r = logActivity({
     id: item.id,
     activityType: item.activityType,
@@ -28,8 +28,8 @@ export function collectItem(item: InboxItem): LogActivityResult {
     distanceKm: item.distanceKm,
     notes: `From ${item.sourceName}`,
     performedAt: new Date(item.performedAt),
-    useAmplifier: false,
-    useMultiCharge: false,
+    useAmplifier: !!boosters.amplifier,
+    useMultiCharge: !!boosters.multiCharge,
   });
   useInboxStore.getState().remove(item.id);
   announce({ energy: r.energy });
