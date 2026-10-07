@@ -15,6 +15,9 @@ import { ENERGY_THEME } from '@/data/energyTheme';
 import { CREDITS_RAID_SUCCESS, ENERGY_TYPES, type EnergyType } from '@/data/gameConstants';
 import { formatTimeLeft, getRaidSchedule, getRaidStatus, RAID_XP_FIRST_CONTRIBUTION, type ScheduledRaid } from '@/data/raids';
 import { claimRaidReward, contributeToRaid } from '@/lib/gameActions';
+import { announce, floatReward } from '@/game/rewards';
+import { grantChest } from '@/game/questActions';
+import { play } from '@/game/sfx';
 
 interface Contributor {
   display_name: string;
@@ -72,8 +75,9 @@ export default function Raids() {
       setHits((h) => [...h, { id, amount: res.plan.totalEffective, critical }]);
       setTimeout(() => setHits((h) => h.filter((x) => x.id !== id)), 1500);
       haptic('heavy');
-      toast({ title: critical ? 'Critical hit!' : 'Direct hit!', description: `-${res.plan.totalEffective.toFixed(1)} HP to Fix · +${res.xp} XP` });
-      if (res.levelUp) toast({ title: `Level ${res.levelUp.level}!`, description: `You're now a ${res.levelUp.name}.` });
+      play('hit');
+      floatReward(critical ? 'Critical hit!' : 'Direct hit!', 'streak');
+      announce({ xp: res.xp, levelUp: res.levelUp });
     } catch (err) {
       haptic('error');
       toast({ title: 'Strike failed', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
@@ -85,10 +89,7 @@ export default function Raids() {
   const claim = (raid: ScheduledRaid) => {
     if (!activeSeason) return;
     const res = claimRaidReward(activeSeason.id, raid.key);
-    if (res) {
-      haptic('success');
-      toast({ title: 'Reward claimed', description: `+${res.credits} credits` });
-    }
+    if (res) grantChest('silver', `${raid.name} beaten`);
   };
 
   if (!activeSeason) {
@@ -104,9 +105,8 @@ export default function Raids() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="mb-2 text-4xl font-heading text-glow-cyan">Raids</h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Every couple of weeks Detective Fix sabotages the expedition. The whole crew pools energy to knock him down. Your first strike earns{' '}
-          {RAID_XP_FIRST_CONTRIBUTION} XP, and beating him pays {CREDITS_RAID_SUCCESS} credits to everyone who fought.
+        <p className="text-lg text-muted-foreground">
+          The crew vs Detective Fix. First hit: +{RAID_XP_FIRST_CONTRIBUTION} XP. Beat him: a chest and {CREDITS_RAID_SUCCESS} coins.
         </p>
       </div>
 

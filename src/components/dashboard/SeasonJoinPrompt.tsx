@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { Globe, Map, Calendar, ArrowRight, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Crown, Loader2 } from 'lucide-react';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { selectIsMember, useMembershipStore } from '@/stores/membershipStore';
-import { Link } from 'react-router-dom';
-import { Crown } from 'lucide-react';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
-import { Button } from '@/components/ui';
+import { haptic } from '@/lib/native';
+import { play } from '@/game/sfx';
+import { celebrate } from '@/game/rewards';
 
 interface SeasonJoinProps {
   onJoin: () => Promise<{ error?: string }>;
 }
 
+/** Lift Off is done: board the season (Season Pass holders) or see what the pass gets you. */
 export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
   const { activeSeason, narrativeDay, getJoinLeg } = useSeasonStore();
   const isMember = useMembershipStore(selectIsMember);
@@ -21,84 +23,60 @@ export const SeasonJoinPrompt = ({ onJoin }: SeasonJoinProps) => {
   if (!activeSeason) return null;
 
   const joinLeg = getJoinLeg();
-  const joinLegData = JOURNEY_LEGS[joinLeg];
+  const from = JOURNEY_LEGS[joinLeg]?.from ?? 'London';
   const isUpcoming = activeSeason.status === 'upcoming';
-  const isOver = activeSeason.status === 'completed';
 
-  const handleJoin = async () => {
-    setJoining(true);
-    setError(null);
-    const res = await onJoin();
-    if (res.error) setError(res.error);
-    setJoining(false);
-  };
-
-  if (isOver) {
+  if (activeSeason.status === 'completed') {
     return (
-      <div className="border border-border rounded-xl p-5 space-y-2 text-center">
-        <Globe className="w-6 h-6 text-muted-foreground mx-auto" />
-        <h3 className="font-heading font-bold">{activeSeason.name} has finished</h3>
-        <p className="text-sm text-muted-foreground">
-          The next expedition opens soon. Keep logging activities in the meantime, your reserves and XP carry over.
-        </p>
+      <div className="rounded-2xl border border-border bg-card/60 p-5 text-center">
+        <p className="font-heading text-xl font-bold">{activeSeason.name} has finished</p>
+        <p className="text-sm text-muted-foreground">The next voyage opens soon. Your XP and reserves carry over.</p>
       </div>
     );
   }
 
+  const handleJoin = async () => {
+    setJoining(true);
+    setError(null);
+    haptic('heavy');
+    const res = await onJoin();
+    setJoining(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    play('whoosh');
+    celebrate({ kind: 'stamp', city: from, credits: 0 });
+  };
+
   return (
-    <div
-      className="border border-primary/30 bg-primary/5 rounded-xl p-5 space-y-4 animate-scale-in"
-    >
-      <div className="flex items-center gap-2">
-        <Globe className="w-5 h-5 text-primary" />
-        <h3 className="font-heading font-bold text-lg">{activeSeason.name}</h3>
-      </div>
-
-      <p className="text-sm text-muted-foreground">
-        {isUpcoming
-          ? `Season ${activeSeason.seasonNumber} sets sail ${activeSeason.startDate.toLocaleDateString()}. Sign on now and you'll start in London.`
-          : `You're cleared for departure. The expedition is on day ${narrativeDay} of 80.`}
-      </p>
-
-      {!isUpcoming && joinLeg > 0 && (
-        <div className="bg-card/50 rounded-lg p-3 text-xs text-foreground/70">
-          <p className="font-bold text-foreground/90 mb-1">Catching up with the crew</p>
-          <p>
-            You'll join at <span className="text-primary font-semibold">{joinLegData?.from}</span> (leg {joinLeg + 1} of{' '}
-            {JOURNEY_LEGS.length}). Earlier legs are in the ship's log on the Map.
-          </p>
-        </div>
-      )}
-
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Calendar className="w-3 h-3" />
-          <span>Ends {activeSeason.endDate.toLocaleDateString()}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Map className="w-3 h-3" />
-          <span>{activeSeason.totalDistanceKm.toLocaleString()} km</span>
-        </div>
+    <div className="space-y-4 overflow-hidden rounded-3xl border border-secondary/40 bg-gradient-to-b from-secondary/15 to-transparent p-5 text-center">
+      <div>
+        <p className="font-heading text-3xl font-bold text-glow-magenta">{isUpcoming ? `${activeSeason.name} sets sail soon` : 'You’re cleared to sail'}</p>
+        <p className="text-muted-foreground">
+          {isUpcoming ? `Departs ${activeSeason.startDate.toLocaleDateString()}.` : `The crew is on day ${narrativeDay} of 80. You’ll board at ${from}.`}
+        </p>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {isMember || !membershipLoaded ? (
-      <Button onClick={handleJoin} disabled={joining} className="w-full gap-2" size="lg">
-          {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          {isUpcoming ? 'Sign on for the season' : 'Board the expedition'}
-          {!joining && <ArrowRight className="w-4 h-4" />}
-        </Button>
+        <button
+          type="button"
+          onClick={() => void handleJoin()}
+          disabled={joining}
+          className="press shine flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-secondary font-heading text-2xl font-bold text-white shadow-[0_0_30px_hsl(var(--secondary)/0.45)] disabled:opacity-70"
+        >
+          {joining ? <Loader2 className="animate-spin" /> : null}
+          {isUpcoming ? 'Sign on' : 'Board the ship'}
+        </button>
       ) : (
-        <div className="space-y-2">
-          <Link
-            to="/membership"
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-8 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Crown className="size-4" /> Become a member to board
-          </Link>
-          <p className="text-center text-xs text-muted-foreground">Lift Off was on us. The expedition, raids and leaderboard are for members.</p>
-        </div>
+        <Link
+          to="/membership"
+          className="press shine flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-secondary font-heading text-2xl font-bold text-white shadow-[0_0_30px_hsl(var(--secondary)/0.45)]"
+        >
+          <Crown className="size-6" /> Get the Season Pass
+        </Link>
       )}
     </div>
   );

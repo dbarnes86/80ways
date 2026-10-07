@@ -13,6 +13,8 @@ import { computeStreak, longestStreak } from "@/lib/gameEngine";
 import { schedulePush } from "@/lib/gameSync";
 import { DeleteAccount } from "@/features/DeleteAccount";
 import { HealthSetting } from "@/features/health";
+import { Passport } from "@/game/Passport";
+import { isMuted, play, setMuted } from "@/game/sfx";
 import { toast } from '@/components/toast';
 import { Button, Input, Badge, Switch, HoloCard, SegmentedProgress } from '@/components/ui';
 
@@ -43,6 +45,7 @@ export default function Profile() {
   const [displayName, setDisplayName] = useState("");
   const [savedName, setSavedName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => !isMuted());
 
   useEffect(() => {
     if (!user) return;
@@ -185,6 +188,8 @@ export default function Profile() {
             ))}
           </div>
 
+          <Passport />
+
           <HoloCard glow="purple" className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-heading flex items-center gap-2">
@@ -232,6 +237,22 @@ export default function Profile() {
               </div>
 
               {user && <HealthSetting userId={user.id} />}
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Sound effects</p>
+                  <p className="text-xs text-muted-foreground">Chimes, coins and fanfares</p>
+                </div>
+                <Switch
+                  checked={soundOn}
+                  label="Sound effects"
+                  onChange={(c) => {
+                    setMuted(!c);
+                    setSoundOn(c);
+                    if (c) play('chime');
+                  }}
+                />
+              </div>
 
               <div className="flex items-center justify-between">
                 <div>

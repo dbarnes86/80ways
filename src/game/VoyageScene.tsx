@@ -45,7 +45,7 @@ export function VoyageScene({ from, to, progress, headline, sub, docked = false,
         {/* the ship */}
         <div
           className="absolute bottom-[3.1rem]"
-          style={{ left: `calc(1.5rem + (100% - 3rem) * ${p})`, transform: 'translateX(-50%)', transition: 'left 1.2s cubic-bezier(.2,.8,.2,1)' }}
+          style={{ left: `clamp(3rem, calc(1.5rem + (100% - 3rem) * ${p}), calc(100% - 3rem))`, transform: 'translateX(-50%)', transition: 'left 1.2s cubic-bezier(.2,.8,.2,1)' }}
         >
           <Ship size={92} className={docked ? '' : 'animate-sail'} />
         </div>
