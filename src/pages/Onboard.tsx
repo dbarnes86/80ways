@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Bell, HeartPulse, Loader2, Mail, MailCheck } from 'lucide-react';
+import { Check, HeartPulse, Loader2, Lock, Mail, MailCheck } from 'lucide-react';
 import foggPortrait from '@/assets/fogg-portrait.jpg';
-import { HoloCard, Input, Label, cn } from '@/components/ui';
+import fixPortrait from '@/assets/fix-portrait.jpg';
+import { Input, cn } from '@/components/ui';
 import { toast } from '@/components/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { ENERGY_THEME } from '@/data/energyTheme';
@@ -15,35 +16,50 @@ import { isHealthConnected, isHealthPlatform } from '@/services/healthService';
 import { enableNudges, nudgesSupported, replanNudges } from '@/services/nudges';
 import { useConnectHealth } from '@/features/health';
 import { useUserStore, type Discipline } from '@/stores/userStore';
-import { useInboxStore } from '@/stores/inboxStore';
 import { CollectPanel } from '@/game/CollectPanel';
-import { QuestRow } from '@/game/QuestRow';
-import { artSrc, Avatar, hasArt, Ship } from '@/game/art';
-import { useQuests } from '@/game/questActions';
+import { Hud } from '@/game/Hud';
+import { Avatar, Chest, Ship, artSrc, hasArt } from '@/game/art';
+import { claimQuest, useQuests } from '@/game/questActions';
+import { useRewardStore } from '@/game/rewards';
 import { play } from '@/game/sfx';
 
 /**
- * The first three minutes. Every screen is one idea and one big tap, and something good happens
- * every few taps: the story, picking who you are, your workouts flying in, your first quest paying
- * out. Then a reason to turn on notifications, and into the game.
+ * The first two minutes, as seven beats. Each one is a single idea with a payoff you can feel at
+ * the end of it (a stamp slams, a crest is picked, a ticket prints, a trunk opens), and a boarding
+ * pass at the top punches a hole every time. The account comes after you have something to save.
  */
-type Stage = 'story' | 'discipline' | 'join' | 'email' | 'inbox' | 'health' | 'collect' | 'quest' | 'nudges';
+type Stage = 'wager' | 'crest' | 'name' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
+
+const PRE_AUTH: Stage[] = ['wager', 'crest', 'name', 'save', 'email'];
+const BEATS = ['Wager', 'Crest', 'Name', 'Ticket', 'Fuel', 'Trunk'];
+const DONE: Record<Stage, number> = { wager: 0, crest: 1, name: 2, save: 3, email: 3, inbox: 3, fuel: 4, trunk: 5, fix: 6 };
 
 const ONBOARDED = 'atw80-onboarded';
-const markOnboarded = () => {
-  try {
-    localStorage.setItem(ONBOARDED, '1');
-  } catch {
-    /* storage unavailable */
-  }
+const PENDING_NAME = 'atw80-pending-name';
+const store = {
+  get: (k: string) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  set: (k: string, v: string) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      /* storage unavailable */
+    }
+  },
+  remove: (k: string) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      /* storage unavailable */
+    }
+  },
 };
-const wasOnboarded = () => {
-  try {
-    return localStorage.getItem(ONBOARDED) === '1';
-  } catch {
-    return false;
-  }
-};
+const wasOnboarded = () => store.get(ONBOARDED) === '1';
 
 const tap = () => {
   haptic('tap');
@@ -54,20 +70,27 @@ export default function Onboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [stage, setStage] = useState<Stage>('story');
-  const inboxCount = useInboxStore((s) => s.items.length);
+  const [stage, setStage] = useState<Stage>('wager');
+  const discipline = useUserStore((s) => s.discipline) ?? 'runner';
 
   const finish = () => {
-    markOnboarded();
+    store.set(ONBOARDED, '1');
+    play('whoosh');
     navigate('/dashboard', { replace: true });
   };
 
-  // Once signed in, carry on from the right place.
+  // Once signed in: put the name from the ticket on the profile, then carry on from the right beat.
   useEffect(() => {
     if (loading || !user) return;
-    if (stage === 'story' || stage === 'discipline' || stage === 'join' || stage === 'email') {
+    const pending = store.get(PENDING_NAME)?.trim();
+    if (pending) {
+      store.remove(PENDING_NAME);
+      void supabase.from('profiles').upsert({ user_id: user.id, display_name: pending }, { onConflict: 'user_id' });
+      void supabase.auth.updateUser({ data: { display_name: pending } });
+    }
+    if (PRE_AUTH.includes(stage)) {
       if (wasOnboarded()) return finish();
-      setStage(isHealthPlatform() && !isHealthConnected(user.id) ? 'health' : 'quest');
+      setStage(isHealthPlatform() && !isHealthConnected(user.id) ? 'fuel' : 'trunk');
     }
   }, [user, loading]);
 
@@ -79,80 +102,171 @@ export default function Onboard() {
     navigate(user ? '/dashboard' : '/login', { replace: true });
   }, [checkoutSessionId, loading, user, navigate]);
 
-  const afterQuest = () => (nudgesSupported() ? setStage('nudges') : finish());
+  const afterTrunk = () => (nudgesSupported() ? setStage('fix') : finish());
+  const signedIn = !!user && !PRE_AUTH.includes(stage) && stage !== 'inbox';
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-background">
-      <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-      <div className="relative z-10 mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10 pt-[max(2.5rem,calc(env(safe-area-inset-top)+1.5rem))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-        {stage === 'story' && <Story onDone={() => setStage('discipline')} />}
-        {stage === 'discipline' && <PickDiscipline onDone={() => setStage('join')} />}
-        {stage === 'join' && <Join onEmail={() => setStage('email')} />}
-        {stage === 'email' && <EmailSignUp onBack={() => setStage('join')} onInbox={() => setStage('inbox')} />}
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background">
+      <header className="mx-auto w-full max-w-md px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))]">
+        {signedIn ? <Hud /> : stage !== 'wager' && <BoardingPass done={DONE[stage]} />}
+      </header>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        {stage === 'wager' && <Wager onDone={() => setStage('crest')} />}
+        {stage === 'crest' && <PickCrest onDone={() => setStage('name')} />}
+        {stage === 'name' && <NameBeat discipline={discipline} onDone={() => setStage('save')} />}
+        {stage === 'save' && <SaveTicket discipline={discipline} onEmail={() => setStage('email')} />}
+        {stage === 'email' && <EmailSignUp onBack={() => setStage('save')} onInbox={() => setStage('inbox')} />}
         {stage === 'inbox' && <Inbox />}
-        {stage === 'health' && user && <ConnectHealth userId={user.id} onDone={(arrived) => setStage(arrived ? 'collect' : 'quest')} />}
-        {stage === 'collect' && (
-          <div className="animate-fade-up space-y-6">
-            <div className="text-center">
-              <h1 className="font-heading text-3xl font-bold text-glow-cyan">Your week, in fuel</h1>
-              <p className="text-muted-foreground">Tap Collect.</p>
-            </div>
-            <CollectPanel big onCollected={() => setTimeout(() => setStage('quest'), 400)} />
-            {inboxCount === 0 && (
-              <button type="button" onClick={() => setStage('quest')} className="btn-game btn-primary w-full">
-                Next
-              </button>
-            )}
-          </div>
-        )}
-        {stage === 'quest' && <FirstQuest onDone={afterQuest} />}
-        {stage === 'nudges' && <Nudges onDone={finish} />}
-      </div>
+        {stage === 'fuel' && user && <Fuel userId={user.id} onDone={() => setStage('trunk')} />}
+        {stage === 'trunk' && <Trunk onDone={afterTrunk} />}
+        {stage === 'fix' && <FixWarning onDone={finish} />}
+      </main>
     </div>
   );
 }
 
-const STORY = [
-  { kicker: 'London, 1872', line: 'Phileas Fogg makes a wager.' },
-  { kicker: '£20,000', line: 'Round the world in 80 days. Not one more.' },
-  { kicker: 'You', line: 'Every workout you do powers his journey.' },
-];
+/* ─── The boarding pass: one hole punched per beat ───────────────────────────── */
 
-function Story({ onDone }: { onDone: () => void }) {
-  const [i, setI] = useState(0);
-  const next = () => {
-    tap();
-    if (i < STORY.length - 1) setI(i + 1);
-    else onDone();
-  };
-  const card = STORY[i];
+function BoardingPass({ done }: { done: number }) {
+  const prev = useRef(done);
+  const [punched, setPunched] = useState<number | null>(null);
+  useEffect(() => {
+    if (done > prev.current) {
+      setPunched(done - 1);
+      haptic('select');
+      play('tick', 4 + done);
+    }
+    prev.current = done;
+  }, [done]);
   return (
-    <button type="button" onClick={next} className="flex min-h-[70dvh] w-full flex-col items-center justify-center gap-8 text-center">
-      <div key={i} className="animate-pop space-y-6">
-        {i === 0 && (
-          <div className="relative mx-auto size-40">
-            <div className="absolute inset-0 rounded-full bg-primary/25 blur-2xl" />
-            {hasArt('fogg') ? (
-              <img src={artSrc('fogg', foggPortrait)} alt="Phileas Fogg" className="relative size-40 object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
-            ) : (
-              <img src={foggPortrait} alt="Phileas Fogg" className="relative size-40 rounded-full border-2 border-primary/50 object-cover" />
+    <div className="animate-fade-up flex items-center justify-between rounded-2xl border border-dashed border-accent/50 bg-card/70 px-4 py-2.5">
+      <p className="kicker text-accent">Boarding</p>
+      <ol className="flex items-center gap-2" aria-label={`${done} of ${BEATS.length} steps done`}>
+        {BEATS.map((label, i) => (
+          <li
+            key={label}
+            title={label}
+            className={cn(
+              'flex size-6 items-center justify-center rounded-full border-2 transition-colors',
+              i < done ? 'border-accent bg-accent text-background' : 'border-border text-transparent',
+              punched === i && 'animate-punch',
             )}
-          </div>
-        )}
-        {i === 1 && <p className="font-heading text-8xl font-bold text-warning drop-shadow-[0_0_20px_hsl(var(--warning)/0.6)]">80</p>}
-        {i === 2 && <Ship size={220} className="mx-auto animate-sail" />}
-        <p className="font-mono text-sm uppercase tracking-[0.35em] text-primary">{card.kicker}</p>
-        <h1 className="font-heading text-4xl font-bold leading-tight text-glow-cyan">{card.line}</h1>
-      </div>
-      <div className="flex gap-2">
-        {STORY.map((_, k) => (
-          <span key={k} className={cn('h-2 rounded-full transition-all', k === i ? 'w-8 bg-primary' : 'w-2 bg-muted')} />
+          >
+            <Check className="size-3.5" strokeWidth={4} />
+          </li>
         ))}
-      </div>
-      <p className="animate-pulse-soft text-sm text-muted-foreground">Tap to continue</p>
-    </button>
+      </ol>
+    </div>
   );
 }
+
+/* ─── Beat 1: the wager ──────────────────────────────────────────────────────── */
+
+/** Types a line out like a telegram arriving. */
+function TypeLine({ text, speed = 26, className, onDone }: { text: string; speed?: number; className?: string; onDone?: () => void }) {
+  const [n, setN] = useState(0);
+  const finished = useRef(false);
+  useEffect(() => {
+    setN(0);
+    finished.current = false;
+    const id = setInterval(() => {
+      setN((k) => {
+        if (k >= text.length) {
+          clearInterval(id);
+          if (!finished.current) {
+            finished.current = true;
+            onDone?.();
+          }
+          return k;
+        }
+        return k + 1;
+      });
+    }, speed);
+    return () => clearInterval(id);
+  }, [text, speed]);
+  return (
+    <span className={className}>
+      {text.slice(0, n)}
+      {n < text.length && <span className="animate-pulse-soft">▌</span>}
+    </span>
+  );
+}
+
+function Wager({ onDone }: { onDone: () => void }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (i === 1) {
+      play('stamp');
+      haptic('heavy');
+    } else if (i === 2) {
+      play('whoosh');
+      haptic('tap');
+    }
+  }, [i]);
+  const next = () => {
+    if (i < 2) {
+      tap();
+      setI(i + 1);
+    } else onDone();
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-8 text-center">
+      <button type="button" onClick={i < 2 ? next : undefined} className="flex min-h-[58dvh] w-full flex-col items-center justify-center gap-6" aria-label="Continue">
+        {i === 0 && (
+          <div key="fogg" className="animate-fade-up space-y-6">
+            <div className="relative mx-auto size-44">
+              <div className="absolute inset-0 rounded-full bg-accent/15 blur-2xl" />
+              {hasArt('fogg') ? (
+                <img src={artSrc('fogg', foggPortrait)} alt="Phileas Fogg" className="relative size-44 object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
+              ) : (
+                <img src={foggPortrait} alt="Phileas Fogg" className="relative size-44 rounded-full border-2 border-accent/50 object-cover" />
+              )}
+            </div>
+            <p className="kicker text-accent">London, 1872</p>
+            <h1 className="font-heading text-4xl font-bold leading-tight">
+              <TypeLine text="Phileas Fogg makes a wager." />
+            </h1>
+          </div>
+        )}
+        {i === 1 && (
+          <div key="stamp" className="space-y-6">
+            <div className="animate-stamp mx-auto inline-block rounded-xl border-4 border-accent px-6 py-3 text-accent">
+              <p className="font-heading text-6xl font-bold leading-none">£20,000</p>
+              <p className="kicker mt-2 text-accent">Reform Club · London</p>
+            </div>
+            <h1 className="animate-fade-up font-heading text-4xl font-bold leading-tight" style={{ animationDelay: '0.35s' }}>
+              Round the world in 80 days. Not one more.
+            </h1>
+          </div>
+        )}
+        {i === 2 && (
+          <div key="ship" className="space-y-6">
+            <Ship size={260} className="animate-sail-in mx-auto" />
+            <p className="kicker text-accent">You</p>
+            <h1 className="animate-fade-up font-heading text-4xl font-bold leading-tight" style={{ animationDelay: '0.4s' }}>
+              Every workout you do powers his journey.
+            </h1>
+          </div>
+        )}
+      </button>
+      <div className="flex gap-2">
+        {[0, 1, 2].map((k) => (
+          <span key={k} className={cn('h-2 rounded-full transition-all', k === i ? 'w-8 bg-accent' : 'w-2 bg-muted')} />
+        ))}
+      </div>
+      {i < 2 ? (
+        <p className="animate-pulse-soft text-sm text-muted-foreground">Tap to continue</p>
+      ) : (
+        <button type="button" onClick={next} className="btn-game btn-primary shine animate-fade-up w-full" style={{ animationDelay: '0.7s' }}>
+          I'm in
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─── Beat 2: the crest ──────────────────────────────────────────────────────── */
 
 const DISCIPLINES: { id: Discipline; label: string; energy: EnergyType; blurb: string }[] = [
   { id: 'runner', label: 'Runner', energy: 'terrestrial', blurb: 'Run, walk, hike' },
@@ -161,38 +275,52 @@ const DISCIPLINES: { id: Discipline; label: string; energy: EnergyType; blurb: s
   { id: 'lifter', label: 'Lifter', energy: 'strength', blurb: 'Lift, HIIT, yoga' },
 ];
 
-function PickDiscipline({ onDone }: { onDone: () => void }) {
+function PickCrest({ onDone }: { onDone: () => void }) {
   const setDiscipline = useUserStore((s) => s.setDiscipline);
   const [picked, setPicked] = useState<Discipline | null>(null);
   const pick = (d: Discipline) => {
+    if (picked) return;
     setPicked(d);
     setDiscipline(d);
     haptic('success');
-    play('chime');
-    setTimeout(onDone, 550);
+    play('stamp');
+    setTimeout(onDone, 900);
   };
   return (
     <div className="animate-fade-up space-y-6">
       <div className="text-center">
-        <h1 className="font-heading text-4xl font-bold text-glow-cyan">What moves you?</h1>
+        <p className="kicker text-accent">Your crest</p>
+        <h1 className="font-heading text-4xl font-bold">What moves you?</h1>
         <p className="text-muted-foreground">Every kind of workout counts. This is just where you start.</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {DISCIPLINES.map((d) => {
           const theme = ENERGY_THEME[d.energy];
+          const on = picked === d.id;
           return (
             <button
               key={d.id}
               type="button"
               onClick={() => pick(d.id)}
               className={cn(
-                'press panel flex aspect-square flex-col items-center justify-center gap-2 p-4 transition-all',
-                picked === d.id ? `${theme.border} scale-105 shadow-[0_0_30px_currentColor] ${theme.text}` : 'border-border',
-                picked && picked !== d.id && 'opacity-40',
+                'press panel relative flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden p-4 transition-all duration-300',
+                on && 'scale-105 border-accent',
+                picked && !on && 'scale-95 opacity-30',
               )}
             >
+              {on && (
+                <span
+                  aria-hidden
+                  className="animate-sweep pointer-events-none absolute -inset-8 rounded-full"
+                  style={{ background: 'conic-gradient(from 0deg, hsl(var(--accent) / 0.55), transparent 60%)' }}
+                />
+              )}
               <Avatar discipline={d.id} size={112} className="-my-3" iconClassName={cn('size-14', theme.text)} />
-              <span className="font-heading text-2xl font-bold text-foreground">{d.label}</span>
+              {on ? (
+                <span className="animate-stamp rounded-md border-2 border-accent px-2 py-0.5 font-heading text-2xl font-bold uppercase tracking-wider text-accent">{d.label}</span>
+              ) : (
+                <span className="font-heading text-2xl font-bold text-foreground">{d.label}</span>
+              )}
               <span className="text-xs text-muted-foreground">{d.blurb}</span>
             </button>
           );
@@ -201,6 +329,106 @@ function PickDiscipline({ onDone }: { onDone: () => void }) {
     </div>
   );
 }
+
+/* ─── Beat 3: your name on the ticket ────────────────────────────────────────── */
+
+function CrewTicket({ discipline, name, live = false, compact = false }: { discipline: Discipline; name: string; live?: boolean; compact?: boolean }) {
+  const [typed, setTyped] = useState(!live);
+  useEffect(() => {
+    if (typed && live) {
+      play('stamp');
+      haptic('heavy');
+    }
+  }, [typed, live]);
+  return (
+    <div className={cn('panel relative overflow-hidden border-accent/50', compact ? 'p-4' : 'p-5')}>
+      <div className="flex items-center gap-4">
+        <Avatar discipline={discipline} size={compact ? 64 : 88} iconClassName="size-10 text-accent" />
+        <div className="min-w-0 flex-1 text-left">
+          <p className="kicker text-accent">Crew ticket</p>
+          <p className={cn('truncate font-heading font-bold leading-tight', compact ? 'text-2xl' : 'text-3xl')}>
+            {live ? <TypeLine text={name} speed={60} onDone={() => setTyped(true)} /> : name}
+          </p>
+          <p className="text-sm text-muted-foreground">Expedition Member · London to London</p>
+        </div>
+      </div>
+      <div className="my-3 border-t border-dashed border-border" />
+      <div className="flex items-center justify-between font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        <span>Reform Club · 1872</span>
+        <span>80 days</span>
+      </div>
+      {typed && (
+        <span className="animate-stamp absolute bottom-9 right-4 rounded-md border-[3px] border-success px-2 py-0.5 font-heading text-lg font-bold tracking-[0.2em] text-success">
+          BOARDED
+        </span>
+      )}
+    </div>
+  );
+}
+
+function NameBeat({ discipline, onDone }: { discipline: Discipline; onDone: () => void }) {
+  const [name, setName] = useState(() => store.get(PENDING_NAME) ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [printed, setPrinted] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const print = (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = name.trim();
+    if (n.length < 2 || n.length > 50) return setError('Two letters at least. Fogg insists.');
+    store.set(PENDING_NAME, n);
+    play('chime');
+    haptic('success');
+    setPrinted(true);
+    setTimeout(() => setReady(true), 1400 + n.length * 60);
+  };
+
+  if (printed) {
+    return (
+      <div className="animate-fade-up space-y-6">
+        <div className="text-center">
+          <p className="kicker text-accent">Printing</p>
+          <h1 className="font-heading text-4xl font-bold">Your ticket</h1>
+        </div>
+        <CrewTicket discipline={discipline} name={name.trim()} live />
+        {ready && (
+          <button type="button" onClick={onDone} className="btn-game btn-primary shine animate-fade-up w-full">
+            Keep it safe
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={print} className="animate-fade-up space-y-6">
+      <div className="text-center">
+        <p className="kicker text-accent">The manifest</p>
+        <h1 className="font-heading text-4xl font-bold">What should Fogg call you?</h1>
+        <p className="text-muted-foreground">It goes on your ticket and the crew list.</p>
+      </div>
+      <Input
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+          setError(null);
+        }}
+        autoFocus
+        autoComplete="nickname"
+        maxLength={50}
+        placeholder="Your name"
+        aria-label="Your name"
+        className="h-16 text-center font-heading text-3xl font-bold"
+      />
+      {error && <p className="text-center text-sm text-destructive">{error}</p>}
+      <button type="submit" className="btn-game btn-primary shine w-full">
+        Print my ticket
+      </button>
+    </form>
+  );
+}
+
+/* ─── Beat 4: save the ticket (the account) ──────────────────────────────────── */
 
 function AppleButton() {
   const [busy, setBusy] = useState(false);
@@ -212,12 +440,7 @@ function AppleButton() {
     else if (!r.cancelled) toast({ title: 'Apple sign-in failed', description: r.message, variant: 'destructive' });
   };
   return (
-    <button
-      type="button"
-      onClick={() => void go()}
-      disabled={busy}
-      className="btn-game btn-white w-full"
-    >
+    <button type="button" onClick={() => void go()} disabled={busy} className="btn-game btn-white w-full">
       {busy ? (
         <Loader2 className="animate-spin" />
       ) : (
@@ -232,33 +455,35 @@ function AppleButton() {
 
 const showApple = () => isNativeApp() || env.appleAuth;
 
-function Join({ onEmail }: { onEmail: () => void }) {
+function SaveTicket({ discipline, onEmail }: { discipline: Discipline; onEmail: () => void }) {
+  const name = store.get(PENDING_NAME) ?? 'Explorer';
   return (
-    <div className="animate-fade-up space-y-8 text-center">
-      <Ship size={200} className="mx-auto animate-sail" />
-      <div className="space-y-2">
-        <h1 className="font-heading text-4xl font-bold text-glow-cyan">Join the crew</h1>
-        <p className="text-muted-foreground">Free to start. Your progress saves to your account.</p>
+    <div className="animate-fade-up space-y-6 text-center">
+      <div>
+        <p className="kicker text-accent">Your ticket</p>
+        <h1 className="font-heading text-4xl font-bold">Keep your ticket</h1>
+        <p className="text-muted-foreground">Free. Your crest, your name and everything you earn, saved to you.</p>
       </div>
+      <CrewTicket discipline={discipline} name={name} compact />
       <div className="space-y-3">
         {showApple() && <AppleButton />}
         <button type="button" onClick={onEmail} className={cn('btn-game w-full', showApple() ? 'btn-quiet btn-sm' : 'btn-primary')}>
-          <Mail /> {showApple() ? 'Use email instead' : 'Sign up with email'}
+          <Mail /> {showApple() ? 'Use email instead' : 'Save with email'}
         </button>
       </div>
       <p className="text-sm">
-        <Link to="/login" className="text-muted-foreground hover:text-primary">Already on the crew? Sign in</Link>
+        <Link to="/login" className="text-muted-foreground hover:text-foreground">Already on the crew? Sign in</Link>
       </p>
       <p className="text-xs text-muted-foreground">
-        By continuing you agree to the <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{' '}
-        <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+        By continuing you agree to the <Link to="/terms" className="text-accent hover:underline">Terms</Link> and{' '}
+        <Link to="/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
       </p>
     </div>
   );
 }
 
 function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => void }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,10 +493,9 @@ function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => v
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const name = form.name.trim();
-    if (name.length < 2) return setError('Pick a name for the leaderboard (2+ characters).');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError("That email doesn't look right.");
     if (form.password.length < 8) return setError('Password needs at least 8 characters.');
+    const name = store.get(PENDING_NAME)?.trim() || 'Explorer';
 
     setBusy(true);
     const { data, error } = await supabase.auth.signUp({
@@ -291,27 +515,18 @@ function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => v
 
   return (
     <div className="animate-fade-up space-y-6">
-      <h1 className="text-center font-heading text-3xl font-bold text-glow-cyan">Join the crew</h1>
-      <HoloCard glow="cyan" className="p-6">
-        <form onSubmit={submit} className="space-y-4" noValidate>
-          <div className="space-y-1.5">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" autoComplete="nickname" value={form.name} onChange={set('name')} placeholder="How the leaderboard knows you" maxLength={50} className="h-12 text-base" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={form.email} onChange={set('email')} placeholder="you@example.com" className="h-12 text-base" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={set('password')} placeholder="8+ characters" className="h-12 text-base" />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <button type="submit" disabled={busy} className="btn-game btn-primary w-full">
-            {busy ? <Loader2 className="animate-spin" /> : null} Create account
-          </button>
-        </form>
-      </HoloCard>
+      <div className="text-center">
+        <p className="kicker text-accent">Your ticket</p>
+        <h1 className="font-heading text-4xl font-bold">Keep your ticket</h1>
+      </div>
+      <form onSubmit={submit} className="panel space-y-4 p-5" noValidate>
+        <Input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={form.email} onChange={set('email')} placeholder="Email" aria-label="Email" className="h-14 text-lg" autoFocus />
+        <Input type="password" autoComplete="new-password" value={form.password} onChange={set('password')} placeholder="Password (8+ characters)" aria-label="Password" className="h-14 text-lg" />
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <button type="submit" disabled={busy} className="btn-game btn-primary w-full">
+          {busy ? <Loader2 className="animate-spin" /> : null} Save my ticket
+        </button>
+      </form>
       <button type="button" onClick={onBack} className="block w-full py-2 text-center text-muted-foreground hover:text-foreground">
         Back
       </button>
@@ -321,84 +536,135 @@ function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => v
 
 function Inbox() {
   return (
-    <HoloCard glow="cyan" className="animate-scale-in space-y-4 p-8 text-center">
-      <MailCheck className="mx-auto size-14 text-primary" />
+    <div className="panel animate-scale-in space-y-4 p-8 text-center">
+      <MailCheck className="mx-auto size-14 text-accent" />
       <h1 className="font-heading text-3xl font-bold">Check your inbox</h1>
-      <p className="text-muted-foreground">Tap the link we’ve sent and you’re in.</p>
-      <Link to="/login" className="inline-block text-primary hover:underline">Already confirmed? Sign in</Link>
-    </HoloCard>
+      <p className="text-muted-foreground">Tap the link we've sent and your ticket is saved.</p>
+      <Link to="/login" className="inline-block text-accent hover:underline">Already confirmed? Sign in</Link>
+    </div>
   );
 }
 
-function ConnectHealth({ userId, onDone }: { userId: string; onDone: (arrived: number) => void }) {
+/* ─── Beat 5: fuel ───────────────────────────────────────────────────────────── */
+
+function Fuel({ userId, onDone }: { userId: string; onDone: () => void }) {
   const { busy, connect } = useConnectHealth(userId);
+  const [arrived, setArrived] = useState<number | null>(null);
+
+  if (arrived) {
+    return (
+      <div className="animate-fade-up space-y-6">
+        <div className="text-center">
+          <p className="kicker text-accent">Fuel</p>
+          <h1 className="font-heading text-4xl font-bold">Your week, in fuel</h1>
+          <p className="text-muted-foreground">Tap Collect and watch it fill the gauge.</p>
+        </div>
+        <CollectPanel big onCollected={() => setTimeout(onDone, 500)} />
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-up space-y-8 text-center">
       <div className="relative mx-auto flex size-32 items-center justify-center">
-        <div className="absolute inset-0 animate-pulse-soft rounded-full bg-destructive/30 blur-2xl" />
+        <div className="absolute inset-0 animate-pulse-soft rounded-full bg-destructive/25 blur-2xl" />
         <HeartPulse className="relative size-20 text-destructive" />
       </div>
       <div className="space-y-3">
-        <h1 className="font-heading text-4xl font-bold text-glow-cyan">Your workouts are the fuel</h1>
-        <p className="text-lg text-muted-foreground">Connect Apple Health and they arrive here, ready to collect. No logging.</p>
+        <p className="kicker text-accent">Fuel</p>
+        <h1 className="font-heading text-4xl font-bold">Your workouts are the fuel</h1>
+        <p className="text-lg text-muted-foreground">Connect Apple Health and this week's workouts arrive now, ready to collect. No logging.</p>
       </div>
       <div className="space-y-3">
         <button
           type="button"
           onClick={() => {
             tap();
-            void connect().then((r) => onDone(r?.arrived ?? 0));
+            void connect().then((r) => {
+              const n = r?.arrived ?? 0;
+              if (n) {
+                play('chime');
+                setArrived(n);
+              } else onDone();
+            });
           }}
           disabled={busy}
-          className="btn-game btn-pass shine w-full"
+          className="btn-game btn-primary shine w-full"
         >
           {busy ? <Loader2 className="animate-spin" /> : <HeartPulse />} Connect Apple Health
         </button>
-        <button type="button" onClick={() => onDone(0)} className="py-2 text-lg text-muted-foreground hover:text-foreground">
+        <button type="button" onClick={onDone} className="py-2 text-lg text-muted-foreground hover:text-foreground">
           Not now
         </button>
       </div>
-      <p className="text-xs text-muted-foreground">We only read workouts. Nothing is written to Health, and it’s never used for ads.</p>
+      <p className="text-xs text-muted-foreground">We only read workouts. Nothing is written to Health, and it's never used for ads.</p>
     </div>
   );
 }
 
-function FirstQuest({ onDone }: { onDone: () => void }) {
-  const { story, daily } = useQuests();
-  // Ready to claim: the first chapter is done but not yet paid out.
-  const ready = !!story && story.complete && !story.claimed;
+/* ─── Beat 6: the welcome trunk ──────────────────────────────────────────────── */
+
+function Trunk({ onDone }: { onDone: () => void }) {
+  const { story } = useQuests();
+  const momentOpen = useRewardStore((s) => s.queue.length > 0);
+  const isChapterOne = story?.id === 's:fuel';
+  const ready = isChapterOne && story.complete && !story.claimed;
+  const locked = isChapterOne && !story.complete;
+  const opened = !isChapterOne;
+
+  const open = () => {
+    if (!ready || !story) return;
+    play('chest');
+    haptic('heavy');
+    claimQuest(story);
+  };
+
   return (
-    <div className="animate-fade-up space-y-6">
-      <div className="text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">Quests</p>
-        <h1 className="font-heading text-4xl font-bold text-glow-cyan">{ready ? 'Claim your first reward' : 'Here’s how it works'}</h1>
-        <p className="text-muted-foreground">Workouts complete quests. Quests pay out. Three new ones every day.</p>
+    <div className="animate-fade-up space-y-6 text-center">
+      <div>
+        <p className="kicker text-accent">Welcome aboard</p>
+        <h1 className="font-heading text-4xl font-bold">{opened ? 'Trunk opened' : locked ? 'Your trunk' : 'Open your trunk'}</h1>
+        <p className="text-muted-foreground">
+          {opened ? 'Fogg has a place for you on the expedition.' : locked ? 'Your first workout is the key. It opens the moment one arrives.' : 'Every crew member gets one. Tap it.'}
+        </p>
       </div>
-      {story && <QuestRow quest={story} />}
-      <div className="space-y-2 opacity-80">
-        <p className="font-heading text-lg font-bold">Today</p>
-        {daily.map((q) => (
-          <QuestRow key={q.id} quest={q} compact />
-        ))}
-      </div>
-      <button type="button" onClick={onDone} className={cn('btn-game w-full', ready ? 'btn-quiet btn-sm' : 'btn-primary shine')}>
-        {ready ? 'Later' : 'Next'}
+      <button type="button" onClick={open} disabled={!ready} className={cn('press relative mx-auto block', ready && 'animate-wobble')} aria-label={ready ? 'Open the trunk' : 'Trunk'}>
+        <Chest tier="bronze" size={220} open={opened} className={cn(locked && 'opacity-60 grayscale')} />
+        {locked && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex size-14 items-center justify-center rounded-full bg-background/80 ring-2 ring-border">
+              <Lock className="size-7 text-muted-foreground" />
+            </span>
+          </span>
+        )}
       </button>
+      {(opened || locked) && !momentOpen && (
+        <button type="button" onClick={onDone} className="btn-game btn-go shine animate-fade-up w-full">
+          Set sail
+        </button>
+      )}
     </div>
   );
 }
 
-function Nudges({ onDone }: { onDone: () => void }) {
+/* ─── Beat 7: Detective Fix is coming ────────────────────────────────────────── */
+
+function FixWarning({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   return (
     <div className="animate-fade-up space-y-8 text-center">
-      <div className="relative mx-auto flex size-32 items-center justify-center">
-        <div className="absolute inset-0 rounded-full bg-destructive/25 blur-2xl" />
-        <Bell className="relative size-20 animate-wobble text-destructive" />
+      <div className="relative mx-auto size-40">
+        <div className="absolute inset-0 rounded-full bg-destructive/20 blur-2xl" />
+        <img
+          src={artSrc('fix', fixPortrait)}
+          alt="Detective Fix"
+          className={cn('relative size-40', hasArt('fix') ? 'object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]' : 'rounded-full border-2 border-destructive/50 object-cover')}
+        />
       </div>
       <div className="space-y-3">
-        <h1 className="font-heading text-4xl font-bold text-glow-cyan">Detective Fix is coming</h1>
-        <p className="text-lg text-muted-foreground">Every two weeks he sabotages the voyage. Want a heads-up when he strikes, and when new quests land?</p>
+        <p className="kicker text-destructive">A warning</p>
+        <h1 className="font-heading text-4xl font-bold">Detective Fix is coming</h1>
+        <p className="text-lg text-muted-foreground">Every two weeks he sabotages the voyage. Want a heads-up when he strikes, and when telegrams land?</p>
       </div>
       <div className="space-y-3">
         <button
@@ -413,7 +679,7 @@ function Nudges({ onDone }: { onDone: () => void }) {
           disabled={busy}
           className="btn-game btn-danger shine w-full"
         >
-          {busy ? <Loader2 className="animate-spin" /> : <Bell />} Warn me
+          {busy ? <Loader2 className="animate-spin" /> : null} Warn me
         </button>
         <button type="button" onClick={onDone} className="py-2 text-muted-foreground hover:text-foreground">
           Not now

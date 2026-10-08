@@ -215,7 +215,7 @@ export function SegmentedProgress({
 }
 
 // ─── Form controls ──────────────────────────────────────────────
-const FIELD = 'flex w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 md:text-sm'
+const FIELD = 'flex w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 md:text-sm'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(({ className, ...props }, ref) => (
   <input ref={ref} className={cn(FIELD, 'h-10', className)} {...props} />
@@ -262,7 +262,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
       aria-label={label}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         checked ? 'bg-primary' : 'bg-input',
       )}
     >
@@ -326,7 +326,7 @@ export function Dialog({
     <dialog
       ref={ref}
       className={cn(
-        'modal fixed inset-0 m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border-2 border-primary/50 bg-background p-6 text-foreground shadow-lg backdrop:bg-black/80',
+        'modal fixed inset-0 m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border-2 border-accent/50 bg-background p-6 text-foreground shadow-lg backdrop:bg-black/80',
         open && 'animate-scale-in',
         className,
       )}
@@ -344,7 +344,7 @@ export function Dialog({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             aria-label="Close"
           >
             <X className="size-4" />

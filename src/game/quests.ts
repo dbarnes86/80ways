@@ -167,7 +167,7 @@ export function weeklyQuests(ctx: QuestContext): Quest[] {
 /** The story chapters in order. The first unclaimed one is the player's current chapter. */
 export function storyQuests(ctx: QuestContext): Quest[] {
   const list: Quest[] = [
-    make('story', '', 'fuel', ctx, { title: 'Fuel the engine', hint: 'Bring in your first workout', progress: ctx.activities.length, target: 1, xp: 50, credits: 25 }),
+    make('story', '', 'fuel', ctx, { title: 'Fuel the engine', hint: 'Bring in your first workout', progress: ctx.activities.length, target: 1, xp: 0, credits: 0, chest: 'bronze' }),
     make('story', '', 'liftoff', ctx, { title: 'Lift Off', hint: 'Fill the departure meter', progress: ctx.starterEventCompleted ? 1 : 0, target: 1, xp: 0, credits: 0, chest: 'bronze' }),
     make('story', '', 'board', ctx, { title: 'Board the ship', hint: 'Set sail once Lift Off is done', progress: ctx.joinedSeason ? 1 : 0, target: 1, xp: 100, credits: 50, action: 'board' }),
   ];
