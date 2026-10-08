@@ -18,7 +18,7 @@ const outDir = path.join(root, 'public/art');
 const manifestPath = path.join(root, 'src/game/artManifest.json');
 const spec = JSON.parse(await fs.readFile(path.join(root, 'scripts/art/assets.json'), 'utf8'));
 
-const API = 'https://api.higgsfield.ai';
+const API = process.env.HF_API ?? 'https://api.higgsfield.ai';
 const headers = { 'Content-Type': 'application/json' };
 if (process.env.HF_KEY) headers.Authorization = `Key ${process.env.HF_KEY}`;
 
@@ -30,21 +30,43 @@ async function exists(p) {
   return fs.access(p).then(() => true, () => false);
 }
 
+/**
+ * Model names change; try these in order and keep the first the account accepts. Each has its own
+ * input shape. Force one with HF_MODEL=<name> (it gets the generic shape).
+ */
+const MODELS = [
+  { id: 'flux-pro/kontext/max/text-to-image', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect, safety_tolerance: 2 }) },
+  { id: 'bytedance/seedream/v4/text-to-image', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect, resolution: '2K' }) },
+  { id: 'higgsfield-ai/soul/standard', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) },
+];
+let chosen = process.env.HF_MODEL ? { id: process.env.HF_MODEL, body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) } : null;
+
+async function submitJob(asset) {
+  const prompt = `${asset.prompt}. ${spec.style}`;
+  const candidates = chosen ? [chosen] : MODELS;
+  for (const model of candidates) {
+    const res = await fetch(`${API}/${model.id}`, { method: 'POST', headers, body: JSON.stringify(model.body(prompt, asset.aspect)) });
+    const job = await res.json().catch(() => ({}));
+    if (res.status === 404 && !chosen) continue; // not on this account; try the next
+    if (!res.ok) throw new Error(`${asset.name}: ${model.id} ${res.status} ${JSON.stringify(job)}`);
+    if (!chosen) {
+      chosen = model;
+      console.log(`Using model ${model.id}`);
+    }
+    return job;
+  }
+  throw new Error(`${asset.name}: none of the models were found (${MODELS.map((m) => m.id).join(', ')}). Set HF_MODEL to one your account has.`);
+}
+
 async function generate(asset) {
-  const submit = await fetch(`${API}/${spec.model}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ prompt: `${asset.prompt}. ${spec.style}`, resolution: '2K', aspect_ratio: asset.aspect }),
-  });
-  const job = await submit.json();
-  if (!submit.ok) throw new Error(`${asset.name}: ${submit.status} ${JSON.stringify(job)}`);
+  const job = await submitJob(asset);
 
   for (let i = 0; i < 180; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const res = await fetch(job.status_url, { headers });
     const status = await res.json();
     if (status.status === 'completed') {
-      const url = status.images?.[0]?.url;
+      const url = status.images?.[0]?.url ?? status.jobs?.[0]?.results?.raw?.url ?? status.results?.raw?.url;
       if (!url) throw new Error(`${asset.name}: completed without an image`);
       const img = await fetch(url);
       const file = path.join(outDir, `${asset.name}.png`);
@@ -58,6 +80,7 @@ async function generate(asset) {
 
 await fs.mkdir(outDir, { recursive: true });
 const todo = [];
+
 for (const asset of spec.assets) {
   if (only.length && !only.includes(asset.name)) continue;
   if (!force && (await exists(path.join(outDir, `${asset.name}.png`)))) continue;
@@ -67,6 +90,21 @@ console.log(`Generating ${todo.length} asset(s)…`);
 
 // A few at a time: quick, without tripping rate limits.
 const failures = [];
+// The first asset finds a working model on its own, so the rest don't all probe at once.
+if (todo.length && !chosen) {
+  const a = todo.shift();
+  await generate(a).then(
+    (f) => console.log(`✓ ${a.name} → ${path.relative(root, f)}`),
+    (e) => {
+      failures.push(a.name);
+      console.error(`✗ ${e.message}`);
+    },
+  );
+  if (!chosen) {
+    console.error('Stopping: no working model yet, so the rest would fail the same way.');
+    process.exit(1);
+  }
+}
 for (let i = 0; i < todo.length; i += 4) {
   await Promise.all(
     todo.slice(i, i + 4).map((a) =>
