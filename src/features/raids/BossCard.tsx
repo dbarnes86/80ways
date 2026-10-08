@@ -6,6 +6,7 @@ import { ENERGY_THEME } from '@/data/energyTheme';
 import { bossPhase, formatTimeLeft, type ScheduledRaid } from '@/data/raids';
 import type { RaidTotals } from '@/stores/raidStore';
 import fixPortrait from '@/assets/fix-portrait.jpg';
+import { artSrc, hasArt } from '@/game/art';
 
 export interface Hit {
   id: number;
@@ -89,9 +90,9 @@ export function BossCard({
             )}
           >
             <img
-              src={fixPortrait}
+              src={artSrc('fix', fixPortrait)}
               alt="Detective Fix"
-              className={cn('size-full object-cover transition-all duration-700', defeated && 'grayscale', phase === 2 && 'saturate-150 hue-rotate-[-15deg]')}
+              className={cn('size-full', hasArt('fix') ? 'scale-110 object-contain pt-2' : 'object-cover', 'transition-all duration-700', defeated && 'grayscale', phase === 2 && 'saturate-150 hue-rotate-[-15deg]')}
             />
             {shaking && <div className="animate-flash pointer-events-none absolute inset-0 bg-white mix-blend-overlay" />}
             {defeated && (

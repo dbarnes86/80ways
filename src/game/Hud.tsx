@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bike, Dumbbell, PersonStanding, Waves } from 'lucide-react';
 import { ENERGY_TYPES, getLevelFromXP } from '@/data/gameConstants';
 import { computeStreak } from '@/lib/gameEngine';
 import { cn } from '@/components/ui';
 import { useActivityStore } from '@/stores/activityStore';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useProgressionStore } from '@/stores/progressionStore';
-import { useUserStore, type Discipline } from '@/stores/userStore';
-import { Coin, Flame } from './art';
+import { useUserStore } from '@/stores/userStore';
+import { Coin, DISCIPLINE_ICON, Flame } from './art';
 import { useRewardStore } from './rewards';
 
 /** A number that counts towards its new value, and bumps when it goes up. */
@@ -41,12 +40,7 @@ export function useCountUp(value: number, ms = 700): [number, boolean] {
   return [shown, bump];
 }
 
-export const DISCIPLINE_ICON: Record<Discipline, typeof Waves> = {
-  runner: PersonStanding,
-  rider: Bike,
-  swimmer: Waves,
-  lifter: Dumbbell,
-};
+export { DISCIPLINE_ICON };
 
 function LevelRing({ size = 44 }: { size?: number }) {
   const heldXp = useRewardStore((s) => s.held.xp);

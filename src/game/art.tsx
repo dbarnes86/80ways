@@ -5,28 +5,29 @@
 import type { SVGProps } from 'react';
 import type { EnergyType } from '@/data/gameConstants';
 import manifest from './artManifest.json';
+import { Bike, Dumbbell, PersonStanding, Waves } from 'lucide-react';
+import type { Discipline } from '@/stores/userStore';
 
 type ArtProps = SVGProps<SVGSVGElement> & { size?: number };
 
 /** Generated art (scripts/art/generate.mjs) wins over the hand-drawn SVG when it exists. */
 const GENERATED = new Set<string>(manifest as string[]);
 export const hasArt = (name: string) => GENERATED.has(name);
+/** The generated image's URL, or the fallback when there isn't one. */
+export const artSrc = (name: string, fallback: string) => (hasArt(name) ? `/art/${name}.webp` : fallback);
 
-/**
- * A generated image on a black background. Screen blending drops the black, so it sits on the
- * dark UI like the SVGs do, glow and all.
- */
+/** A generated image, background already cut away (scripts/art/optimize.mjs). */
 export function ArtImage({ name, size, width, height, className, style }: { name: string; size?: number; width?: number; height?: number; className?: string; style?: React.CSSProperties }) {
   return (
     <img
-      src={`/art/${name}.png`}
+      src={`/art/${name}.webp`}
       alt=""
       aria-hidden
       draggable={false}
       width={width ?? size}
       height={height ?? size}
       className={className}
-      style={{ mixBlendMode: 'screen', objectFit: 'contain', ...style }}
+      style={{ width: width ?? size, height: height ?? size, objectFit: 'contain', ...style }}
     />
   );
 }
@@ -137,4 +138,18 @@ export function Flame({ size = 20, lit = true, ...props }: ArtProps & { lit?: bo
       <path d="M12 13c.6 1.5 2 2 2 3.6a2 2 0 0 1-4 0c0-1 .6-1.7 1.2-2.2.1.5.4.8.8 1z" fill={lit ? '#ffd24a' : '#777'} />
     </svg>
   );
+}
+
+export const DISCIPLINE_ICON: Record<Discipline, typeof Waves> = {
+  runner: PersonStanding,
+  rider: Bike,
+  swimmer: Waves,
+  lifter: Dumbbell,
+};
+
+/** Your character: the generated avatar for your discipline, or its line icon until there is one. */
+export function Avatar({ discipline, size = 56, className, iconClassName }: { discipline: Discipline; size?: number; className?: string; iconClassName?: string }) {
+  if (hasArt(`avatar-${discipline}`)) return <ArtImage name={`avatar-${discipline}`} size={size} className={className} />;
+  const Icon = DISCIPLINE_ICON[discipline];
+  return <Icon className={iconClassName} />;
 }

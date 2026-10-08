@@ -16,7 +16,7 @@ import { DeleteAccount } from '@/features/DeleteAccount';
 import { HealthSetting } from '@/features/health';
 import { Passport } from '@/game/Passport';
 import { isUnlocked } from '@/game/unlocks';
-import { DISCIPLINE_ICON } from '@/game/Hud';
+import { Avatar } from '@/game/art';
 import { floatReward } from '@/game/rewards';
 import { isMuted, play, setMuted } from '@/game/sfx';
 import { toast } from '@/components/toast';
@@ -111,7 +111,6 @@ export default function Profile() {
   }, [progression, stats, activities, raidXpAwarded, season.participation, hasJoined, best]);
 
   const earned = achievements.filter((a) => a.isEarned).length;
-  const Icon = DISCIPLINE_ICON[discipline ?? 'runner'];
   const since = user?.created_at ? new Date(user.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '';
 
   return (
@@ -119,7 +118,7 @@ export default function Profile() {
       {/* Who */}
       <div className="flex items-center gap-4">
         <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 ring-2 ring-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.4)]">
-          <Icon className="size-10 text-primary" />
+          <Avatar discipline={discipline ?? 'runner'} size={76} className="-mt-3" iconClassName="size-10 text-primary" />
           <span className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-primary font-heading text-lg font-bold text-primary-foreground ring-4 ring-background">
             {progression.level}
           </span>

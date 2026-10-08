@@ -5,6 +5,7 @@
  *
  *   HF_KEY=key_id:key_secret node scripts/art/generate.mjs           # missing assets only
  *   HF_KEY=... node scripts/art/generate.mjs --force ship coin       # regenerate named ones
+ *   node scripts/art/generate.mjs --optimize-only                    # redo cut-outs from scripts/art/raw
  *
  * In a Claude Code cloud session with Higgsfield connected, HF_KEY isn't needed: the network proxy
  * adds the credentials.
@@ -12,9 +13,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { optimize } from './optimize.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const outDir = path.join(root, 'public/art');
+// Full-size originals, kept out of git; only the optimised WebPs ship.
+const rawDir = path.join(root, 'scripts/art/raw');
 const manifestPath = path.join(root, 'src/game/artManifest.json');
 const spec = JSON.parse(await fs.readFile(path.join(root, 'scripts/art/assets.json'), 'utf8'));
 
@@ -69,8 +73,10 @@ async function generate(asset) {
       const url = status.images?.[0]?.url ?? status.jobs?.[0]?.results?.raw?.url ?? status.results?.raw?.url;
       if (!url) throw new Error(`${asset.name}: completed without an image`);
       const img = await fetch(url);
-      const file = path.join(outDir, `${asset.name}.png`);
-      await fs.writeFile(file, Buffer.from(await img.arrayBuffer()));
+      const raw = path.join(rawDir, `${asset.name}.png`);
+      await fs.writeFile(raw, Buffer.from(await img.arrayBuffer()));
+      const file = path.join(outDir, `${asset.name}.webp`);
+      await optimize(raw, file, asset.name);
       return file;
     }
     if (['failed', 'nsfw', 'canceled'].includes(status.status)) throw new Error(`${asset.name}: ${status.status}`);
@@ -79,11 +85,22 @@ async function generate(asset) {
 }
 
 await fs.mkdir(outDir, { recursive: true });
+await fs.mkdir(rawDir, { recursive: true });
+
+// --optimize-only: re-run the cut-out and resize on originals already downloaded.
+if (args.includes('--optimize-only')) {
+  for (const f of (await fs.readdir(rawDir)).filter((f) => f.endsWith('.png'))) {
+    const name = f.replace(/\.png$/, '');
+    await optimize(path.join(rawDir, f), path.join(outDir, `${name}.webp`), name);
+    console.log(`✓ ${name}`);
+  }
+}
 const todo = [];
 
 for (const asset of spec.assets) {
   if (only.length && !only.includes(asset.name)) continue;
-  if (!force && (await exists(path.join(outDir, `${asset.name}.png`)))) continue;
+  if (args.includes('--optimize-only')) break;
+  if (!force && (await exists(path.join(outDir, `${asset.name}.webp`)))) continue;
   todo.push(asset);
 }
 console.log(`Generating ${todo.length} asset(s)…`);
@@ -120,7 +137,12 @@ for (let i = 0; i < todo.length; i += 4) {
 }
 
 // The manifest lists every image present, so the app only uses art that exists.
-const files = (await fs.readdir(outDir)).filter((f) => f.endsWith('.png')).map((f) => f.replace(/\.png$/, '')).sort();
+const skip = new Set(spec.skip ?? []);
+const files = (await fs.readdir(outDir))
+  .filter((f) => f.endsWith('.webp'))
+  .map((f) => f.replace(/\.webp$/, ''))
+  .filter((n) => !skip.has(n))
+  .sort();
 await fs.writeFile(manifestPath, JSON.stringify(files, null, 2) + '\n');
 console.log(`Manifest: ${files.length} image(s). ${failures.length ? `Failed: ${failures.join(', ')}` : 'All done.'}`);
 process.exit(failures.length ? 1 : 0);

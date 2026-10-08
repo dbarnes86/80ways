@@ -18,8 +18,7 @@ import { useUserStore, type Discipline } from '@/stores/userStore';
 import { useInboxStore } from '@/stores/inboxStore';
 import { CollectPanel } from '@/game/CollectPanel';
 import { QuestRow } from '@/game/QuestRow';
-import { DISCIPLINE_ICON } from '@/game/Hud';
-import { Ship } from '@/game/art';
+import { artSrc, Avatar, hasArt, Ship } from '@/game/art';
 import { useQuests } from '@/game/questActions';
 import { play } from '@/game/sfx';
 
@@ -133,7 +132,11 @@ function Story({ onDone }: { onDone: () => void }) {
         {i === 0 && (
           <div className="relative mx-auto size-40">
             <div className="absolute inset-0 rounded-full bg-primary/25 blur-2xl" />
-            <img src={foggPortrait} alt="Phileas Fogg" className="relative size-40 rounded-full border-2 border-primary/50 object-cover" />
+            {hasArt('fogg') ? (
+              <img src={artSrc('fogg', foggPortrait)} alt="Phileas Fogg" className="relative size-40 object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
+            ) : (
+              <img src={foggPortrait} alt="Phileas Fogg" className="relative size-40 rounded-full border-2 border-primary/50 object-cover" />
+            )}
           </div>
         )}
         {i === 1 && <p className="font-heading text-8xl font-bold text-warning drop-shadow-[0_0_20px_hsl(var(--warning)/0.6)]">80</p>}
@@ -176,7 +179,6 @@ function PickDiscipline({ onDone }: { onDone: () => void }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         {DISCIPLINES.map((d) => {
-          const Icon = DISCIPLINE_ICON[d.id];
           const theme = ENERGY_THEME[d.energy];
           return (
             <button
@@ -189,7 +191,7 @@ function PickDiscipline({ onDone }: { onDone: () => void }) {
                 picked && picked !== d.id && 'opacity-40',
               )}
             >
-              <Icon className={cn('size-14', theme.text)} />
+              <Avatar discipline={d.id} size={88} className="-my-2 drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)]" iconClassName={cn('size-14', theme.text)} />
               <span className="font-heading text-2xl font-bold text-foreground">{d.label}</span>
               <span className="text-xs text-muted-foreground">{d.blurb}</span>
             </button>

@@ -1,5 +1,5 @@
 {
-  "style": "stylised 3D mobile game art in the style of Supercell, chunky readable shapes, soft rim lighting, glossy materials, neon Victorian steampunk, vibrant cyan, magenta and gold accents, centred single subject, on a pure black background, no text, no watermark, no border",
+  "style": "stylised 3D mobile game art in the style of Supercell, chunky readable shapes, soft rim lighting, glossy materials, neon Victorian steampunk, vibrant cyan, magenta and gold accents, centred single subject, on a pure black background, absolutely no text, letters, words, numbers, banners or labels anywhere, no watermark, no border",
   "assets": [
     {
       "name": "ship",
@@ -14,7 +14,7 @@
     {
       "name": "chest-bronze",
       "aspect": "1:1",
-      "prompt": "a closed small wooden treasure chest with bronze bands and a keyhole, game loot box"
+      "prompt": "a closed small wooden treasure chest with bronze bands and a keyhole, lid shut, game loot box"
     },
     {
       "name": "chest-bronze-open",
@@ -44,22 +44,22 @@
     {
       "name": "orb-nautical",
       "aspect": "1:1",
-      "prompt": "a glowing cyan energy orb with swirling water waves inside, lightning bolt icon in the centre"
+      "prompt": "a glowing cyan energy orb with swirling water waves inside, a simple white lightning bolt shape in the centre, nothing around the orb"
     },
     {
       "name": "orb-terrestrial",
       "aspect": "1:1",
-      "prompt": "a glowing lime green energy orb with swirling leaves and earth inside, lightning bolt icon in the centre"
+      "prompt": "a glowing lime green energy orb with swirling leaves and earth inside, a simple white lightning bolt shape in the centre, nothing around the orb"
     },
     {
       "name": "orb-transport",
       "aspect": "1:1",
-      "prompt": "a glowing orange energy orb with spinning gears and wheels inside, lightning bolt icon in the centre"
+      "prompt": "a glowing orange energy orb with spinning gears and wheels inside, a simple white lightning bolt shape in the centre, nothing around the orb"
     },
     {
       "name": "orb-strength",
       "aspect": "1:1",
-      "prompt": "a glowing magenta energy orb with crackling power inside, lightning bolt icon in the centre"
+      "prompt": "a glowing magenta energy orb with crackling power inside, a simple white lightning bolt shape in the centre, nothing around the orb"
     },
     {
       "name": "fogg",
@@ -94,57 +94,67 @@
     {
       "name": "stamp-paris",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing the Eiffel Tower"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing the Eiffel Tower"
     },
     {
       "name": "stamp-suez",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing a steamship on the Suez Canal with palm trees"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a steamship on the Suez Canal with palm trees"
     },
     {
       "name": "stamp-bombay",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing the Gateway of India arch"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing the Gateway of India arch"
     },
     {
       "name": "stamp-calcutta",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing an elephant with a howdah"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing an elephant with a howdah"
     },
     {
       "name": "stamp-hong-kong",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing a junk boat with red sails"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a junk boat with red sails"
     },
     {
       "name": "stamp-yokohama",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing Mount Fuji and a torii gate"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Mount Fuji and a torii gate"
     },
     {
       "name": "stamp-san-francisco",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing a steam train and hills"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a steam train and hills"
     },
     {
       "name": "stamp-new-york",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing a Victorian New York skyline with a harbour"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a Victorian New York skyline with a harbour"
     },
     {
       "name": "stamp-liverpool",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing Liverpool docks and a lighthouse"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Liverpool docks and a lighthouse"
     },
     {
       "name": "stamp-london",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing Big Ben clock tower"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Big Ben clock tower"
     },
     {
       "name": "stamp-london-port",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp showing an anchor and crates on a dock"
+      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing an anchor and crates on a dock"
     }
+  ],
+  "skip": [
+    "orb-nautical",
+    "orb-terrestrial",
+    "orb-transport",
+    "orb-strength",
+    "chest-bronze",
+    "chest-bronze-open",
+    "chest-silver",
+    "chest-silver-open"
   ]
 }
