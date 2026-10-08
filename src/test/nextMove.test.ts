@@ -30,10 +30,18 @@ describe('nextMove', () => {
     expect(nextMove({ ...base, claimable: quest }).action).toBe('claim');
   });
 
-  it('before Lift Off, says how much is left', () => {
-    const m = nextMove(base);
+  it('before Lift Off, says how much is left and names the workout', () => {
+    const m = nextMove({ ...base, discipline: 'runner' });
     expect(m.id).toBe('liftoff');
     expect(m.title).toBe('3.5 kWh to Lift Off');
+    expect(m.body).toMatch(/^A \d+-minute run does it\./);
+  });
+
+  it('an armed Amplifier halves the workout it names', () => {
+    const plain = nextMove({ ...base, discipline: 'lifter' }).body.match(/(\d+)-minute/)![1];
+    const armed = nextMove({ ...base, discipline: 'lifter', armed: true }).body.match(/(\d+)-minute/)![1];
+    expect(Number(armed)).toBeLessThan(Number(plain));
+    expect(nextMove({ ...base, discipline: 'lifter', armed: true }).body).toContain('Amplifier armed');
   });
 
   it('after Lift Off, board the ship (free)', () => {

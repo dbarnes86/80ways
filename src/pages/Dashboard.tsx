@@ -40,6 +40,8 @@ const Dashboard = () => {
   const inbox = useInboxStore((s) => s.items.length);
   const credits = useUserStore((s) => s.inventory.credits);
   const inventory = useUserStore((s) => s.inventory);
+  const discipline = useUserStore((s) => s.discipline);
+  const armed = useUserStore((s) => s.armedBooster === 'energyAmplifier' && s.inventory.energyAmplifier > 0);
   useMembershipStore((s) => s.membership); // re-render when the pass changes
   const { user } = useAuth();
   const quests = useQuests();
@@ -88,6 +90,8 @@ const Dashboard = () => {
     cheapestBooster: Math.min(...Object.values(BOOSTERS).map((b) => b.price)),
     storeOpen: isUnlocked('store', progression.level),
     raidsOpen: isUnlocked('raids', progression.level),
+    discipline,
+    armed,
   });
 
   const board = async () => {
@@ -117,7 +121,7 @@ const Dashboard = () => {
           to: 'Lift Off',
           progress: progression.starterEventProgress / STARTER_EVENT.requiredEnergy,
           headline: 'Lift Off',
-          sub: `${progression.starterEventProgress.toFixed(1)} of ${STARTER_EVENT.requiredEnergy} kWh`,
+          sub: `${progression.starterEventProgress.toFixed(1)} of ${STARTER_EVENT.requiredEnergy} kWh${armed ? ' · next workout ×2' : ''}`,
           docked: true,
         };
 

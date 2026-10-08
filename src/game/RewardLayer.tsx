@@ -7,6 +7,7 @@ import { burstCoins, centreOf } from './fx';
 import { play } from './sfx';
 import { celebrate, flyTokens, useRewardStore, type RewardMoment } from './rewards';
 import { unlockLevel, useUnlocked } from './unlocks';
+import { useUserStore } from '@/stores/userStore';
 
 /** The palette's confetti: brass, paper, a little Volt and verdigris. */
 const CONFETTI = ['#D9A441', '#F2EAD8', '#3DE1F5', '#4FB58A'];
@@ -93,6 +94,8 @@ function ChestMoment({ m, onDone }: { m: Extract<RewardMoment, { kind: 'chest' }
       burstCoins({ x: c.x, y: c.y - 20 }, m.tier === 'gold' ? 22 : m.tier === 'silver' ? 16 : 12);
     }
     setTimeout(() => play('spill'), 220);
+    // Found kit is armed on the spot, so the reward has a use the moment it appears.
+    if (m.booster) useUserStore.getState().armBooster(m.booster);
   };
   return (
     <button type="button" onClick={openIt} className="relative flex w-full flex-col items-center gap-6 text-center">
@@ -106,11 +109,11 @@ function ChestMoment({ m, onDone }: { m: Extract<RewardMoment, { kind: 'chest' }
           <RewardChips xp={m.xp} credits={m.credits} delay={0.45} />
           {m.booster && (
             <p className="animate-pop font-heading text-lg font-bold text-accent" style={{ animationDelay: '0.75s' }}>
-              + {BOOSTERS[m.booster].name}
+              + {BOOSTERS[m.booster].name}: armed
             </p>
           )}
           <p className="animate-pop text-base text-muted-foreground" style={{ animationDelay: '0.9s' }}>
-            {m.booster ? 'Use it when you collect your next workout.' : storeOpen ? 'Coins buy boosters in the Store.' : `Save them: the Store opens at level ${unlockLevel('store')}.`}
+            {m.booster ? `${BOOSTERS[m.booster].description} It fires on your next workout.` : storeOpen ? 'Coins buy boosters in the Store.' : `Save them: the Store opens at level ${unlockLevel('store')}.`}
           </p>
           <span className="btn-game btn-gold w-full animate-pop" style={{ animationDelay: '1s' }}>
             Collect

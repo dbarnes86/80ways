@@ -3,6 +3,8 @@
  * game and has exactly one button to press. Pure, so the order is testable.
  */
 import { ENERGY_THEME } from '@/data/energyTheme';
+import { liftOffAdvice } from './coach';
+import type { Discipline } from '@/stores/userStore';
 import type { EnergyType } from '@/data/gameConstants';
 import { chargeHint, type Quest } from './quests';
 
@@ -40,6 +42,9 @@ export interface NextMoveInput {
   /** Unlocked yet (see unlocks.ts). */
   storeOpen: boolean;
   raidsOpen: boolean;
+  discipline?: Discipline | null;
+  /** An Amplifier is armed for the next workout. */
+  armed?: boolean;
 }
 
 export function nextMove(s: NextMoveInput): NextMove {
@@ -57,7 +62,7 @@ export function nextMove(s: NextMoveInput): NextMove {
       id: 'liftoff',
       kicker: 'Lift Off',
       title: `${left.toFixed(1)} kWh to Lift Off`,
-      body: s.healthOn ? 'Do any workout. It lands here when you finish.' : 'Any workout charges you up. Log one.',
+      body: `${liftOffAdvice(left, s.discipline ?? null, !!s.armed)?.line ?? 'Any workout counts.'} ${s.healthOn ? 'It lands here when you finish.' : 'Log it when you’re done.'}`,
       action: 'log',
       cta: s.healthOn ? 'Log one by hand' : 'Log a workout',
     };

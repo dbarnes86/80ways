@@ -5,6 +5,8 @@ import { cn } from '@/components/ui';
 import type { LogActivityResult } from '@/lib/gameActions';
 import { useInboxStore, type InboxItem } from '@/stores/inboxStore';
 import { useUserStore } from '@/stores/userStore';
+import { BOOSTERS } from '@/data/gameConstants';
+import { floatReward } from './rewards';
 import { Orb } from './art';
 import { announceMilestones, collectItem, previewEnergy } from './collect';
 import { centreOf, flyOrbs } from './fx';
@@ -50,8 +52,10 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
   const refs = useRef(new Map<string, HTMLElement>());
   const amplifiers = useUserStore((s) => s.inventory.energyAmplifier);
   const multiCharges = useUserStore((s) => s.inventory.multiCharge);
-  const [useAmp, setUseAmp] = useState(false);
-  const [useMulti, setUseMulti] = useState(false);
+  // A booster armed earlier (from a chest, or on Home) is on by default: the reward gets used.
+  const armed = useUserStore((s) => s.armedBooster);
+  const [useAmp, setUseAmp] = useState(() => armed === 'energyAmplifier' && amplifiers > 0);
+  const [useMulti, setUseMulti] = useState(() => armed === 'multiCharge' && multiCharges > 0);
 
   if (!items.length && !busy) return null;
 
@@ -76,6 +80,11 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
       const boost = queue[i] === best ? { amplifier: useAmp, multiCharge: useMulti } : {};
       const r = await collectOne(queue[i], Math.min(i * 2, 12), boost);
       if (r) results.push(r);
+    }
+    if (useAmp || useMulti) {
+      const fired = useAmp ? 'energyAmplifier' : 'multiCharge';
+      floatReward(`${BOOSTERS[fired].name} fired${useAmp ? ': ×2' : ''}`, 'streak');
+      if (armed === fired) useUserStore.getState().armBooster(null);
     }
     setUseAmp(false);
     setUseMulti(false);
@@ -134,7 +143,7 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
       {(amplifiers > 0 || multiCharges > 0) && !busy && (
         <div className="flex gap-2">
           {amplifiers > 0 && (
-            <BoosterChip on={useAmp} onClick={() => setUseAmp((v) => !v)} label="Amplifier ×2" count={amplifiers} />
+            <BoosterChip on={useAmp} onClick={() => setUseAmp((v) => !v)} label={useAmp ? 'Amplifier ×2 armed' : 'Amplifier ×2'} count={amplifiers} />
           )}
           {multiCharges > 0 && (
             <BoosterChip on={useMulti} onClick={() => setUseMulti((v) => !v)} label="Multi-Charge" count={multiCharges} />

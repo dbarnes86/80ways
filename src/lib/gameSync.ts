@@ -130,6 +130,7 @@ const buildGameState = (): GameState => {
       questsClaimed: u.questsClaimed,
       deployLog: u.deployLog,
       discipline: u.discipline,
+      armedBooster: u.armedBooster,
     },
   };
 };
