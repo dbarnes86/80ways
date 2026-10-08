@@ -7,18 +7,18 @@ import foggPortrait from "@/assets/fogg-portrait.jpg";
 import passepartoutPortrait from "@/assets/passepartout-portrait.jpg";
 import fixPortrait from "@/assets/fix-portrait.jpg";
 import aoudaPortrait from "@/assets/aouda-portrait.jpg";
-import riftLogo from "@/assets/rift-logo.png";
+import { StudioMark } from "@/components/StudioMark";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button, Card } from '@/components/ui';
 
-type SplashPhase = "rift" | "title" | "done";
+type SplashPhase = "studio" | "title" | "done";
 
 export default function Landing() {
   const { user } = useAuth();
-  const [splashPhase, setSplashPhase] = useState<SplashPhase>("rift");
+  const [splashPhase, setSplashPhase] = useState<SplashPhase>("studio");
 
   useEffect(() => {
-    // RIFT logo: fade in 0.8s, hold 1.5s, fade out 0.8s = ~3.1s
+    // Studio mark: fade in 0.8s, hold 1.5s, fade out 0.8s = ~3.1s
     const titleTimer = setTimeout(() => setSplashPhase("title"), 3100);
     // Title: fade in 0.8s, hold 2s, then show full page
     const doneTimer = setTimeout(() => setSplashPhase("done"), 6000);
@@ -41,12 +41,12 @@ export default function Landing() {
         aria-label="Skip intro"
       >
         <>
-          {splashPhase === "rift" && (
+          {splashPhase === "studio" && (
             <div
-              key="rift"
+              key="studio"
               className="flex flex-col items-center animate-fade-up"
             >
-              <img src={riftLogo} alt="RIFT" className="w-40 h-auto invert" />
+              <StudioMark className="text-5xl text-foreground" />
             </div>
           )}
           {splashPhase === "title" && (
