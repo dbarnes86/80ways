@@ -14,16 +14,16 @@ import { getRaidSchedule, getRaidStatus } from '@/data/raids';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 
 describe('calculateActivityEnergy', () => {
-  it('gives 0.5 kWh for a moderate 30-minute matched activity', () => {
+  it('gives 1 kWh for a moderate 30-minute matched activity', () => {
     const r = calculateActivityEnergy({ durationMin: 30, intensity: 'moderate', activityType: 'Running', targetType: 'terrestrial' });
-    expect(r.actualEnergy).toBeCloseTo(0.5);
+    expect(r.actualEnergy).toBeCloseTo(1);
     expect(r.isOptimal).toBe(true);
   });
 
   it('halves energy when cross-charging and adds the distance bonus', () => {
     const r = calculateActivityEnergy({ durationMin: 60, intensity: 'vigorous', distanceKm: 10, activityType: 'Running', targetType: 'nautical' });
-    expect(r.baseEnergy).toBeCloseTo(1.5 + 1.0);
-    expect(r.actualEnergy).toBeCloseTo(1.25);
+    expect(r.baseEnergy).toBeCloseTo(3.0 + 2.0);
+    expect(r.actualEnergy).toBeCloseTo(2.5);
     expect(r.isOptimal).toBe(false);
   });
 
@@ -31,8 +31,8 @@ describe('calculateActivityEnergy', () => {
     const r = calculateActivityEnergy({
       durationMin: 60, intensity: 'moderate', activityType: 'Rowing', targetType: 'nautical', amplifier: true, multiCharge: true,
     });
-    expect(r.actualEnergy).toBeCloseTo(2);
-    expect(r.spillover).toEqual({ terrestrial: 0.5, transport: 0.5, strength: 0.5 });
+    expect(r.actualEnergy).toBeCloseTo(4);
+    expect(r.spillover).toEqual({ terrestrial: 1, transport: 1, strength: 1 });
   });
 });
 

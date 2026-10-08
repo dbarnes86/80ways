@@ -572,7 +572,7 @@ function LiftOffMeter({ onDone }: { onDone: () => void }) {
           <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-out" style={{ width: `${Math.min(100, (progress / STARTER_EVENT.requiredEnergy) * 100)}%` }} />
         </div>
         <p className="text-lg leading-snug">
-          {done ? 'Five kWh in the boiler. The ship can leave the moment you say.' : `${left.toFixed(1)} kWh more and we sail. ${advice?.line ?? ''}`}
+          {done ? 'The boiler is lit. The ship can leave the moment you say.' : `${left.toFixed(1)} kWh more and we sail. ${advice?.line ?? ''}`}
         </p>
       </div>
       <button type="button" onClick={onDone} className="btn-game btn-primary shine w-full">
