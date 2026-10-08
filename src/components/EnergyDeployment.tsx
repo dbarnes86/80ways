@@ -52,16 +52,15 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
   };
 
   return (
-    <Dialog open={open} onClose={() => close()} className="max-w-xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
+    <Dialog open={open} onClose={() => close()} className="max-w-xl max-h-[90vh] overflow-y-auto bg-background border-2 border-accent/50">
         <>
             <div key="form" className="space-y-5">
               <DialogHeader>
-                <DialogTitle className="text-xl font-heading font-bold text-primary">
-                  {leg.narrative.title.toUpperCase()}
-                </DialogTitle>
-                <DialogDescription>
-                  {leg.from} → {leg.to}. Needs {leg.requiredEnergy.amount.toFixed(1)} kWh{' '}
-                  <span className={theme.text}>{theme.label}</span>.
+                <p className="kicker text-accent">{leg.narrative.title}</p>
+                <DialogTitle className="text-3xl font-heading font-bold">Stoke the boiler</DialogTitle>
+                <DialogDescription className="text-base">
+                  {leg.from} → {leg.to}. {Math.max(0, leg.requiredEnergy.amount - participation.legProgress).toFixed(1)} kWh of{' '}
+                  <span className={theme.text}>{theme.label}</span> to go.
                 </DialogDescription>
               </DialogHeader>
 
@@ -69,7 +68,7 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
                 targetType={leg.requiredEnergy.type}
                 required={leg.requiredEnergy.amount}
                 progress={participation.legProgress}
-                submitLabel="Deploy"
+                submitLabel="Stoke the boiler"
                 submitting={submitting}
                 onSubmit={handleSubmit}
                 onCancel={close}

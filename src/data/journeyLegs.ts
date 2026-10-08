@@ -5,7 +5,7 @@ export const JOURNEY_LEGS = [
     from: 'London',
     to: 'London Port',
     distance: 10,
-    requiredEnergy: { type: 'strength' as const, amount: 3.0 },
+    requiredEnergy: { type: 'strength' as const, amount: 1.5 },
     narrative: {
       title: 'Departure Preparations',
       description: 'Fogg must load supplies and prepare the ship for departure. The crew needs your help loading cargo and securing provisions for the journey ahead.',
@@ -22,7 +22,7 @@ export const JOURNEY_LEGS = [
     from: 'London',
     to: 'Paris',
     distance: 450,
-    requiredEnergy: { type: 'nautical' as const, amount: 5.0 },
+    requiredEnergy: { type: 'nautical' as const, amount: 3.0 },
     narrative: {
       title: 'Crossing the English Channel',
       description: 'Board the steamer from Dover to Calais, then continue by rail to Paris. The Channel can be treacherous with unpredictable weather and rough seas.',
@@ -39,7 +39,7 @@ export const JOURNEY_LEGS = [
     from: 'Paris',
     to: 'Suez',
     distance: 3100,
-    requiredEnergy: { type: 'terrestrial' as const, amount: 8.0 },
+    requiredEnergy: { type: 'terrestrial' as const, amount: 5.0 },
     narrative: {
       title: 'Through the Alps to Suez',
       description: 'Rail through the Mont Cenis tunnel to Turin, then to Brindisi. Board a steamer through the Mediterranean to reach the entrance of the Suez Canal.',
@@ -56,7 +56,7 @@ export const JOURNEY_LEGS = [
     from: 'Suez',
     to: 'Bombay',
     distance: 4200,
-    requiredEnergy: { type: 'nautical' as const, amount: 12.0 },
+    requiredEnergy: { type: 'nautical' as const, amount: 8.0 },
     narrative: {
       title: 'The Red Sea Passage',
       description: 'The steamer Mongolia carries you through the Red Sea and across the Arabian Sea. Detective Fix boards at Suez, convinced Fogg is a bank robber.',
@@ -73,7 +73,7 @@ export const JOURNEY_LEGS = [
     from: 'Bombay',
     to: 'Calcutta',
     distance: 2100,
-    requiredEnergy: { type: 'terrestrial' as const, amount: 10.0 },
+    requiredEnergy: { type: 'terrestrial' as const, amount: 8.0 },
     narrative: {
       title: 'Through the Heart of India',
       description: 'Rail across India, but the tracks end 50 miles early at Kholby! Fogg purchases an elephant named Kiouni to continue through the jungle, where they rescue Princess Aouda from a funeral pyre.',
@@ -90,7 +90,7 @@ export const JOURNEY_LEGS = [
     from: 'Calcutta',
     to: 'Hong Kong',
     distance: 4500,
-    requiredEnergy: { type: 'nautical' as const, amount: 15.0 },
+    requiredEnergy: { type: 'nautical' as const, amount: 10.0 },
     narrative: {
       title: 'Across the Bay of Bengal',
       description: 'Steamer Rangoon sails to Hong Kong through the South China Sea. Fix continues his pursuit, now with Passepartout unwittingly helping him. A storm threatens to delay the voyage.',
@@ -107,7 +107,7 @@ export const JOURNEY_LEGS = [
     from: 'Hong Kong',
     to: 'Yokohama',
     distance: 2900,
-    requiredEnergy: { type: 'nautical' as const, amount: 13.0 },
+    requiredEnergy: { type: 'nautical' as const, amount: 10.0 },
     narrative: {
       title: 'To the Land of the Rising Sun',
       description: 'After Fix gets Passepartout drunk to delay them, Fogg charters the Tankadere, a small schooner, for a dangerous voyage to Shanghai, then catches the American steamer to Yokohama.',
@@ -124,7 +124,7 @@ export const JOURNEY_LEGS = [
     from: 'Yokohama',
     to: 'San Francisco',
     distance: 8300,
-    requiredEnergy: { type: 'nautical' as const, amount: 20.0 },
+    requiredEnergy: { type: 'nautical' as const, amount: 12.0 },
     narrative: {
       title: 'Trans-Pacific Voyage',
       description: 'The General Grant steamer crosses the vast Pacific Ocean. This is the longest single leg of the journey, requiring patience and endurance as the horizon stretches endlessly.',
@@ -141,7 +141,7 @@ export const JOURNEY_LEGS = [
     from: 'San Francisco',
     to: 'New York',
     distance: 4200,
-    requiredEnergy: { type: 'transport' as const, amount: 15.0 },
+    requiredEnergy: { type: 'transport' as const, amount: 12.0 },
     narrative: {
       title: 'Transcontinental Railroad',
       description: 'Cross America by the Pacific Railroad through the Rocky Mountains and Great Plains. The journey faces multiple dangers: a buffalo stampede, a Sioux attack that kidnaps Passepartout, and Detective Fix\'s desperate attempts to delay.',
@@ -158,7 +158,7 @@ export const JOURNEY_LEGS = [
     from: 'New York',
     to: 'Liverpool',
     distance: 5200,
-    requiredEnergy: { type: 'nautical' as const, amount: 18.0 },
+    requiredEnergy: { type: 'nautical' as const, amount: 14.0 },
     narrative: {
       title: 'Racing Across the Atlantic',
       description: 'After escaping Fix and missing the steamer, Fogg finds the trading ship Henrietta. He bribes the captain, then buys the ship itself. When coal runs low, he burns the wooden deck and masts for fuel!',
@@ -175,7 +175,7 @@ export const JOURNEY_LEGS = [
     from: 'Liverpool',
     to: 'London',
     distance: 350,
-    requiredEnergy: { type: 'terrestrial' as const, amount: 8.0 },
+    requiredEnergy: { type: 'terrestrial' as const, amount: 5.0 },
     narrative: {
       title: 'The Final Dash',
       description: 'Rail from Liverpool to London. After being released from Fix\'s wrongful arrest, Fogg rushes to the Reform Club. Will he arrive in time? And then Passepartout realizes they gained a day by traveling east!',

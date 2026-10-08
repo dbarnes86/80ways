@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, HeartPulse, Loader2, Lock, Mail, MailCheck } from 'lucide-react';
 import foggPortrait from '@/assets/fogg-portrait.jpg';
-import fixPortrait from '@/assets/fix-portrait.jpg';
 import { Input, cn } from '@/components/ui';
 import { toast } from '@/components/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +15,9 @@ import { isHealthConnected, isHealthPlatform } from '@/services/healthService';
 import { enableNudges, nudgesSupported, replanNudges } from '@/services/nudges';
 import { useConnectHealth } from '@/features/health';
 import { useUserStore, type Discipline } from '@/stores/userStore';
+import { useProgressionStore } from '@/stores/progressionStore';
+import { STARTER_EVENT } from '@/data/gameConstants';
+import { liftOffAdvice } from '@/game/coach';
 import { CollectPanel } from '@/game/CollectPanel';
 import { Hud } from '@/game/Hud';
 import { Avatar, Chest, Ship, artSrc, hasArt } from '@/game/art';
@@ -31,7 +33,7 @@ import { play } from '@/game/sfx';
 type Stage = 'wager' | 'crest' | 'name' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
 
 const PRE_AUTH: Stage[] = ['wager', 'crest', 'name', 'save', 'email'];
-const BEATS = ['Wager', 'Crest', 'Name', 'Ticket', 'Fuel', 'Trunk'];
+const BEATS = ['Wager', 'Crest', 'Name', 'Ticket', 'Fuel', 'Kit'];
 const DONE: Record<Stage, number> = { wager: 0, crest: 1, name: 2, save: 3, email: 3, inbox: 3, fuel: 4, trunk: 5, fix: 6 };
 
 const ONBOARDED = 'atw80-onboarded';
@@ -547,19 +549,53 @@ function Inbox() {
 
 /* ─── Beat 5: fuel ───────────────────────────────────────────────────────────── */
 
+/** The Lift Off meter, with the coach's line under it: this is where energy gets its why. */
+function LiftOffMeter({ onDone }: { onDone: () => void }) {
+  const progress = useProgressionStore((s) => s.starterEventProgress);
+  const done = useProgressionStore((s) => s.starterEventCompleted);
+  const discipline = useUserStore((s) => s.discipline);
+  const armed = useUserStore((s) => s.armedBooster === 'energyAmplifier' && s.inventory.energyAmplifier > 0);
+  const left = Math.max(0, STARTER_EVENT.requiredEnergy - progress);
+  const advice = liftOffAdvice(left, discipline, armed);
+  return (
+    <div className="animate-fade-up space-y-6 text-center">
+      <div>
+        <p className="kicker text-accent">Lift Off</p>
+        <h1 className="font-heading text-4xl font-bold">{done ? 'The boiler is lit' : 'Your workouts moved the ship'}</h1>
+      </div>
+      <div className="panel panel-hero space-y-3 p-5">
+        <div className="flex items-end justify-between">
+          <span className="font-heading text-5xl font-bold leading-none text-primary">{progress.toFixed(1)}</span>
+          <span className="font-mono text-sm text-muted-foreground">of {STARTER_EVENT.requiredEnergy} kWh</span>
+        </div>
+        <div className="h-3 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-out" style={{ width: `${Math.min(100, (progress / STARTER_EVENT.requiredEnergy) * 100)}%` }} />
+        </div>
+        <p className="text-lg leading-snug">
+          {done ? 'The boiler is lit. The ship can leave the moment you say.' : `${left.toFixed(1)} kWh more and we sail. ${advice?.line ?? ''}`}
+        </p>
+      </div>
+      <button type="button" onClick={onDone} className="btn-game btn-primary shine w-full">
+        {done ? 'To the ship' : 'Got it'}
+      </button>
+    </div>
+  );
+}
+
 function Fuel({ userId, onDone }: { userId: string; onDone: () => void }) {
   const { busy, connect } = useConnectHealth(userId);
-  const [arrived, setArrived] = useState<number | null>(null);
+  const [phase, setPhase] = useState<'ask' | 'collect' | 'meter'>('ask');
 
-  if (arrived) {
+  if (phase === 'meter') return <LiftOffMeter onDone={onDone} />;
+  if (phase === 'collect') {
     return (
       <div className="animate-fade-up space-y-6">
         <div className="text-center">
           <p className="kicker text-accent">Fuel</p>
           <h1 className="font-heading text-4xl font-bold">Your week, in fuel</h1>
-          <p className="text-muted-foreground">Tap Collect and watch it fill the gauge.</p>
+          <p className="text-muted-foreground">Tap Collect. Every kWh goes into the boiler.</p>
         </div>
-        <CollectPanel big onCollected={() => setTimeout(onDone, 500)} />
+        <CollectPanel big onCollected={() => setTimeout(() => setPhase('meter'), 900)} />
       </div>
     );
   }
@@ -584,7 +620,7 @@ function Fuel({ userId, onDone }: { userId: string; onDone: () => void }) {
               const n = r?.arrived ?? 0;
               if (n) {
                 play('chime');
-                setArrived(n);
+                setPhase('collect');
               } else onDone();
             });
           }}
@@ -607,6 +643,10 @@ function Fuel({ userId, onDone }: { userId: string; onDone: () => void }) {
 function Trunk({ onDone }: { onDone: () => void }) {
   const { story } = useQuests();
   const momentOpen = useRewardStore((s) => s.queue.length > 0);
+  const discipline = useUserStore((s) => s.discipline);
+  const armed = useUserStore((s) => s.armedBooster === 'energyAmplifier' && s.inventory.energyAmplifier > 0);
+  const left = Math.max(0, STARTER_EVENT.requiredEnergy - useProgressionStore((s) => s.starterEventProgress));
+  const coach = liftOffAdvice(left, discipline, true);
   const isChapterOne = story?.id === 's:fuel';
   const ready = isChapterOne && story.complete && !story.claimed;
   const locked = isChapterOne && !story.complete;
@@ -622,10 +662,16 @@ function Trunk({ onDone }: { onDone: () => void }) {
   return (
     <div className="animate-fade-up space-y-6 text-center">
       <div>
-        <p className="kicker text-accent">Welcome aboard</p>
-        <h1 className="font-heading text-4xl font-bold">{opened ? 'Trunk opened' : locked ? 'Your trunk' : 'Open your trunk'}</h1>
+        <p className="kicker text-accent">Your kit</p>
+        <h1 className="font-heading text-4xl font-bold">{opened ? 'Kit issued' : locked ? 'Your kit' : 'Open your kit'}</h1>
         <p className="text-muted-foreground">
-          {opened ? 'Fogg has a place for you on the expedition.' : locked ? 'Your first workout is the key. It opens the moment one arrives.' : 'Every crew member gets one. Tap it.'}
+          {opened
+            ? armed
+              ? `Amplifier armed: your next workout counts double. ${coach?.line ?? ''}`
+              : 'Fogg has a place for you on the expedition.'
+            : locked
+              ? 'Fogg issues every crew member a trunk. Your first workout is the key.'
+              : 'Fogg issues every crew member a trunk. Tap it.'}
         </p>
       </div>
       <button type="button" onClick={open} disabled={!ready} className={cn('press relative mx-auto block', ready && 'animate-wobble')} aria-label={ready ? 'Open the trunk' : 'Trunk'}>
@@ -647,24 +693,26 @@ function Trunk({ onDone }: { onDone: () => void }) {
   );
 }
 
-/* ─── Beat 7: Detective Fix is coming ────────────────────────────────────────── */
+/* ─── Beat 7: a telegram from Fogg ───────────────────────────────────────────── */
 
 function FixWarning({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   return (
     <div className="animate-fade-up space-y-8 text-center">
-      <div className="relative mx-auto size-40">
-        <div className="absolute inset-0 rounded-full bg-destructive/20 blur-2xl" />
+      <div className="relative mx-auto size-36">
+        <div className="absolute inset-0 rounded-full bg-accent/15 blur-2xl" />
         <img
-          src={artSrc('fix', fixPortrait)}
-          alt="Detective Fix"
-          className={cn('relative size-40', hasArt('fix') ? 'object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]' : 'rounded-full border-2 border-destructive/50 object-cover')}
+          src={artSrc('fogg', foggPortrait)}
+          alt="Phileas Fogg"
+          className={cn('relative size-36', hasArt('fogg') ? 'object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]' : 'rounded-full border-2 border-accent/50 object-cover')}
         />
       </div>
       <div className="space-y-3">
-        <p className="kicker text-destructive">A warning</p>
-        <h1 className="font-heading text-4xl font-bold">Detective Fix is coming</h1>
-        <p className="text-lg text-muted-foreground">Every two weeks he sabotages the voyage. Want a heads-up when he strikes, and when telegrams land?</p>
+        <p className="kicker text-accent">Telegram</p>
+        <h1 className="font-heading text-4xl font-bold">Fogg will wire you</h1>
+        <div className="panel mx-auto max-w-sm p-4 text-left font-mono text-sm leading-relaxed">
+          <TypeLine text="WORKOUT LANDS, I WIRE YOU. SHIP READY, I WIRE YOU. NOTHING ELSE. — FOGG" speed={22} />
+        </div>
       </div>
       <div className="space-y-3">
         <button
@@ -677,9 +725,9 @@ function FixWarning({ onDone }: { onDone: () => void }) {
               .finally(onDone);
           }}
           disabled={busy}
-          className="btn-game btn-danger shine w-full"
+          className="btn-game btn-primary shine w-full"
         >
-          {busy ? <Loader2 className="animate-spin" /> : null} Warn me
+          {busy ? <Loader2 className="animate-spin" /> : null} Allow telegrams
         </button>
         <button type="button" onClick={onDone} className="py-2 text-muted-foreground hover:text-foreground">
           Not now

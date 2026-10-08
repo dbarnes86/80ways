@@ -36,6 +36,8 @@ export interface UserGameData {
   deployLog: Record<string, number>;
   /** The discipline picked in onboarding; sets the avatar and home reserve. */
   discipline: Discipline | null;
+  /** A booster set to fire on the next workout collected, so a reward can be used on the spot. */
+  armedBooster: BoosterId | null;
 }
 
 export type Discipline = 'runner' | 'rider' | 'swimmer' | 'lifter';
@@ -55,6 +57,7 @@ interface UserStore extends UserGameData {
   markQuestsClaimed: (ids: string[]) => void;
   logDeployment: (dayKey: string, kwh: number) => void;
   setDiscipline: (d: Discipline) => void;
+  armBooster: (id: BoosterId | null) => void;
   hydrate: (data: Partial<UserGameData>) => void;
   reset: () => void;
 }
@@ -70,6 +73,7 @@ const initialData = (): UserGameData => ({
   questsClaimed: [],
   deployLog: {},
   discipline: null,
+  armedBooster: null,
 });
 
 export const useUserStore = create<UserStore>()(
@@ -120,6 +124,7 @@ export const useUserStore = create<UserStore>()(
         }),
 
       setDiscipline: (discipline) => set({ discipline }),
+      armBooster: (armedBooster) => set({ armedBooster }),
 
       hydrate: (data) => set((s) => ({
         inventory: { ...s.inventory, ...data.inventory },
@@ -133,6 +138,7 @@ export const useUserStore = create<UserStore>()(
         questsClaimed: Array.from(new Set([...s.questsClaimed, ...(data.questsClaimed ?? [])])),
         deployLog: { ...s.deployLog, ...data.deployLog },
         discipline: data.discipline ?? s.discipline,
+        armedBooster: data.armedBooster === undefined ? s.armedBooster : data.armedBooster,
       })),
 
       reset: () => set(initialData()),

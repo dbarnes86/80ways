@@ -2,7 +2,7 @@
  * Game sounds, synthesised with Web Audio so there are no files to ship. Short, bright and quiet:
  * they sit under the haptics, not over the player's music.
  */
-type Sound = 'tick' | 'coin' | 'collect' | 'chime' | 'levelUp' | 'stamp' | 'chest' | 'whoosh' | 'hit';
+type Sound = 'tick' | 'coin' | 'collect' | 'chime' | 'levelUp' | 'stamp' | 'chest' | 'whoosh' | 'hit' | 'whistle' | 'spill' | 'flip';
 
 const MUTE_KEY = 'atw80-muted';
 let ctx: AudioContext | null = null;
@@ -87,16 +87,38 @@ export function play(sound: Sound, pitch = 0) {
       [0, 4, 7, 12].forEach((n, i) => tone(ac, step(n + pitch), i * 0.06, 0.35, { type: 'triangle', gain: 0.06 }));
       break;
     case 'levelUp':
+      // A brass swell under the arpeggio: fifths on a sawtooth, quiet, so it reads as a fanfare.
       [0, 4, 7, 12, 16, 19, 24].forEach((n, i) => tone(ac, step(n), i * 0.07, 0.5, { type: 'triangle', gain: 0.07 }));
-      tone(ac, step(-12), 0, 0.9, { type: 'sine', gain: 0.08 });
+      tone(ac, step(-12), 0, 1.1, { type: 'sine', gain: 0.09 });
+      tone(ac, step(-5), 0.1, 1.0, { type: 'sawtooth', gain: 0.02 });
+      tone(ac, step(0), 0.1, 1.0, { type: 'sawtooth', gain: 0.02 });
       break;
     case 'stamp':
-      tone(ac, 110, 0, 0.18, { type: 'sine', gain: 0.25, slideTo: 55 });
-      noise(ac, 0, 0.08, 0.08, 400, 200);
+      // Thud, then the slap of ink on paper.
+      tone(ac, 120, 0, 0.2, { type: 'sine', gain: 0.3, slideTo: 50 });
+      noise(ac, 0, 0.06, 0.1, 500, 200);
+      noise(ac, 0.03, 0.12, 0.04, 2500, 900);
       break;
     case 'chest':
-      noise(ac, 0, 0.25, 0.05, 300, 2500);
-      [0, 7, 12, 16].forEach((n, i) => tone(ac, step(n), 0.2 + i * 0.05, 0.4, { type: 'triangle', gain: 0.06 }));
+      // Creak of the lid, then the spill.
+      tone(ac, 160, 0, 0.3, { type: 'sawtooth', gain: 0.025, slideTo: 240 });
+      noise(ac, 0, 0.3, 0.04, 300, 1800);
+      [0, 7, 12, 16].forEach((n, i) => tone(ac, step(n), 0.25 + i * 0.05, 0.4, { type: 'triangle', gain: 0.06 }));
+      break;
+    case 'spill':
+      // A handful of coins landing: fast, falling ticks.
+      for (let i = 0; i < 9; i++) tone(ac, step(19 - i + Math.round(Math.random() * 3)), 0.03 * i, 0.07, { type: 'square', gain: 0.025 });
+      break;
+    case 'whistle':
+      // A steam whistle: two tones with a breathy start.
+      noise(ac, 0, 0.5, 0.03, 1200, 3000);
+      tone(ac, 660, 0.02, 0.55, { type: 'triangle', gain: 0.07, slideTo: 700 });
+      tone(ac, 880, 0.02, 0.55, { type: 'triangle', gain: 0.045, slideTo: 930 });
+      break;
+    case 'flip':
+      // A departure-board flap.
+      noise(ac, 0, 0.04, 0.06, 900, 300);
+      tone(ac, 200, 0, 0.04, { type: 'square', gain: 0.02 });
       break;
     case 'whoosh':
       noise(ac, 0, 0.35, 0.05, 300, 4000);

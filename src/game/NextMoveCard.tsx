@@ -53,7 +53,7 @@ export function NextMoveCard({ move, onLog, onDeploy, onBoard }: { move: NextMov
   return (
     <div key={move.id} className="panel panel-hero animate-fade-up space-y-4 p-5">
       <div>
-        <p className="kicker text-primary">{move.kicker}</p>
+        <p className="kicker text-accent">{move.kicker}</p>
         <p className="mt-1 font-heading text-[2.1rem] font-bold leading-[1.05]">{move.title}</p>
         <p className="mt-1.5 text-lg leading-snug text-muted-foreground">{move.body}</p>
       </div>

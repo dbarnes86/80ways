@@ -11,21 +11,25 @@ export const TOTAL_LEGS = 11;
 export const TOTAL_DISTANCE_KM = 35_310;
 
 /**
- * Energy required per leg, calibrated so the total (127 kWh)
- * is achievable over 180 days at ~0.7 kWh/day for an active player.
- * A "moderate" 30-min activity ≈ 0.5 kWh base.
+ * Energy required per leg (mirrors journeyLegs). Total 91.5 kWh: about 60 average workouts, a
+ * season at three a week. The first two fall in a workout or two each, so the start is quick.
  */
-export const ENERGY_PER_LEG = [3, 5, 8, 12, 10, 15, 13, 20, 15, 18, 8] as const;
+export const ENERGY_PER_LEG = [1.5, 3, 5, 8, 8, 10, 10, 12, 12, 14, 8] as const;
 export const TOTAL_ENERGY_REQUIRED = ENERGY_PER_LEG.reduce((a, b) => a + b, 0); // 127 kWh
 
 // ─── Energy Mechanics ───────────────────────────────────────────
-export const ENERGY_CAPACITY_DEFAULT = 10; // kWh max per type
+export const ENERGY_CAPACITY_DEFAULT = 20; // kWh max per type
 export const ENERGY_DECAY_RATE = 0.05; // 5% per day
 
+/**
+ * kWh per hour by intensity, plus ENERGY_PER_KM for distance. Tuned so an average adult's workout
+ * (a 20-minute walk) is about 0.6 kWh and a 30-minute run about 2: the first workout lights the
+ * boiler, the first legs fall in one or two more, and a full season is a few workouts a week.
+ */
 export const INTENSITY_MULTIPLIERS = {
-  light: 0.5,
-  moderate: 1.0,
-  vigorous: 1.5,
+  light: 1.0,
+  moderate: 2.0,
+  vigorous: 3.0,
 } as const;
 
 /** When the activity's native type matches the energy type being charged */
@@ -105,7 +109,7 @@ export const FREE_LEGS = 2;
 // ─── Starter Event (Lift Off) ───────────────────────────────────
 /**
  * Per GDD Q6: "Lift Off Event" — first engagement for new players.
- * Always available. Players charge a personal meter to 5.0 kWh
+ * Always available. Players charge a personal meter to 0.5 kWh (one workout)
  * to prove they understand the mechanics before joining the main journey.
  */
 export const STARTER_EVENT = {
@@ -113,7 +117,7 @@ export const STARTER_EVENT = {
   name: 'Lift Off: Departure Preparations',
   description:
     'Before joining Fogg\'s expedition, prove your worth! Complete fitness activities to charge the departure meter. Once full, you\'ll be cleared to join the journey at its current location.',
-  requiredEnergy: 5.0, // kWh total across any type
+  requiredEnergy: 0.5, // kWh total across any type: one workout of any kind, even a short walk
   xpReward: 150, // Enough to reach Level 3 combined with activity XP
   narrative: {
     intro: 'Passepartout rushes to find you at the Reform Club: "Monsieur Fogg needs able crew! But first, show us you can keep up."',
@@ -207,7 +211,7 @@ export const ENERGY_TYPES: EnergyType[] = ['nautical', 'terrestrial', 'transport
 export const ACTIVITY_MATCH_EFFICIENCY = 1.0;
 export const ACTIVITY_MISMATCH_EFFICIENCY = 0.5;
 /** Each km covered adds this much base energy on top of time × intensity. */
-export const ENERGY_PER_KM = 0.1;
+export const ENERGY_PER_KM = 0.2;
 export const KM_PER_MILE = 1.609344;
 
 /** Extra XP for charging the reserve that matches the activity. */

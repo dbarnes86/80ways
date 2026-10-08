@@ -128,3 +128,75 @@ export function flyIcons(opts: { kind: 'coin' | 'xp'; count: number; to: string;
   }
   return Promise.all(jobs).then(() => undefined);
 }
+
+const COIN_FACE =
+  '<svg viewBox="0 0 24 24" width="100%" height="100%"><circle cx="12" cy="12" r="10" fill="#D9A441" stroke="#efc66e" stroke-width="1.5"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#8a6320" stroke-width="1.5"/></svg>';
+
+/** A spill of coins from a point: up, over, and down with gravity, then gone. Nothing is counted. */
+export function burstCoins(from: { x: number; y: number }, count = 14): void {
+  if (typeof document === 'undefined' || reducedMotion()) return;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    const size = 16 + Math.random() * 12;
+    el.innerHTML = COIN_FACE;
+    Object.assign(el.style, {
+      position: 'fixed',
+      left: `${from.x - size / 2}px`,
+      top: `${from.y - size / 2}px`,
+      width: `${size}px`,
+      height: `${size}px`,
+      zIndex: '97',
+      pointerEvents: 'none',
+    } satisfies Partial<CSSStyleDeclaration>);
+    document.body.appendChild(el);
+    const dx = (Math.random() - 0.5) * 260;
+    const up = -(80 + Math.random() * 120);
+    const spin = (Math.random() - 0.5) * 900;
+    const anim = el.animate(
+      [
+        { transform: 'translate(0,0) scale(0.4) rotate(0deg)', opacity: 0 },
+        { transform: `translate(${dx * 0.5}px, ${up}px) scale(1) rotate(${spin / 2}deg)`, opacity: 1, offset: 0.4 },
+        { transform: `translate(${dx}px, ${-up * 0.3 + 120}px) scale(0.9) rotate(${spin}deg)`, opacity: 0 },
+      ],
+      { duration: 900 + Math.random() * 300, delay: i * 25, easing: 'cubic-bezier(.3,.6,.6,1)', fill: 'forwards' },
+    );
+    anim.finished.then(
+      () => el.remove(),
+      () => el.remove(),
+    );
+  }
+}
+
+/** A puff of cream steam rising from a point and thinning out. */
+export function puff(from: { x: number; y: number }, count = 3): void {
+  if (typeof document === 'undefined' || reducedMotion()) return;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    const size = 18 + Math.random() * 14;
+    Object.assign(el.style, {
+      position: 'fixed',
+      left: `${from.x - size / 2}px`,
+      top: `${from.y - size / 2}px`,
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: '9999px',
+      background: 'radial-gradient(circle at 40% 40%, #F2EAD8, rgba(242,234,216,0.3) 70%)',
+      zIndex: '97',
+      pointerEvents: 'none',
+    } satisfies Partial<CSSStyleDeclaration>);
+    document.body.appendChild(el);
+    const drift = (Math.random() - 0.3) * 40;
+    const anim = el.animate(
+      [
+        { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
+        { transform: `translate(${drift * 0.4}px, -22px) scale(1)`, opacity: 0.9, offset: 0.25 },
+        { transform: `translate(${drift}px, -70px) scale(1.8)`, opacity: 0 },
+      ],
+      { duration: 1100 + Math.random() * 300, delay: i * 140, easing: 'ease-out', fill: 'forwards' },
+    );
+    anim.finished.then(
+      () => el.remove(),
+      () => el.remove(),
+    );
+  }
+}
