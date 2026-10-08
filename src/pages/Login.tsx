@@ -7,7 +7,7 @@ import { haptic, isNativeApp } from '@/lib/native';
 import { Button, HoloCard, Input, Label } from '@/components/ui';
 import { toast } from '@/components/toast';
 import { signInWithApple } from '@/services/appleAuth';
-import riftLogo from '@/assets/rift-logo.png';
+import { StudioMark } from '@/components/StudioMark';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -55,7 +55,7 @@ const Login = () => {
     <div className="flex min-h-dvh items-center justify-center bg-background p-4 pt-[max(1rem,env(safe-area-inset-top))]">
       <div className="w-full max-w-md animate-scale-in">
         <div className="mb-6 flex justify-center">
-          <img src={riftLogo} alt="" className="h-auto w-20 opacity-60 invert" />
+          <StudioMark className="text-2xl text-foreground/60" />
         </div>
 
         <HoloCard glow="cyan" className="p-8">
