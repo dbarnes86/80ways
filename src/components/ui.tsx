@@ -42,9 +42,9 @@ type ButtonVariant = 'default' | 'outline' | 'ghost' | 'secondary'
 type ButtonSize = 'default' | 'sm' | 'lg' | 'icon'
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  default: 'bg-primary text-primary-foreground shadow-[0_4px_0_#00788a] active:translate-y-[3px] active:shadow-[0_1px_0_#00788a]',
-  secondary: 'bg-secondary text-secondary-foreground shadow-[0_4px_0_#85008a] active:translate-y-[3px] active:shadow-[0_1px_0_#85008a]',
-  outline: 'border-2 border-primary/40 bg-transparent hover:bg-primary/10 text-foreground active:translate-y-px',
+  default: 'bg-foreground text-background shadow-[0_4px_0_#a89a7c] active:translate-y-[3px] active:shadow-[0_1px_0_#a89a7c]',
+  secondary: 'bg-secondary text-secondary-foreground shadow-[0_4px_0_#46285f] active:translate-y-[3px] active:shadow-[0_1px_0_#46285f]',
+  outline: 'border-2 border-foreground/30 bg-transparent hover:bg-foreground/10 text-foreground active:translate-y-px',
   ghost: 'bg-transparent hover:bg-muted/50 text-foreground',
 }
 
@@ -67,7 +67,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       type={type}
       className={cn(
         'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-heading font-bold tracking-wide transition-[transform,box-shadow,background-color] duration-75',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0',
         withOverrides(BUTTON_VARIANTS[variant], className),
         BUTTON_SIZES[size],
@@ -82,7 +82,7 @@ Button.displayName = 'Button'
 // ─── Badge ──────────────────────────────────────────────────────
 export function Badge({ className, variant = 'default', ...props }: HTMLAttributes<HTMLSpanElement> & { variant?: 'default' | 'secondary' | 'outline' }) {
   const styles = {
-    default: 'border-transparent bg-primary text-primary-foreground',
+    default: 'border-transparent bg-accent text-background',
     secondary: 'border-transparent bg-muted text-foreground',
     outline: 'text-foreground',
   }[variant]
@@ -102,17 +102,18 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 export type GlowColor = 'cyan' | 'magenta' | 'purple' | 'none'
 
 const GLOW: Record<GlowColor, string> = {
-  cyan: 'border-primary/40 shadow-[0_0_15px_hsl(var(--glow-cyan)/0.3),0_0_30px_hsl(var(--glow-cyan)/0.15)] hover:shadow-[0_0_20px_hsl(var(--glow-cyan)/0.4),0_0_40px_hsl(var(--glow-cyan)/0.2)]',
-  magenta: 'border-secondary/40 shadow-[0_0_15px_hsl(var(--glow-magenta)/0.3),0_0_30px_hsl(var(--glow-magenta)/0.15)] hover:shadow-[0_0_20px_hsl(var(--glow-magenta)/0.4),0_0_40px_hsl(var(--glow-magenta)/0.2)]',
-  purple: 'border-accent/40 shadow-[0_0_15px_hsl(var(--glow-purple)/0.3),0_0_30px_hsl(var(--glow-purple)/0.15)] hover:shadow-[0_0_20px_hsl(var(--glow-purple)/0.4),0_0_40px_hsl(var(--glow-purple)/0.2)]',
+  // Printed, not lit: a brass rule for the hero card, plum for the Pass, a plain rule otherwise.
+  cyan: 'border-accent/50 shadow-[0_10px_30px_-14px_rgb(0_0_0/0.9)]',
+  magenta: 'border-secondary/60 shadow-[0_10px_30px_-14px_rgb(0_0_0/0.9)]',
+  purple: 'border-secondary/60 shadow-[0_10px_30px_-14px_rgb(0_0_0/0.9)]',
   none: 'border-border',
 }
 
 const CORNER_COLOR: Record<GlowColor, string> = {
-  cyan: 'border-primary',
+  cyan: 'border-accent',
   magenta: 'border-secondary',
-  purple: 'border-accent',
-  none: 'border-primary',
+  purple: 'border-secondary',
+  none: 'border-accent',
 }
 
 export interface HoloCardProps extends HTMLAttributes<HTMLDivElement> {
@@ -123,7 +124,7 @@ export interface HoloCardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /** The neon card: glow, scan lines and corner brackets. */
-export function HoloCard({ glow = 'cyan', scanLines = true, corners = true, animated = true, className, children, ...props }: HoloCardProps) {
+export function HoloCard({ glow = 'cyan', scanLines = false, corners = true, animated = true, className, children, ...props }: HoloCardProps) {
   const corner = CORNER_COLOR[glow]
   return (
     <div

@@ -182,7 +182,7 @@ export default function Raids() {
                 <p className="truncate font-heading text-lg font-bold leading-tight">{raid.name}</p>
                 <p className="text-sm text-muted-foreground">{raid.goalKwh} HP · weak to {ENERGY_THEME[raid.type].label}</p>
               </div>
-              <span className="shrink-0 font-heading font-bold text-secondary">{formatTimeLeft(raid.start)}</span>
+              <span className="shrink-0 font-heading font-bold text-accent">{formatTimeLeft(raid.start)}</span>
             </div>
           ))}
         </section>
@@ -224,7 +224,7 @@ export default function Raids() {
         onClose={() => setStriking(null)}
         title={striking ? `Strike: ${striking.name}` : undefined}
         description={striking ? `Spend reserves to hit Fix. ${ENERGY_THEME[striking.type].label} is his weakness and lands as a critical.` : undefined}
-        className="max-w-xl border-secondary/50"
+        className="max-w-xl border-accent/50"
       >
         {striking && (
           <EnergyAllocator

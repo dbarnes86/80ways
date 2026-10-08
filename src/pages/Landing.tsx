@@ -95,7 +95,7 @@ export default function Landing() {
         "Deploy energy when Detective Fix strikes",
         "Compete on raid leaderboards",
       ],
-      borderColor: "border-secondary",
+      borderColor: "border-accent",
       glowClass: "hover:glow-magenta",
     },
   ];
@@ -130,7 +130,7 @@ export default function Landing() {
       title: "The Princess",
       bio: "Rescued in India. Brings valuable knowledge.",
       image: aoudaPortrait,
-      borderColor: "border-secondary",
+      borderColor: "border-accent",
       glowClass: "hover:glow-magenta",
     },
   ];
@@ -141,7 +141,7 @@ export default function Landing() {
     >
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" />
         <div className="container mx-auto px-4 py-20 relative z-10">
           <div
             className="text-center max-w-5xl mx-auto animate-fade-up"
@@ -197,8 +197,8 @@ export default function Landing() {
                     <div className="text-2xl font-mono text-primary mb-2">80</div>
                     <div className="text-sm text-muted-foreground">Narrative Days</div>
                   </div>
-                  <div className="bg-secondary/10 rounded-lg p-4 border border-secondary/30">
-                    <Globe className="w-8 h-8 text-secondary mx-auto mb-2" />
+                  <div className="bg-accent/10 rounded-lg p-4 border border-accent/30">
+                    <Globe className="w-8 h-8 text-accent mx-auto mb-2" />
                     <div className="text-sm text-muted-foreground">Powered by YOUR fitness activities</div>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ export default function Landing() {
                style={{ animationDelay: `${index * 0.2}s` }}>
                 <Card className={`p-6 h-full border-2 ${section.borderColor} transition-smooth ${section.glowClass}`}>
                   <div className="text-center mb-6">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                       <section.icon className="w-8 h-8 text-primary" />
                     </div>
                     <h3 className="text-xl font-heading mb-4">{section.title}</h3>

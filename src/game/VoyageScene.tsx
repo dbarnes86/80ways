@@ -36,18 +36,18 @@ export function VoyageScene({ from, to, progress, headline, sub, docked = false,
         {/* the route */}
         <div className="absolute inset-x-6 bottom-12 h-1 rounded-full bg-muted/60" />
         <div
-          className="absolute bottom-12 left-6 h-1 rounded-full bg-gradient-to-r from-primary to-secondary shadow-[0_0_10px_hsl(var(--primary))]"
+          className="absolute bottom-12 left-6 h-1 rounded-full bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_hsl(var(--primary))]"
           style={{ width: `calc((100% - 3rem) * ${p})`, transition: 'width 1.2s cubic-bezier(.2,.8,.2,1)' }}
         />
         <span className="absolute bottom-[2.6rem] left-5 size-3 rounded-full bg-primary ring-4 ring-primary/30" />
-        <span className={cn('absolute bottom-[2.6rem] right-5 size-3 rounded-full ring-4', p >= 1 ? 'bg-secondary ring-secondary/30' : 'bg-muted ring-muted/40')} />
+        <span className={cn('absolute bottom-[2.6rem] right-5 size-3 rounded-full ring-4', p >= 1 ? 'bg-accent ring-accent/30' : 'bg-muted ring-muted/40')} />
 
         {/* the ship */}
         <div
           className="absolute bottom-[3.1rem]"
           style={{ left: `clamp(3rem, calc(1.5rem + (100% - 3rem) * ${p}), calc(100% - 3rem))`, transform: 'translateX(-50%)', transition: 'left 1.2s cubic-bezier(.2,.8,.2,1)' }}
         >
-          <Ship size={92} className={docked ? '' : 'animate-sail'} />
+          <Ship size={128} className={docked ? '' : 'animate-sail'} />
         </div>
 
         {/* waves */}
@@ -58,7 +58,7 @@ export function VoyageScene({ from, to, progress, headline, sub, docked = false,
 
         <div className="absolute inset-x-4 bottom-1 flex justify-between font-heading text-sm font-bold">
           <span>{from}</span>
-          <span className={p >= 1 ? 'text-secondary' : 'text-muted-foreground'}>{to}</span>
+          <span className={p >= 1 ? 'text-accent' : 'text-muted-foreground'}>{to}</span>
         </div>
       </div>
     </div>

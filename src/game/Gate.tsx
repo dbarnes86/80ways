@@ -22,13 +22,13 @@ export function Gate({ feature, children }: { feature: Feature; children: ReactN
         <Lock className="size-10 text-muted-foreground" />
       </div>
       <div>
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-primary">Level {needed}</p>
+        <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">Level {needed}</p>
         <h1 className="font-heading text-4xl font-bold">{info.label}</h1>
         <p className="mt-1 text-lg text-muted-foreground">{info.blurb}</p>
       </div>
       <div className="w-full">
         <div className="h-4 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={{ width: `${Math.max(4, pct)}%` }} />
+          <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(4, pct)}%` }} />
         </div>
         <p className="mt-2 font-heading text-lg font-bold">
           {xp} / {target} XP

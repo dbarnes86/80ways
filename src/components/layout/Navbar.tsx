@@ -71,7 +71,7 @@ export const Navbar = () => {
           <NavLink to={user ? '/dashboard' : '/'} className={cn('items-center gap-2', user ? 'hidden lg:flex' : 'flex')}>
             <img src="/apple-touch-icon.png" alt="" className="size-9 rounded-[10px]" />
             <span className="font-heading text-lg tracking-wide text-glow-cyan">
-              80 <span className="text-secondary">WAYS</span>
+              80 <span className="text-accent">WAYS</span>
             </span>
           </NavLink>
 
@@ -86,11 +86,11 @@ export const Navbar = () => {
                     key={t.to}
                     to={t.to}
                     className={({ isActive }) =>
-                      cn('relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')
+                      cn('relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted-foreground hover:text-foreground')
                     }
                   >
                     <t.icon className="size-4" /> {t.label}
-                    {badge(t.to) > 0 && <span className="rounded-full bg-secondary px-1.5 text-[10px] font-bold text-white">{badge(t.to)}</span>}
+                    {badge(t.to) > 0 && <span className="rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">{badge(t.to)}</span>}
                   </NavLink>
                 ))}
                 <Button
@@ -105,7 +105,7 @@ export const Navbar = () => {
               </nav>
             </>
           ) : (
-            <NavLink to="/login" className="ml-auto font-mono text-sm text-muted-foreground hover:text-primary">
+            <NavLink to="/login" className="ml-auto font-mono text-sm text-muted-foreground hover:text-foreground">
               Sign in
             </NavLink>
           )}
@@ -126,15 +126,15 @@ export const Navbar = () => {
                       play('tick');
                     }}
                     className={({ isActive }) =>
-                      cn('press relative mx-1 my-1.5 flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl font-heading text-sm font-bold tracking-wide', isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground')
+                      cn('press relative mx-1 my-1.5 flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl font-heading text-sm font-bold tracking-wide', isActive ? 'bg-accent/15 text-accent' : 'text-muted-foreground')
                     }
                   >
                     {({ isActive }) => (
                       <>
                         <span className="relative">
-                          <tab.icon className={cn('size-7 transition-transform', isActive && 'scale-110 drop-shadow-[0_0_8px_hsl(var(--primary)/0.8)]')} />
+                          <tab.icon className={cn('size-7 transition-transform', isActive && 'scale-110 ')} />
                           {count > 0 && (
-                            <span className="absolute -right-2.5 -top-1.5 flex h-5 min-w-5 animate-bump items-center justify-center rounded-full bg-secondary px-1 text-[11px] font-bold text-white ring-2 ring-card">
+                            <span className="absolute -right-2.5 -top-1.5 flex h-5 min-w-5 animate-bump items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-white ring-2 ring-card">
                               {count}
                             </span>
                           )}

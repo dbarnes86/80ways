@@ -61,7 +61,7 @@ function RewardChips({ xp, credits }: { xp?: number; credits?: number }) {
   return (
     <div className="flex justify-center gap-3">
       {!!xp && (
-        <span className="animate-pop rounded-full border border-primary/50 bg-primary/15 px-4 py-2 font-heading text-xl font-bold text-primary" style={{ animationDelay: '0.35s' }}>
+        <span className="animate-pop rounded-full border border-foreground/40 bg-foreground/10 px-4 py-2 font-heading text-xl font-bold text-foreground" style={{ animationDelay: '0.35s' }}>
           +{xp} XP
         </span>
       )}
@@ -94,7 +94,7 @@ function ChestMoment({ m, onDone }: { m: Extract<RewardMoment, { kind: 'chest' }
         <div className="space-y-4">
           <RewardChips xp={m.xp} credits={m.credits} />
           {m.booster && (
-            <p className="animate-pop font-heading text-lg font-bold text-secondary" style={{ animationDelay: '0.65s' }}>
+            <p className="animate-pop font-heading text-lg font-bold text-accent" style={{ animationDelay: '0.65s' }}>
               + {BOOSTERS[m.booster].name}
             </p>
           )}
@@ -125,16 +125,16 @@ function Moment({ m, onDone }: { m: RewardMoment; onDone: () => void }) {
           <p className="animate-pop font-heading text-3xl font-bold" style={{ animationDelay: '0.2s' }}>{m.name}</p>
           {m.unlocks.length > 0 && (
             <div className="w-full space-y-2 pt-2">
-              <p className="animate-pop font-mono text-xs uppercase tracking-[0.3em] text-secondary" style={{ animationDelay: '0.35s' }}>
+              <p className="animate-pop font-mono text-xs uppercase tracking-[0.3em] text-accent" style={{ animationDelay: '0.35s' }}>
                 Unlocked
               </p>
               {m.unlocks.map((u, i) => (
                 <div
                   key={u.label}
-                  className="animate-pop rounded-2xl border-2 border-secondary/60 bg-secondary/15 px-4 py-3 text-left"
+                  className="animate-pop rounded-2xl border-2 border-accent/60 bg-accent/15 px-4 py-3 text-left"
                   style={{ animationDelay: `${0.45 + i * 0.15}s` }}
                 >
-                  <p className="font-heading text-xl font-bold text-secondary">{u.label}</p>
+                  <p className="font-heading text-xl font-bold text-accent">{u.label}</p>
                   <p className="text-sm text-muted-foreground">{u.blurb}</p>
                 </div>
               ))}
@@ -156,7 +156,7 @@ function Moment({ m, onDone }: { m: RewardMoment; onDone: () => void }) {
     case 'stamp':
       return (
         <div className="relative flex flex-col items-center gap-5 text-center">
-          <p className="animate-pop font-mono text-xs uppercase tracking-[0.3em] text-secondary">Passport stamped</p>
+          <p className="animate-pop font-mono text-xs uppercase tracking-[0.3em] text-accent">Passport stamped</p>
           <div className="animate-stamp">
             <Stamp city={m.city} size={200} />
           </div>
@@ -197,12 +197,13 @@ const SOUND: Record<RewardMoment['kind'], Parameters<typeof play>[0] | null> = {
 };
 
 const RAY_COLOR: Record<RewardMoment['kind'], string> = {
-  levelUp: 'hsl(187 100% 50% / 0.35)',
-  liftOff: 'hsl(187 100% 50% / 0.35)',
-  stamp: 'hsl(300 100% 50% / 0.3)',
-  journey: 'hsl(300 100% 50% / 0.35)',
-  quest: 'hsl(84 81% 44% / 0.3)',
-  chest: 'hsl(42 100% 60% / 0.3)',
+  // Brass sunbursts, like a poster; Volt only for Lift Off, the moment the engine starts.
+  levelUp: 'hsl(39 66% 55% / 0.3)',
+  liftOff: 'hsl(186 90% 60% / 0.3)',
+  stamp: 'hsl(39 66% 55% / 0.3)',
+  journey: 'hsl(39 66% 55% / 0.35)',
+  quest: 'hsl(154 40% 51% / 0.25)',
+  chest: 'hsl(39 66% 55% / 0.35)',
 };
 
 /** Shows queued reward moments one at a time, plus the floating "+XP" numbers. Mounted once. */
@@ -236,10 +237,10 @@ export function RewardLayer() {
             key={f.id}
             className={cn(
               'flex animate-rise items-center gap-1.5 rounded-full px-3 py-1 font-heading text-lg font-bold backdrop-blur-sm',
-              f.tone === 'xp' && 'bg-primary/20 text-primary',
+              f.tone === 'xp' && 'bg-foreground/15 text-foreground',
               f.tone === 'credits' && 'bg-warning/20 text-warning',
               f.tone === 'energy' && 'bg-success/20 text-success',
-              f.tone === 'streak' && 'bg-secondary/20 text-secondary',
+              f.tone === 'streak' && 'bg-accent/20 text-accent',
             )}
           >
             {f.tone === 'credits' && <Coin size={18} />}

@@ -28,7 +28,7 @@ function BoosterChip({ on, onClick, label, count }: { on: boolean; onClick: () =
       }}
       className={cn(
         'press flex-1 rounded-2xl border-2 px-3 py-2.5 font-heading text-lg font-bold',
-        on ? 'border-secondary bg-secondary/20 text-secondary shadow-[0_0_14px_hsl(var(--secondary)/0.5)]' : 'border-border text-muted-foreground',
+        on ? 'border-accent bg-accent/20 text-accent shadow-[0_0_14px_hsl(var(--accent)/0.5)]' : 'border-border text-muted-foreground',
       )}
     >
       {on ? '✓ ' : ''}

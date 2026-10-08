@@ -117,8 +117,8 @@ export default function Profile() {
     <div className="mx-auto max-w-md space-y-6 px-4 pb-6 pt-4">
       {/* Who */}
       <div className="flex items-center gap-4">
-        <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 ring-2 ring-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.4)]">
-          <Avatar discipline={discipline ?? 'runner'} size={76} className="-mt-3" iconClassName="size-10 text-primary" />
+        <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-card ring-2 ring-accent/70 shadow-[0_10px_30px_-14px_rgb(0_0_0/0.9)]">
+          <Avatar discipline={discipline ?? 'runner'} size={76} className="-mt-3" iconClassName="size-10 text-accent" />
           <span className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-primary font-heading text-lg font-bold text-primary-foreground ring-4 ring-background">
             {progression.level}
           </span>

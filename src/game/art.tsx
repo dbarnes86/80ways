@@ -97,7 +97,7 @@ export function Chest({ size = 96, open = false, tier = 'bronze', ...props }: Ar
 }
 
 export function Ship({ size = 120, ...props }: ArtProps) {
-  if (hasArt('ship')) return <ArtImage name="ship" width={size} height={Math.round(size * 0.5625)} className={props.className} />;
+  if (hasArt('ship')) return <ArtImage name="ship" width={size} height={Math.round(size * 0.78)} className={props.className} />;
   return (
     <svg width={size} height={size * 0.6} viewBox="0 0 200 120" aria-hidden style={glow('#00e5ff')} {...props}>
       <rect x="88" y="18" width="14" height="40" rx="2" fill="#0b1830" stroke="#00e5ff" strokeWidth="3" />
