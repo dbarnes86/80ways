@@ -45,17 +45,19 @@ const MODELS = [
   { id: 'bytedance/seedream/v4/text-to-image', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect, resolution: '2K' }) },
   { id: 'higgsfield-ai/soul/standard', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) },
 ];
+// An asset can name the model that suits it ("model" in assets.json), e.g. Recraft for chests.
 let chosen = process.env.HF_MODEL ? { id: process.env.HF_MODEL, body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) } : null;
 
 async function submitJob(asset) {
   const prompt = `${asset.prompt}. ${spec.style}`;
-  const candidates = chosen ? [chosen] : MODELS;
+  const own = asset.model && { id: asset.model, body: (p, aspect) => ({ prompt: p, aspect_ratio: aspect }) };
+  const candidates = own ? [own] : chosen ? [chosen] : MODELS;
   for (const model of candidates) {
     const res = await fetch(`${API}/${model.id}`, { method: 'POST', headers, body: JSON.stringify(model.body(prompt, asset.aspect)) });
     const job = await res.json().catch(() => ({}));
-    if (res.status === 404 && !chosen) continue; // not on this account; try the next
+    if (res.status === 404 && !chosen && !own) continue; // not on this account; try the next
     if (!res.ok) throw new Error(`${asset.name}: ${model.id} ${res.status} ${JSON.stringify(job)}`);
-    if (!chosen) {
+    if (!chosen && !own) {
       chosen = model;
       console.log(`Using model ${model.id}`);
     }

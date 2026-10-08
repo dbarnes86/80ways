@@ -13,13 +13,15 @@
     },
     {
       "name": "chest-bronze",
+      "model": "recraft/v4.1/text-to-image",
       "aspect": "1:1",
-      "prompt": "a locked small wooden treasure chest seen from the front, lid firmly closed and latched with a bronze padlock, bronze bands, the inside not visible, game loot box"
+      "prompt": "a small purple and teal wooden treasure chest with bronze bands seen from the front, lid firmly closed and latched with a bronze padlock, the inside not visible, game loot box"
     },
     {
       "name": "chest-bronze-open",
+      "model": "recraft/v4.1/text-to-image",
       "aspect": "1:1",
-      "prompt": "an open small wooden treasure chest with bronze bands spilling gold coins and warm light"
+      "prompt": "a small purple and teal wooden treasure chest with bronze bands seen from the front, lid open, filled with gold coins and warm light, nothing flying out"
     },
     {
       "name": "chest-silver",
@@ -147,8 +149,5 @@
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing an anchor and crates on a dock"
     }
   ],
-  "skip": [
-    "chest-bronze",
-    "chest-bronze-open"
-  ]
+  "skip": []
 }
