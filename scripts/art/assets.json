@@ -1,10 +1,11 @@
 {
-  "style": "stylised 3D mobile game art in the style of Supercell, chunky readable shapes, soft rim lighting, glossy materials, neon Victorian steampunk, vibrant cyan, magenta and gold accents, centred single subject, on a pure black background, absolutely no text, letters, words, numbers, banners or labels anywhere, no watermark, no border",
+  "style": "screen-printed poster illustration with the craft of Olly Moss and Firewatch key art, in the lineage of Cassandre's 1935 Normandie poster and WPA national park posters, bold graphic composition, dramatic low camera angle, strong single light source, layered flat shapes with visible halftone and paper grain, limited palette of deep navy, cream, brass gold and a warm amber highlight, one small electric cyan glow, no outlines, no 3D render, no gradients, centred single subject on a pure black background, absolutely no text, letters, numbers or lettering anywhere",
   "assets": [
     {
       "name": "ship",
       "aspect": "16:9",
-      "prompt": "side view of a small Victorian paddle steamship with two smokestacks, cyan glowing trim, gold portholes, cheerful toy-like proportions"
+      "prompt": "a Victorian paddle steamer seen from low on the water at a heroic three-quarter angle, its cream hull towering, brass paddle wheel churning stylised navy waves, two funnels pouring great plumes of cream smoke that fill the top of the frame, warm amber light on the hull from a low sun, one boiler window glowing electric cyan",
+      "model": "ideogram/v4.0"
     },
     {
       "name": "coin",
@@ -76,7 +77,8 @@
     {
       "name": "avatar-runner",
       "aspect": "1:1",
-      "prompt": "a cheerful runner character in Victorian sportswear mid-stride, full body, game avatar"
+      "prompt": "a richly embroidered round club crest badge, a winged running boot in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture",
+      "model": "ideogram/v4.0"
     },
     {
       "name": "avatar-rider",
@@ -97,7 +99,7 @@
       "name": "stamp-paris",
       "model": "ideogram/v4.0",
       "aspect": "1:1",
-      "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing the Eiffel Tower"
+      "prompt": "a round passport stamp in a single brass gold ink, the Eiffel Tower in solid silhouette with the Seine and a bridge in the foreground, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-suez",
