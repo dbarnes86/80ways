@@ -59,6 +59,8 @@
 	<string>UIStatusBarStyleLightContent</string>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>80 Ways reads your workouts so every run, ride, swim and session charges your energy reserves automatically.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UISupportedInterfaceOrientations~ipad</key>

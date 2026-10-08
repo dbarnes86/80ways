@@ -64,10 +64,10 @@ export default function Leaderboard() {
   const you = rows?.find((r) => r.isYou);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <div className="mb-8 flex items-end justify-between gap-4">
+    <div className="mx-auto max-w-md px-4 pb-6 pt-4">
+      <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-heading mb-2 text-glow-cyan">Leaderboard</h1>
+          <h1 className="font-heading text-3xl font-bold mb-1 text-glow-cyan">Ranks</h1>
           <p className="text-muted-foreground">Who's furthest round the world this season</p>
         </div>
         {activeSeason && (

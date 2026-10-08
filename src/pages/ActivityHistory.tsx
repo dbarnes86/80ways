@@ -87,13 +87,13 @@ export default function ActivityHistory() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-heading mb-2 text-glow-cyan">Activity Logbook</h1>
-        <p className="text-muted-foreground">Every workout that's powered your journey</p>
+    <div className="mx-auto max-w-md px-4 pb-6 pt-4">
+      <div className="mb-5">
+        <h1 className="font-heading text-3xl font-bold mb-1 text-glow-cyan">Logbook</h1>
+        <p className="text-muted-foreground">Every workout that's powered the voyage</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-3 mb-5">
         {statItems.map((s, i) => (
           <div className="animate-fade-up" key={s.label} style={{ animationDelay: `${i * 0.08}s` }}>
             <HoloCard glow={s.glow} className="p-5">
@@ -124,7 +124,7 @@ export default function ActivityHistory() {
         {filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-50" />
-            <p>{activities.length === 0 ? "No activities yet. Log your first one from the dashboard." : "Nothing logged in this period."}</p>
+            <p>{activities.length === 0 ? "No workouts yet. They show up here once collected on Home." : "Nothing logged in this period."}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

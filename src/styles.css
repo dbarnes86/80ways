@@ -68,6 +68,14 @@
   --animate-flash: flash 0.5s ease-out;
   --animate-stamp: stamp 0.5s cubic-bezier(.34, 1.56, .64, 1) both;
   --animate-glitch: glitch 2.4s steps(1) infinite;
+  --animate-rays: rays 12s linear infinite;
+  --animate-pop: pop 0.55s cubic-bezier(.34, 1.56, .64, 1) both;
+  --animate-rise: rise 1.6s cubic-bezier(.2, .8, .2, 1) forwards;
+  --animate-bob: bob 2.2s ease-in-out infinite;
+  --animate-wobble: wobble 0.9s ease-in-out infinite;
+  --animate-shine: shine 2.4s ease-in-out infinite;
+  --animate-bump: bump 0.35s cubic-bezier(.34, 1.56, .64, 1);
+  --animate-sail: sail 4s ease-in-out infinite;
 
   @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -94,6 +102,25 @@
     97% { transform: translate(-1px, 0); filter: none; }
   }
   @keyframes ring { 0% { r: 1.5; opacity: 0.8; } 70% { r: 3; opacity: 0; } 100% { r: 3; opacity: 0; } }
+  @keyframes rays { to { transform: rotate(360deg); } }
+  @keyframes wave { to { transform: translateX(-50%); } }
+  @keyframes pop { 0% { opacity: 0; transform: scale(0.3); } 100% { opacity: 1; transform: none; } }
+  @keyframes rise {
+    0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+    15% { opacity: 1; transform: translateY(0) scale(1.1); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-40px) scale(1); }
+  }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+  @keyframes shine { 0% { transform: translateX(-120%) skewX(-20deg); } 60%, 100% { transform: translateX(220%) skewX(-20deg); } }
+  @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+  @keyframes sail { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-4px) rotate(1deg); } }
+  @keyframes confetti {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+    8% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); }
+  }
 }
 
 @font-face { font-family: 'Rajdhani'; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/rajdhani-600-latin.woff2) format('woff2'); }
@@ -170,6 +197,19 @@
   .range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px hsl(var(--primary) / 0.4); }
 
   dialog.modal::backdrop { background: rgb(0 0 0 / 0.8); }
+
+  /* A sheen that sweeps across primary actions so they read as "press me". */
+  .shine { position: relative; overflow: hidden; }
+  .shine::after {
+    content: ''; position: absolute; inset: 0; width: 40%;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
+    animation: var(--animate-shine);
+    pointer-events: none;
+  }
+
+  /* Game buttons: big, chunky, they press in. */
+  .press { transition: transform 0.08s ease-out, filter 0.08s; }
+  .press:active { transform: scale(0.96) translateY(1px); filter: brightness(1.15); }
 }
 
 @media (prefers-reduced-motion: reduce) {

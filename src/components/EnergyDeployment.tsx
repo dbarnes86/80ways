@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { CheckCircle2, Coins, Flag, Sparkles } from 'lucide-react';
 import { EnergyAllocator } from '@/components/EnergyAllocator';
 import { useSeasonStore } from '@/stores/seasonStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { ENERGY_THEME } from '@/data/energyTheme';
-import { deployToLeg, type DeployResult } from '@/lib/gameActions';
+import { deployToLeg } from '@/lib/gameActions';
+import { announce } from '@/game/rewards';
+import { play } from '@/game/sfx';
 import { toast } from '@/components/toast';
 import { haptic } from '@/lib/native';
-import { Dialog, Button, SegmentedProgress, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
+import { Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 
 interface EnergyDeploymentProps {
   open: boolean;
@@ -17,27 +18,28 @@ interface EnergyDeploymentProps {
 export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
   const participation = useSeasonStore((s) => s.participation);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<DeployResult | null>(null);
+  const close = () => onClose();
 
-  const close = () => {
-    onClose();
-    setTimeout(() => setResult(null), 200);
-  };
-
-  // While the success screen is up, keep showing the leg that was just completed.
-  const legIndex = result ? result.legIndex : participation?.currentLeg ?? 0;
-  const leg = JOURNEY_LEGS[legIndex];
+  const leg = JOURNEY_LEGS[participation?.currentLeg ?? 0];
   if (!participation || !leg) return null;
-
   const theme = ENERGY_THEME[leg.requiredEnergy.type];
-  const nextLeg = JOURNEY_LEGS[legIndex + 1];
 
   const handleSubmit = async (selection: Parameters<typeof deployToLeg>[0]) => {
     setSubmitting(true);
     try {
       const res = await deployToLeg(selection);
-      setResult(res);
+      // Back to the map: the ship moves, and a finished leg gets its passport stamp.
+      close();
+      play(res.legCompleted ? 'whoosh' : 'collect');
       haptic(res.legCompleted ? 'success' : 'tap');
+      announce({
+        xp: res.xp,
+        credits: res.legCompleted ? 0 : res.credits,
+        levelUp: res.levelUp,
+        legCompletedCity: res.legCompleted ? JOURNEY_LEGS[res.legIndex].to : undefined,
+        legCredits: res.credits,
+        journeyComplete: res.journeyComplete,
+      });
     } catch (err) {
       toast({
         title: 'Deployment failed',
@@ -52,7 +54,6 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
   return (
     <Dialog open={open} onClose={() => close()} className="max-w-xl max-h-[90vh] overflow-y-auto bg-background border-2 border-primary/50">
         <>
-          {!result ? (
             <div key="form" className="space-y-5">
               <DialogHeader>
                 <DialogTitle className="text-xl font-heading font-bold text-primary">
@@ -74,72 +75,6 @@ export const EnergyDeployment = ({ open, onClose }: EnergyDeploymentProps) => {
                 onCancel={close}
               />
             </div>
-          ) : (
-            <div
-              key="success"
-              className="text-center py-6 space-y-5 animate-scale-in"
-            >
-              <div className="flex justify-center animate-scale-in">
-                {result.legCompleted ? (
-                  <Flag className="w-20 h-20 text-success" />
-                ) : (
-                  <CheckCircle2 className="w-20 h-20 text-primary" />
-                )}
-              </div>
-
-              <div>
-                <h2 className="text-2xl font-heading font-bold mb-1">
-                  {result.journeyComplete ? 'AROUND THE WORLD!' : result.legCompleted ? `${leg.to.toUpperCase()} REACHED` : 'ENERGY DEPLOYED'}
-                </h2>
-                <p className="text-primary">+{result.plan.totalEffective.toFixed(1)} kWh progress</p>
-              </div>
-
-              <div className="flex justify-center gap-3 text-sm font-mono">
-                <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary">+{result.xp} XP</span>
-                {result.credits > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-warning/10 border border-warning/30 text-warning flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5" /> +{result.credits}
-                  </span>
-                )}
-              </div>
-
-              {result.levelUp && (
-                <p className="text-sm text-secondary">Level {result.levelUp.level}: {result.levelUp.name}</p>
-              )}
-
-              {result.legCompleted ? (
-                <div className="space-y-4">
-                  <p className="text-sm italic text-muted-foreground max-w-sm mx-auto">{leg.narrative.arrivalQuote}</p>
-                  {result.journeyComplete ? (
-                    <div className="p-4 rounded-lg border border-secondary/40 bg-secondary/10 text-sm flex items-center gap-2 justify-center">
-                      <Sparkles className="w-4 h-4 text-secondary" />
-                      Fogg's wager is won. You've circled the globe this season.
-                    </div>
-                  ) : nextLeg ? (
-                    <div className="p-4 bg-muted/30 rounded-lg text-left">
-                      <p className="text-[10px] font-mono text-muted-foreground tracking-widest mb-1">NEXT LEG</p>
-                      <p className="font-bold">{nextLeg.narrative.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {nextLeg.from} → {nextLeg.to} · {nextLeg.requiredEnergy.amount} kWh{' '}
-                        <span className={ENERGY_THEME[nextLeg.requiredEnergy.type].text}>
-                          {ENERGY_THEME[nextLeg.requiredEnergy.type].label}
-                        </span>
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="p-4 rounded-lg border border-primary/40 bg-primary/5 space-y-2">
-                  <SegmentedProgress value={result.newProgress} max={leg.requiredEnergy.amount} segments={12} glow="cyan" size="sm" />
-                  <p className="text-sm text-muted-foreground">
-                    {(leg.requiredEnergy.amount - result.newProgress).toFixed(1)} kWh to {leg.to}
-                  </p>
-                </div>
-              )}
-
-              <Button onClick={close} className="w-full">Continue</Button>
-            </div>
-          )}
         </>
           </Dialog>
   );

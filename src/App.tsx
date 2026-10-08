@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { GameSync } from '@/components/GameSync'
 import { Toaster } from '@/components/toast'
+import { RewardLayer } from '@/game/RewardLayer'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { Layout } from '@/components/layout/Layout'
 import Landing from './pages/Landing'
@@ -19,6 +20,7 @@ const Raids = lazy(() => import('./pages/Raids'))
 const Store = lazy(() => import('./pages/Store'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Membership = lazy(() => import('./pages/Membership'))
+const Quests = lazy(() => import('./pages/Quests'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Privacy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })))
 const Terms = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms })))
@@ -41,6 +43,7 @@ const App = () => (
   <AuthProvider>
     <GameSync />
     <Toaster />
+    <RewardLayer />
     <BrowserRouter>
       <Suspense fallback={<PageLoading />}>
       <Routes>
@@ -59,6 +62,7 @@ const App = () => (
         <Route path="/store" element={app(<Store />)} />
         <Route path="/profile" element={app(<Profile />)} />
         <Route path="/membership" element={app(<Membership />)} />
+        <Route path="/quests" element={app(<Quests />)} />
         <Route path="/stages" element={<Navigate to="/leaderboard" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -68,7 +68,7 @@ export function UpgradeButton({ plan, children, variant }: { plan: Plan; childre
         if (outcome === 'purchased') {
           await fetchMembership(user.id)
           haptic('success')
-          toast({ title: 'Welcome aboard', description: "You're a member. The expedition awaits." })
+          toast({ title: 'Welcome aboard', description: "Your Season Pass is active. The voyage awaits." })
         }
         setBusy(false)
       } else {

@@ -1,15 +1,22 @@
-import { LocationCard } from '@/components/map/LocationCard';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Check, Lock } from 'lucide-react';
 import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
+import { useEnergyStore } from '@/stores/energyStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { ENERGY_THEME } from '@/data/energyTheme';
+import { ENERGY_TYPES } from '@/data/gameConstants';
 import { getDistanceCovered, getPlayerNarrativeDay } from '@/lib/gameEngine';
-import { MapPin, Globe, Compass, Lock } from 'lucide-react';
-import { HoloCard, Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
+import { haptic } from '@/lib/native';
+import { needsPass } from '@/lib/gameActions';
+import { cn, Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
+import { EnergyDeployment } from '@/components/EnergyDeployment';
+import { Orb, Stamp } from '@/game/art';
+import { play } from '@/game/sfx';
 
 type LegStatus = 'complete' | 'active' | 'locked';
 
-// Simple city coordinates mapped to a 0-100 viewBox for the SVG path
+// City positions on a 100 x 60 map.
 const CITY_POINTS: Record<string, { x: number; y: number }> = {
   'London': { x: 48, y: 22 },
   'London Port': { x: 49, y: 23 },
@@ -41,16 +48,32 @@ function buildRoute(points: Point[]): string {
     .join(' ');
 }
 
+/** Where the ship is: part-way along the current leg (the Pacific wrap just sits at the start). */
+function shipPoint(from: Point, to: Point, t: number): Point {
+  if (from.x - to.x > 50) return from;
+  return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t };
+}
+
+function Stat({ value, label, tone }: { value: string; label: string; tone: string }) {
+  return (
+    <div className="flex-1 rounded-2xl border border-border bg-card/70 px-2 py-3 text-center">
+      <p className={cn('font-heading text-2xl font-bold leading-none', tone)}>{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
 export default function MapPage() {
   const season = useSeasonStore();
   const hasJoined = useSeasonStore(selectHasJoined);
+  const energy = useEnergyStore();
   const participation = hasJoined ? season.participation : null;
   const journeyDone = participation?.status === 'completed';
   const currentLegIndex = participation?.currentLeg ?? 0;
-  const legFraction = participation
-    ? participation.legProgress / JOURNEY_LEGS[currentLegIndex].requiredEnergy.amount
-    : 0;
+  const currentLeg = JOURNEY_LEGS[currentLegIndex];
+  const legFraction = participation ? participation.legProgress / currentLeg.requiredEnergy.amount : 0;
   const [openLeg, setOpenLeg] = useState<number | null>(null);
+  const [deployOpen, setDeployOpen] = useState(false);
 
   const legStatus = (i: number): LegStatus => {
     if (!participation) return 'locked';
@@ -59,52 +82,36 @@ export default function MapPage() {
     return 'locked';
   };
 
-  const stages = JOURNEY_LEGS.map((leg, i) => ({
-    name: leg.to,
-    country: leg.from + ' → ' + leg.to,
-    distance: leg.distance,
-    status: legStatus(i),
-    legNumber: leg.legNumber,
-    narrative: leg.narrative.title,
-  }));
-
-  const completedLegs = stages.filter((s) => s.status === 'complete').length;
-  const totalDistance = JOURNEY_LEGS.reduce((sum, l) => sum + l.distance, 0);
-  const coveredDistance = participation ? getDistanceCovered(currentLegIndex, legFraction, journeyDone) : 0;
+  const covered = participation ? getDistanceCovered(currentLegIndex, legFraction, journeyDone) : 0;
   const day = participation ? getPlayerNarrativeDay(currentLegIndex, legFraction, journeyDone) : 1;
+  const stamps = participation ? JOURNEY_LEGS.slice(1).filter((_, i) => legStatus(i + 1) === 'complete').length : 0;
+  const hasEnergy = ENERGY_TYPES.some((t) => energy[t].current >= 0.1);
+  const locked = needsPass(participation);
 
-  // Start in London, then each leg's destination.
+  // London, then each leg's destination.
   const pathCities = [CITY_POINTS['London'], ...JOURNEY_LEGS.map((leg) => CITY_POINTS[leg.to])];
+  const completedLegs = JOURNEY_LEGS.filter((_, i) => legStatus(i) === 'complete').length;
+  const ship = participation && !journeyDone ? shipPoint(pathCities[currentLegIndex], pathCities[currentLegIndex + 1], Math.min(1, legFraction)) : pathCities[0];
 
-  const pathD = buildRoute(pathCities);
+  const open = (i: number) => {
+    haptic('select');
+    play('tick');
+    setOpenLeg(i);
+  };
 
   const selected = openLeg !== null ? JOURNEY_LEGS[openLeg] : null;
   const selectedStatus = openLeg !== null ? legStatus(openLeg) : 'locked';
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-heading font-bold text-glow-cyan flex items-center gap-3">
-            <Globe className="w-8 h-8 text-primary" />
-            EXPEDITION MAP
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {coveredDistance.toLocaleString()} / {totalDistance.toLocaleString()} km traversed
-          </p>
-        </div>
-        <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
-          <Compass className="w-4 h-4 text-primary" />
-          <span>Day {day} of 80</span>
-        </div>
+    <div className="mx-auto max-w-md space-y-5 px-4 pb-6 pt-4">
+      <div className="flex gap-2">
+        <Stat value={`${day}`} label="Day of 80" tone="text-primary" />
+        <Stat value={covered >= 1000 ? `${(covered / 1000).toFixed(1)}k` : `${Math.round(covered)}`} label="km sailed" tone="text-success" />
+        <Stat value={`${stamps}/10`} label="Stamps" tone="text-secondary" />
       </div>
 
-      {/* SVG Map Visualization */}
-      <HoloCard glow="cyan" className="p-4 mb-8">
-        <div className="relative aspect-[5/3] w-full">
-          <svg viewBox="0 0 100 60" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-            {/* Simplified world map continents */}
+      <div className="overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-b from-[#071631] to-[#05050b] p-2">
+        <svg viewBox="0 12 100 40" className="w-full" aria-label="Route map">
             <g opacity={0.32} fill="hsl(187 100% 50% / 0.05)" stroke="hsl(187 100% 50%)" strokeWidth={0.3}>
               {/* North America */}
               <path d="M5,12 L8,10 L12,8 L18,7 L22,8 L25,10 L28,9 L30,11 L28,14 L30,16 L28,18 L26,20 L24,22 L22,26 L20,30 L18,32 L16,30 L14,28 L12,24 L10,20 L8,18 L6,16 L5,14 Z" />
@@ -130,153 +137,141 @@ export default function MapPage() {
               <path d="M30,4 L34,3 L38,4 L36,7 L32,7 L30,5 Z" />
             </g>
 
-            {/* Grid */}
-            {Array.from({ length: 11 }).map((_, i) => (
-              <line
-                key={`vg-${i}`}
-                x1={i * 10}
-                y1={0}
-                x2={i * 10}
-                y2={60}
-                stroke="hsl(187 100% 50% / 0.04)"
-                strokeWidth={0.15}
-              />
-            ))}
-            {Array.from({ length: 7 }).map((_, i) => (
-              <line
-                key={`hg-${i}`}
-                x1={0}
-                y1={i * 10}
-                x2={100}
-                y2={i * 10}
-                stroke="hsl(187 100% 50% / 0.04)"
-                strokeWidth={0.15}
-              />
-            ))}
-
-            {/* Full path (dim) */}
-            <path d={pathD} fill="none" stroke="hsl(187 100% 50% / 0.3)" strokeWidth={0.45} strokeDasharray="1 1" />
-
-            {/* Completed path (bright) */}
-            {completedLegs > 0 && (
-              <path
-                d={buildRoute(pathCities.slice(0, completedLegs + 1))}
-                fill="none"
-                stroke="hsl(187 100% 50%)"
-                strokeWidth={0.7}
-                style={{ filter: 'drop-shadow(0 0 1px hsl(187 100% 50%))' }}
-              />
-            )}
-
-            {/* City dots */}
-            {pathCities.map((p, i) => {
-              // Dot 0 is the London origin; dot i is the destination of leg i-1.
-              const status: LegStatus | 'origin' = i === 0 ? 'origin' : legStatus(i - 1);
-              const isComplete = status === 'complete' || status === 'origin';
-              const isActive = status === 'active';
-              const isLocked = status === 'locked';
-              const label = i === 0 ? 'London' : JOURNEY_LEGS[i - 1].to;
-              // London appears twice (start and finish) and London Port sits on top of it; only label once.
-              const showLabel = i !== 1 && i !== pathCities.length - 1;
-
-              return (
-                <g key={i}>
-                  {isActive && (
-                    <circle
-                      cx={p.x}
-                      cy={p.y}
-                      r={2}
-                      fill="none"
-                      stroke="hsl(187 100% 50%)"
-                      strokeWidth={0.2} className="animate-ring"
-                    />
-                  )}
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={isActive ? 1.4 : 1}
-                    fill={isComplete ? 'hsl(84 81% 44%)' : isActive ? 'hsl(187 100% 50%)' : 'hsl(240 20% 30%)'}
-                  />
-                  {showLabel && (
-                    <text
-                      x={p.x}
-                      y={p.y - 2}
-                      textAnchor="middle"
-                      fill={isLocked ? 'hsl(0 0% 40%)' : 'hsl(0 0% 80%)'}
-                      fontSize={2.4}
-                      fontFamily="var(--font-mono)"
-                    >
-                      {label}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-      </HoloCard>
-
-      {/* Journey Stages */}
-      <h2 className="text-2xl font-heading font-bold mb-4 flex items-center gap-2">
-        <MapPin className="w-5 h-5 text-primary" />
-        JOURNEY LEGS
-      </h2>
-      <div className="space-y-3">
-        {stages.map((stage, index) => (
-          <div className="animate-fade-up"
-            key={stage.legNumber}
-           style={{ animationDelay: `${index * 0.06}s` }}>
-            <LocationCard
-              name={stage.name}
-              country={stage.country}
-              distance={stage.distance}
-              status={stage.status}
-              legNumber={stage.legNumber}
-              narrative={stage.narrative}
-              onClick={() => setOpenLeg(index)}
+          <path d={buildRoute(pathCities)} fill="none" stroke="hsl(187 100% 50% / 0.3)" strokeWidth={0.45} strokeDasharray="1 1" />
+          {completedLegs > 0 && (
+            <path
+              d={buildRoute(pathCities.slice(0, completedLegs + 1))}
+              fill="none"
+              stroke="hsl(187 100% 50%)"
+              strokeWidth={0.8}
+              style={{ filter: 'drop-shadow(0 0 1px hsl(187 100% 50%))' }}
             />
-          </div>
-        ))}
+          )}
+
+          {pathCities.map((p, i) => {
+            if (i === 1 || i === pathCities.length - 1) return null; // London Port and the finish sit on London
+            const status: LegStatus | 'origin' = i === 0 ? 'origin' : legStatus(i - 1);
+            const lit = status === 'complete' || status === 'origin';
+            return (
+              <g key={i} onClick={() => i > 0 && open(i - 1)} className={i > 0 ? 'cursor-pointer' : undefined}>
+                <circle cx={p.x} cy={p.y} r={3.2} fill="transparent" />
+                <circle cx={p.x} cy={p.y} r={1.1} fill={lit ? 'hsl(300 100% 50%)' : status === 'active' ? 'hsl(187 100% 50%)' : 'hsl(240 20% 35%)'} />
+              </g>
+            );
+          })}
+
+          {/* the ship */}
+          <g transform={`translate(${ship.x} ${ship.y})`} style={{ transition: 'transform 1.2s ease-out' }}>
+            <circle r={2.6} fill="none" stroke="hsl(187 100% 50%)" strokeWidth={0.25} className="animate-ring" />
+            <path d="M-2 -0.2 H2 L1.3 1 H-1.3 Z M-0.4 -0.2 V-1.6 H0.4 V-0.2" fill="hsl(187 100% 50%)" style={{ filter: 'drop-shadow(0 0 1px hsl(187 100% 50%))' }} />
+          </g>
+        </svg>
       </div>
 
       {!participation && (
-        <p className="text-sm text-muted-foreground mt-6 text-center">
-          Board the expedition from your dashboard to start unlocking legs.
-        </p>
+        <Link to="/dashboard" className="press block rounded-2xl border border-secondary/40 bg-secondary/10 p-4 text-center">
+          <p className="font-heading text-lg font-bold text-secondary">The ship is in port</p>
+          <p className="text-sm text-muted-foreground">Finish Lift Off and board to start the voyage.</p>
+        </Link>
       )}
 
-      <Dialog open={openLeg !== null} onClose={() => setOpenLeg(null)} className="max-w-lg bg-background border-2 border-primary/50">
-          {selected && (
-            <>
-              <DialogHeader>
-                <p className="text-[10px] font-mono text-muted-foreground tracking-widest">
-                  LEG {String(selected.legNumber + 1).padStart(2, '0')} · DAY {selected.daysNarrative}
-                </p>
-                <DialogTitle className="text-xl font-heading">{selected.narrative.title}</DialogTitle>
-                <DialogDescription>
-                  {selected.from} → {selected.to} · {selected.distance.toLocaleString()} km ·{' '}
-                  {selected.requiredEnergy.amount} kWh{' '}
-                  <span className={ENERGY_THEME[selected.requiredEnergy.type].text}>
-                    {ENERGY_THEME[selected.requiredEnergy.type].label}
-                  </span>
-                </DialogDescription>
-              </DialogHeader>
-              {selectedStatus === 'locked' ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                  <Lock className="w-4 h-4" /> The log for this leg hasn't been written yet. Keep travelling.
-                </div>
-              ) : (
-                <div className="space-y-4 text-sm">
-                  <p className="italic text-muted-foreground">{selected.narrative.departureQuote}</p>
-                  <p className="leading-relaxed">{selected.narrative.description}</p>
-                  {selectedStatus === 'complete' && (
-                    <p className="italic text-primary">{selected.narrative.arrivalQuote}</p>
+      {/* The route, one stop per city. */}
+      <ol className="relative space-y-2">
+        <span className="absolute bottom-6 left-[1.6rem] top-6 w-0.5 bg-border" aria-hidden />
+        {JOURNEY_LEGS.map((leg, i) => {
+          const status = legStatus(i);
+          const theme = ENERGY_THEME[leg.requiredEnergy.type];
+          const active = status === 'active';
+          return (
+            <li key={leg.id} className="relative">
+              <button
+                type="button"
+                onClick={() => open(i)}
+                className={cn(
+                  'press flex w-full items-center gap-3 rounded-2xl border p-3 text-left',
+                  active ? 'border-primary/60 bg-primary/10 shadow-[0_0_20px_hsl(var(--primary)/0.25)]' : 'border-transparent',
+                  status === 'locked' && 'opacity-55',
+                )}
+              >
+                <span
+                  className={cn(
+                    'relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full border-2',
+                    status === 'complete' && 'border-secondary bg-secondary/20',
+                    active && 'border-primary bg-background',
+                    status === 'locked' && 'border-border bg-background',
+                  )}
+                >
+                  {status === 'complete' ? <Check className="size-5 text-secondary" strokeWidth={3} /> : status === 'locked' ? <Lock className="size-4 text-muted-foreground" /> : <span className="size-3 animate-pulse-soft rounded-full bg-primary" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={cn('font-heading text-lg font-bold leading-tight', active && 'text-primary')}>{leg.to}</p>
+                  {active ? (
+                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-gradient-to-r from-primary to-secondary" style={{ width: `${Math.max(3, legFraction * 100)}%` }} />
+                    </div>
+                  ) : (
+                    <p className="truncate text-sm text-muted-foreground">{leg.narrative.title}</p>
                   )}
                 </div>
+                <span className={cn('flex shrink-0 items-center gap-1 font-heading text-base font-bold', theme.text)}>
+                  <Orb type={leg.requiredEnergy.type} size={16} />
+                  {active ? `${participation!.legProgress.toFixed(1)}/${leg.requiredEnergy.amount}` : leg.requiredEnergy.amount}
+                </span>
+              </button>
+              {active && locked && (
+                <Link
+                  to="/membership"
+                  className="press shine mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-secondary font-heading text-xl font-bold text-white shadow-[0_0_24px_hsl(var(--secondary)/0.4)]"
+                >
+                  Keep sailing with the Season Pass
+                </Link>
               )}
-            </>
-          )}
-              </Dialog>
+              {active && !locked && hasEnergy && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic('tap');
+                    setDeployOpen(true);
+                  }}
+                  className="press shine mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-primary font-heading text-xl font-bold text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.4)]"
+                >
+                  Stoke the boiler
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+
+      <Dialog open={openLeg !== null} onClose={() => setOpenLeg(null)} className="max-w-lg border-2 border-primary/50 bg-background">
+        {selected && (
+          <>
+            <DialogHeader>
+              {selectedStatus === 'complete' && openLeg! > 0 && <Stamp city={selected.to} size={110} className="mx-auto -rotate-12" />}
+              <p className="font-mono text-xs tracking-widest text-muted-foreground">
+                LEG {selected.legNumber + 1} · {selected.distance.toLocaleString()} KM
+              </p>
+              <DialogTitle className="font-heading text-2xl">{selected.narrative.title}</DialogTitle>
+              <DialogDescription>
+                {selected.from} → {selected.to} · needs {selected.requiredEnergy.amount} kWh{' '}
+                <span className={ENERGY_THEME[selected.requiredEnergy.type].text}>{ENERGY_THEME[selected.requiredEnergy.type].label}</span>
+              </DialogDescription>
+            </DialogHeader>
+            {selectedStatus === 'locked' ? (
+              <p className="flex items-center gap-2 py-3 text-muted-foreground">
+                <Lock className="size-4" /> Not reached yet. Keep sailing.
+              </p>
+            ) : (
+              <div className="space-y-3 text-base">
+                <p className="italic text-muted-foreground">{selected.narrative.departureQuote}</p>
+                <p className="leading-relaxed">{selected.narrative.description}</p>
+                {selectedStatus === 'complete' && <p className="italic text-primary">{selected.narrative.arrivalQuote}</p>}
+              </div>
+            )}
+          </>
+        )}
+      </Dialog>
+      <EnergyDeployment open={deployOpen} onClose={() => setDeployOpen(false)} />
     </div>
   );
 }

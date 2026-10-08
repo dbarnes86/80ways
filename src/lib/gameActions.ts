@@ -10,11 +10,11 @@ import {
   CREDITS_PER_ACTIVITY,
   CREDITS_PER_LEG_BASE,
   CREDITS_PER_LEG_STEP,
-  CREDITS_RAID_SUCCESS,
   CREDITS_STARTER_EVENT,
   DAILY_MISSION,
   DECAY_INHIBITOR_HOURS,
   ENERGY_TYPES,
+  FREE_LEGS,
   XP_PER_ENERGY_DEPLOYED,
   XP_PER_LEG_COMPLETED,
   type BoosterId,
@@ -55,6 +55,8 @@ const withLevelTracking = <T>(fn: () => T): [T, Rewards['levelUp']] => {
 
 // ─── Log an activity ────────────────────────────────────────────
 export interface LogActivityInput {
+  /** Set for imported workouts so the same one can't be logged twice. */
+  id?: string;
   activityType: string;
   targetType: EnergyType;
   durationMin: number;
@@ -75,6 +77,9 @@ export interface LogActivityResult extends Rewards {
 }
 
 export function logActivity(input: LogActivityInput): LogActivityResult {
+  if (input.id && useActivityStore.getState().activities.some((a) => a.id === input.id)) {
+    throw new Error('That workout is already in your logbook.');
+  }
   const user = useUserStore.getState();
   const amplifier = input.useAmplifier && user.consumeBooster('energyAmplifier');
   const multiCharge = input.useMultiCharge && useUserStore.getState().consumeBooster('multiCharge');
@@ -90,7 +95,7 @@ export function logActivity(input: LogActivityInput): LogActivityResult {
   });
 
   const activity: Activity = {
-    id: crypto.randomUUID(),
+    id: input.id ?? crypto.randomUUID(),
     timestamp: input.performedAt.toISOString(),
     activityType: input.activityType,
     targetEnergyType: input.targetType,
@@ -158,6 +163,13 @@ export function logActivity(input: LogActivityInput): LogActivityResult {
 }
 
 // ─── Deploy energy to the current leg ───────────────────────────
+/** Past the free legs without a Season Pass: the voyage waits for the pass. */
+export function needsPass(participation: { currentLeg: number; joinedAtLeg: number } | null): boolean {
+  if (!participation) return false;
+  const member = useMembershipStore.getState().membership?.tier === 'member';
+  return !member && participation.currentLeg >= participation.joinedAtLeg + FREE_LEGS;
+}
+
 export interface DeployResult extends Rewards {
   plan: DeploymentPlan;
   legCompleted: boolean;
@@ -171,7 +183,7 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   const participation = season.participation;
   if (!participation || !season.activeSeason) throw new Error('Join the expedition first.');
   if (participation.status === 'completed') throw new Error('Your journey is already complete.');
-  if (useMembershipStore.getState().membership?.tier !== 'member') throw new Error('Your membership has lapsed. Renew it to keep travelling.');
+  if (needsPass(participation)) throw new Error('The rest of the voyage is on the Season Pass.');
 
   const legIndex = participation.currentLeg;
   const leg = JOURNEY_LEGS[legIndex];
@@ -186,9 +198,28 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   if (plan.totalDeployed <= 0) throw new Error('Select some energy to deploy.');
 
   for (const line of plan.lines) energy.deployEnergy(line.type, line.amount);
+  useUserStore.getState().logDeployment(toDayKey(new Date()), plan.totalDeployed);
 
   const newProgress = Math.min(required, participation.legProgress + plan.totalEffective);
   const legCompleted = newProgress >= required - 1e-6;
+
+  // Record it before the leg advances: on the last free leg, the server only accepts deployments
+  // while the player is still on it.
+  const userId = getActiveUserId();
+  if (userId) {
+    const { error } = await supabase.from('energy_deployments').insert(
+      plan.lines.map((l) => ({
+        user_id: userId,
+        season_id: season.activeSeason!.id,
+        leg_id: leg.id,
+        energy_type: l.type,
+        amount: l.amount,
+        efficiency: l.efficiency,
+        effective_amount: l.effective,
+      })),
+    );
+    if (error) console.warn('Failed to record deployment:', error.message);
+  }
 
   let xp = Math.round(plan.totalDeployed * XP_PER_ENERGY_DEPLOYED);
   let credits = 0;
@@ -209,21 +240,6 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   const [, levelUp] = withLevelTracking(() => useProgressionStore.getState().addXP(xp));
   if (credits) useUserStore.getState().addCredits(credits);
 
-  const userId = getActiveUserId();
-  if (userId) {
-    const { error } = await supabase.from('energy_deployments').insert(
-      plan.lines.map((l) => ({
-        user_id: userId,
-        season_id: season.activeSeason!.id,
-        leg_id: leg.id,
-        energy_type: l.type,
-        amount: l.amount,
-        efficiency: l.efficiency,
-        effective_amount: l.effective,
-      })),
-    );
-    if (error) console.warn('Failed to record deployment:', error.message);
-  }
   schedulePush();
 
   return { plan, legCompleted, journeyComplete, legIndex, newProgress, xp, credits, levelUp };
@@ -241,7 +257,7 @@ export async function contributeToRaid(
 ): Promise<RaidContributionResult> {
   const userId = getActiveUserId();
   if (!userId) throw new Error('Sign in to join raids.');
-  if (useMembershipStore.getState().membership?.tier !== 'member') throw new Error('Raids are for members.');
+  if (useMembershipStore.getState().membership?.tier !== 'member') throw new Error('Raids need a Season Pass.');
 
   const totals = useRaidStore.getState().totals[raid.key];
   const remaining = Math.max(0, raid.goalKwh - (totals?.total ?? 0));
@@ -286,10 +302,10 @@ export function claimRaidReward(seasonId: string, raidKey: string): Rewards | nu
   const key = `${seasonId}:${raidKey}`;
   const user = useUserStore.getState();
   if (user.raidRewardsClaimed.includes(key)) return null;
+  // The payout is the chest the caller opens; this is the ledger that stops a second one.
   user.markRaidRewardClaimed(key);
-  user.addCredits(CREDITS_RAID_SUCCESS);
   schedulePush();
-  return { xp: 0, credits: CREDITS_RAID_SUCCESS };
+  return { xp: 0, credits: 0 };
 }
 
 // ─── Store ──────────────────────────────────────────────────────

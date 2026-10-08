@@ -99,6 +99,8 @@ export const LEVEL_NAMES = [
 ] as const;
 
 export const MAIN_JOURNEY_UNLOCK_LEVEL = 3;
+/** Legs every player sails free from where they board; the Season Pass covers the rest. Matches the RLS policies. */
+export const FREE_LEGS = 2;
 
 // ─── Starter Event (Lift Off) ───────────────────────────────────
 /**

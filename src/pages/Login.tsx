@@ -6,6 +6,7 @@ import { env } from '@/lib/env';
 import { haptic, isNativeApp } from '@/lib/native';
 import { Button, HoloCard, Input, Label } from '@/components/ui';
 import { toast } from '@/components/toast';
+import { signInWithApple } from '@/services/appleAuth';
 import riftLogo from '@/assets/rift-logo.png';
 
 const Login = () => {
@@ -42,8 +43,12 @@ const Login = () => {
   };
 
   const apple = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/dashboard` } });
-    if (error) toast({ title: 'Apple sign-in failed', description: error.message, variant: 'destructive' });
+    const r = await signInWithApple();
+    if (r.ok) {
+      haptic('success');
+      // Native returns with a session; the web redirects away to Apple instead.
+      if (isNativeApp()) navigate('/dashboard');
+    } else if (!r.cancelled) toast({ title: 'Apple sign-in failed', description: r.message, variant: 'destructive' });
   };
 
   return (
@@ -59,7 +64,7 @@ const Login = () => {
             <p className="text-sm text-muted-foreground">Sign in to continue your journey</p>
           </div>
 
-          {env.appleAuth && !isNativeApp() && (
+          {(env.appleAuth || isNativeApp()) && (
             <>
               <Button onClick={() => void apple()} variant="outline" className="mb-6 h-12 w-full border-border text-base hover:bg-muted">
                 <svg className="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

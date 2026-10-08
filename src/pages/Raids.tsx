@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Coins, Swords, XCircle } from 'lucide-react';
+import { CheckCircle2, Swords, XCircle } from 'lucide-react';
 import { EnergyAllocator } from '@/components/EnergyAllocator';
-import { Badge, Button, Dialog, HoloCard } from '@/components/ui';
+import { Button, Dialog, HoloCard } from '@/components/ui';
 import { toast } from '@/components/toast';
 import { BossCard, type Hit } from '@/features/raids/BossCard';
 import { supabase } from '@/lib/supabase';
@@ -12,9 +12,13 @@ import { useUserStore } from '@/stores/userStore';
 import { useEnergyStore } from '@/stores/energyStore';
 import { selectIsMember, useMembershipStore } from '@/stores/membershipStore';
 import { ENERGY_THEME } from '@/data/energyTheme';
-import { CREDITS_RAID_SUCCESS, ENERGY_TYPES, type EnergyType } from '@/data/gameConstants';
+import { ENERGY_TYPES, type EnergyType } from '@/data/gameConstants';
 import { formatTimeLeft, getRaidSchedule, getRaidStatus, RAID_XP_FIRST_CONTRIBUTION, type ScheduledRaid } from '@/data/raids';
 import { claimRaidReward, contributeToRaid } from '@/lib/gameActions';
+import { Orb } from '@/game/art';
+import { announce, floatReward } from '@/game/rewards';
+import { grantChest } from '@/game/questActions';
+import { play } from '@/game/sfx';
 
 interface Contributor {
   display_name: string;
@@ -72,8 +76,9 @@ export default function Raids() {
       setHits((h) => [...h, { id, amount: res.plan.totalEffective, critical }]);
       setTimeout(() => setHits((h) => h.filter((x) => x.id !== id)), 1500);
       haptic('heavy');
-      toast({ title: critical ? 'Critical hit!' : 'Direct hit!', description: `-${res.plan.totalEffective.toFixed(1)} HP to Fix · +${res.xp} XP` });
-      if (res.levelUp) toast({ title: `Level ${res.levelUp.level}!`, description: `You're now a ${res.levelUp.name}.` });
+      play('hit');
+      floatReward(critical ? 'Critical hit!' : 'Direct hit!', 'streak');
+      announce({ xp: res.xp, levelUp: res.levelUp });
     } catch (err) {
       haptic('error');
       toast({ title: 'Strike failed', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
@@ -85,10 +90,7 @@ export default function Raids() {
   const claim = (raid: ScheduledRaid) => {
     if (!activeSeason) return;
     const res = claimRaidReward(activeSeason.id, raid.key);
-    if (res) {
-      haptic('success');
-      toast({ title: 'Reward claimed', description: `+${res.credits} credits` });
-    }
+    if (res) grantChest('silver', `${raid.name} beaten`);
   };
 
   if (!activeSeason) {
@@ -101,13 +103,10 @@ export default function Raids() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="mb-2 text-4xl font-heading text-glow-cyan">Raids</h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Every couple of weeks Detective Fix sabotages the expedition. The whole crew pools energy to knock him down. Your first strike earns{' '}
-          {RAID_XP_FIRST_CONTRIBUTION} XP, and beating him pays {CREDITS_RAID_SUCCESS} credits to everyone who fought.
-        </p>
+    <div className="mx-auto max-w-md space-y-6 px-4 pb-6 pt-4">
+      <div>
+        <h1 className="font-heading text-3xl font-bold text-glow-magenta">The crew vs Fix</h1>
+        <p className="text-muted-foreground">First hit +{RAID_XP_FIRST_CONTRIBUTION} XP. Beat him, open a chest.</p>
       </div>
 
       {loaded && !available && (
@@ -153,49 +152,45 @@ export default function Raids() {
           )}
         </>
       ) : (
-        <HoloCard glow="none" className="mb-8 p-8 text-center">
-          <Swords className="mx-auto mb-3 size-10 text-muted-foreground" />
-          <p className="text-lg font-heading">All quiet. For now.</p>
-          <p className="text-sm text-muted-foreground">
-            {upcoming[0] ? `Fix's next move: ${upcoming[0].name}, in ${formatTimeLeft(upcoming[0].start)}. Bank some energy.` : 'No more raids this season.'}
-          </p>
-        </HoloCard>
-      )}
-
-      {upcoming.length > 0 && (
-        <div className="mb-10">
-          <h2 className="mb-4 text-2xl font-heading">Incoming</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            {upcoming.map((raid) => (
-              <HoloCard key={raid.key} glow="cyan" className="p-5">
-                <Badge variant="secondary" className="mb-3 text-[10px] uppercase tracking-widest">
-                  In {formatTimeLeft(raid.start)}
-                </Badge>
-                <h3 className="mb-2 text-lg font-heading">{raid.name}</h3>
-                <p className="mb-3 text-sm italic text-muted-foreground">"{raid.taunts[0]}"</p>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Starts</span>
-                    <span className="font-mono">{raid.start.toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Boss HP</span>
-                    <span className="font-mono">{raid.goalKwh}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Weakness</span>
-                    <span className={ENERGY_THEME[raid.type].text}>{ENERGY_THEME[raid.type].label}</span>
-                  </div>
-                </div>
-              </HoloCard>
-            ))}
-          </div>
+        <div className="space-y-3 rounded-3xl border border-border bg-card/70 p-6 text-center">
+          <Swords className="mx-auto size-12 text-muted-foreground" />
+          {upcoming[0] ? (
+            <>
+              <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">Fix strikes in</p>
+              <p className="font-heading text-5xl font-bold text-glow-magenta">{formatTimeLeft(upcoming[0].start)}</p>
+              <p className="font-heading text-xl font-bold">{upcoming[0].name}</p>
+              <p className="flex items-center justify-center gap-2 text-muted-foreground">
+                Weak to <Orb type={upcoming[0].type} size={18} />
+                <span className={ENERGY_THEME[upcoming[0].type].text}>{ENERGY_THEME[upcoming[0].type].label}</span>
+              </p>
+              <p className="text-muted-foreground">Bank some now.
+              </p>
+            </>
+          ) : (
+            <p className="font-heading text-xl font-bold">No more raids this season</p>
+          )}
         </div>
       )}
 
+      {upcoming.length > (activeRaid ? 0 : 1) && (
+        <section className="space-y-2">
+          <h2 className="font-heading text-xl font-bold">Coming up</h2>
+          {upcoming.slice(activeRaid ? 0 : 1).map((raid) => (
+            <div key={raid.key} className="flex items-center gap-3 rounded-2xl border border-border bg-card/60 p-3">
+              <Orb type={raid.type} size={28} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-heading text-lg font-bold leading-tight">{raid.name}</p>
+                <p className="text-sm text-muted-foreground">{raid.goalKwh} HP · weak to {ENERGY_THEME[raid.type].label}</p>
+              </div>
+              <span className="shrink-0 font-heading font-bold text-secondary">{formatTimeLeft(raid.start)}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
       {past.length > 0 && (
-        <div>
-          <h2 className="mb-4 text-2xl font-heading">Past raids</h2>
+        <section>
+          <h2 className="mb-2 font-heading text-xl font-bold">Past raids</h2>
           <div className="space-y-2">
             {past.map((raid) => {
               const t = totals[raid.key];
@@ -214,14 +209,14 @@ export default function Raids() {
                   </div>
                   {won && helped && (
                     <Button size="sm" variant={isClaimed ? 'ghost' : 'default'} disabled={isClaimed} onClick={() => claim(raid)}>
-                      {isClaimed ? 'Claimed' : <><Coins /> {CREDITS_RAID_SUCCESS}</>}
+                      {isClaimed ? 'Opened' : 'Open chest'}
                     </Button>
                   )}
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
       <Dialog

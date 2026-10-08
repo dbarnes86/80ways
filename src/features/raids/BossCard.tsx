@@ -165,7 +165,7 @@ export function BossCard({
               <p className="text-sm text-success">Fix is beaten. Everyone who struck a blow collects the reward when the raid closes.</p>
             ) : !isMember ? (
               <Link to="/membership" className="flex h-12 items-center justify-center gap-2 rounded-md bg-secondary px-6 font-medium text-secondary-foreground hover:bg-secondary/90">
-                <Crown className="size-4" /> Become a member to join the raid
+                <Crown className="size-4" /> Get the Season Pass to join the raid
               </Link>
             ) : (
               <Button onClick={onStrike} disabled={!available || !canStrike} className="glow-magenta h-12 w-full bg-secondary text-base text-secondary-foreground hover:bg-secondary/90 md:w-auto md:px-10">

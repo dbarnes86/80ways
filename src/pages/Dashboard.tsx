@@ -1,263 +1,154 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useEnergyStore } from '@/stores/energyStore';
 import { useProgressionStore } from '@/stores/progressionStore';
 import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
-import { useActivityStore } from '@/stores/activityStore';
+import { useInboxStore } from '@/stores/inboxStore';
+import { useMembershipStore } from '@/stores/membershipStore';
 import { useUserStore } from '@/stores/userStore';
-import { useRaidStore } from '@/stores/raidStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { haptic } from '@/lib/native';
-import { JourneyHero } from '@/components/dashboard/JourneyHero';
-import { EnergyRow } from '@/components/dashboard/EnergyRow';
-import { ActiveChallenge } from '@/components/dashboard/ActiveChallenge';
-import { StarterEvent } from '@/components/dashboard/StarterEvent';
-import { SeasonJoinPrompt } from '@/components/dashboard/SeasonJoinPrompt';
-import { PlayerLevelBar } from '@/components/dashboard/PlayerLevelBar';
+import { ConnectHealthCard } from '@/features/health';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
+import { toast } from '@/components/toast';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
-import { DAILY_MISSION, ENERGY_TYPES } from '@/data/gameConstants';
-import { formatTimeLeft, getRaidSchedule, getRaidStatus } from '@/data/raids';
-import { computeStreak, getPlayerNarrativeDay, toDayKey } from '@/lib/gameEngine';
-import { Plus, Clock, AlertCircle, Sparkles, Flame, ShieldOff, Trophy, Loader2 } from 'lucide-react';
-import { Button, HoloCard } from '@/components/ui';
+import { BOOSTERS, ENERGY_TYPES, MAIN_JOURNEY_UNLOCK_LEVEL, STARTER_EVENT } from '@/data/gameConstants';
+import { getRaidSchedule, getRaidStatus } from '@/data/raids';
+import { getPlayerNarrativeDay } from '@/lib/gameEngine';
+import { needsPass } from '@/lib/gameActions';
+import { isHealthConnected } from '@/services/healthService';
+import { CollectPanel } from '@/game/CollectPanel';
+import { NextMoveCard } from '@/game/NextMoveCard';
+import { QuestRow } from '@/game/QuestRow';
+import { ReserveTanks } from '@/game/ReserveTanks';
+import { VoyageScene } from '@/game/VoyageScene';
+import { nextMove } from '@/game/nextMove';
+import { useQuests } from '@/game/questActions';
+import { celebrate } from '@/game/rewards';
+import { play } from '@/game/sfx';
 
+/**
+ * Home, top to bottom: where you are (the voyage), the one thing to do next, today's quests,
+ * your reserves. Anything waiting to collect takes the "next" slot.
+ */
 const Dashboard = () => {
   const energy = useEnergyStore();
-  const { canJoinMainJourney } = useProgressionStore();
+  const progression = useProgressionStore();
   const season = useSeasonStore();
   const hasJoined = useSeasonStore(selectHasJoined);
-  const activities = useActivityStore((s) => s.activities);
-  const lastDailyMission = useUserStore((s) => s.lastDailyMission);
-  const decayFrozenUntil = useUserStore((s) => s.effects.decayInhibitorUntil);
-  const raidTotals = useRaidStore((s) => s.totals);
+  const inbox = useInboxStore((s) => s.items.length);
+  const credits = useUserStore((s) => s.inventory.credits);
+  const inventory = useUserStore((s) => s.inventory);
+  useMembershipStore((s) => s.membership); // re-render when the pass changes
   const { user } = useAuth();
+  const quests = useQuests();
+  const [params, setParams] = useSearchParams();
 
-  const [activityLoggerOpen, setActivityLoggerOpen] = useState(false);
-  const [deploymentOpen, setDeploymentOpen] = useState(false);
+  const [loggerOpen, setLoggerOpen] = useState(false);
+  const [deployOpen, setDeployOpen] = useState(false);
+
+  // Quests link here with ?log=1 or ?deploy=1.
+  useEffect(() => {
+    if (params.get('log')) setLoggerOpen(true);
+    if (params.get('deploy')) setDeployOpen(true);
+    if (params.get('log') || params.get('deploy')) setParams({}, { replace: true });
+  }, [params, setParams]);
 
   const participation = hasJoined ? season.participation : null;
   const journeyDone = participation?.status === 'completed';
-  const currentLeg = JOURNEY_LEGS[participation?.currentLeg ?? 0] ?? JOURNEY_LEGS[0];
-  const legFraction = participation ? participation.legProgress / currentLeg.requiredEnergy.amount : 0;
-  const hasEnergy = ENERGY_TYPES.some((t) => energy[t].current >= 0.1);
-
-  // Phase logic: starter → join prompt → main journey
-  const showStarterEvent = !canJoinMainJourney;
-  const showJoinPrompt = canJoinMainJourney && !hasJoined;
-  const showMainJourney = canJoinMainJourney && hasJoined;
-
-  const today = toDayKey(new Date());
-  const dailyDone = lastDailyMission === today;
-  const streak = computeStreak(activities.map((a) => a.timestamp));
-  const midnight = new Date();
-  midnight.setHours(24, 0, 0, 0);
-
+  const leg = JOURNEY_LEGS[participation?.currentLeg ?? 0] ?? JOURNEY_LEGS[0];
+  const legFraction = participation ? participation.legProgress / leg.requiredEnergy.amount : 0;
+  const totalEnergy = ENERGY_TYPES.reduce((t, k) => t + energy[k].current, 0);
+  const healthOn = !!user && isHealthConnected(user.id);
   const raids = season.activeSeason ? getRaidSchedule(season.activeSeason.startDate, season.activeSeason.endDate) : [];
-  const activeRaid = raids.find((r) => getRaidStatus(r) === 'active');
-  const nextRaid = raids.find((r) => getRaidStatus(r) === 'upcoming');
+  const raidActive = raids.some((r) => getRaidStatus(r) === 'active');
+  const locked = needsPass(participation);
 
-  const daysLeft = season.activeSeason
-    ? Math.max(0, Math.ceil((season.activeSeason.endDate.getTime() - Date.now()) / 86_400_000))
-    : null;
+  const claimable = [quests.story, ...quests.daily, ...quests.weekly].find((q) => q && q.complete && !q.claimed);
 
-  const frozen = decayFrozenUntil && new Date(decayFrozenUntil) > new Date();
+  const move = nextMove({
+    claimable,
+    starterDone: progression.starterEventCompleted,
+    starterProgress: progression.starterEventProgress,
+    starterRequired: STARTER_EVENT.requiredEnergy,
+    level: progression.level,
+    unlockLevel: MAIN_JOURNEY_UNLOCK_LEVEL,
+    seasonOpen: !!season.activeSeason && season.activeSeason.status !== 'completed',
+    joined: !!participation,
+    journeyDone,
+    needsPass: locked,
+    passCity: JOURNEY_LEGS[Math.max(0, (participation?.currentLeg ?? 1) - 1)]?.to ?? 'Paris',
+    leg: participation ? { to: leg.to, type: leg.requiredEnergy.type, remaining: Math.max(0, leg.requiredEnergy.amount - participation.legProgress) } : undefined,
+    energy: totalEnergy,
+    raidActive,
+    healthOn,
+    credits,
+    boosters: inventory.energyAmplifier + inventory.multiCharge + inventory.decayInhibitor,
+    cheapestBooster: Math.min(...Object.values(BOOSTERS).map((b) => b.price)),
+  });
+
+  const board = async () => {
+    if (!user) return;
+    const res = await season.joinSeason(user.id);
+    if (res.error) {
+      toast({ title: 'Couldn’t board', description: res.error, variant: 'destructive' });
+      return;
+    }
+    play('whoosh');
+    const joinedAt = useSeasonStore.getState().participation?.currentLeg ?? 0;
+    celebrate({ kind: 'stamp', city: JOURNEY_LEGS[joinedAt]?.from ?? 'London', credits: 0 });
+  };
+
+  const scene = participation
+    ? {
+        from: journeyDone ? 'London' : leg.from,
+        to: journeyDone ? 'London' : leg.to,
+        progress: journeyDone ? 1 : legFraction,
+        headline: journeyDone ? 'Wager won' : `Day ${getPlayerNarrativeDay(participation.currentLeg, legFraction, journeyDone)} of 80`,
+        sub: journeyDone ? 'Around the world' : `Leg ${participation.currentLeg + 1} of ${JOURNEY_LEGS.length}`,
+      }
+    : progression.starterEventCompleted
+      ? { from: 'London', to: 'Paris', progress: 0, headline: 'In port', sub: 'Next stop: Paris', docked: true }
+      : {
+          from: 'London',
+          to: 'Lift Off',
+          progress: progression.starterEventProgress / STARTER_EVENT.requiredEnergy,
+          headline: 'Lift Off',
+          sub: `${progression.starterEventProgress.toFixed(1)} of ${STARTER_EVENT.requiredEnergy} kWh`,
+          docked: true,
+        };
+
+  const dailyLeft = quests.daily.filter((q) => !q.claimed).length;
 
   return (
-    <div className="bg-background flex flex-col">
-      <div className="flex-1 container mx-auto px-4 max-w-md pb-28">
-        <div className="mt-4 mb-6">
-          <PlayerLevelBar />
-        </div>
+    <div className="mx-auto max-w-md space-y-5 px-4 pb-6 pt-4">
+      <VoyageScene {...scene} />
 
-        {/* Phase 1: Lift Off starter event */}
-        {showStarterEvent && (
-          <div className="mb-6">
-            <StarterEvent />
-          </div>
-        )}
+      {inbox > 0 ? (
+        <CollectPanel />
+      ) : (
+        <NextMoveCard move={move} onLog={() => setLoggerOpen(true)} onDeploy={() => setDeployOpen(true)} onBoard={board} />
+      )}
 
-        {/* Phase 2: Board the season */}
-        {showJoinPrompt && (
-          <div className="mb-6">
-            {season.loaded ? (
-              season.activeSeason ? (
-                <SeasonJoinPrompt onJoin={() => (user ? season.joinSeason(user.id) : Promise.resolve({ error: 'Not signed in' }))} />
-              ) : (
-                <div className="border border-border rounded-xl p-5 text-center text-sm text-muted-foreground">
-                  Couldn't reach the shipping office to find this season. Check your connection and refresh.
-                </div>
-              )
-            ) : (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              </div>
-            )}
-          </div>
-        )}
+      {user && <ConnectHealthCard userId={user.id} />}
 
-        {/* Phase 3: The journey */}
-        {showMainJourney && participation && (
-          <>
-            <JourneyHero
-              currentDay={getPlayerNarrativeDay(participation.currentLeg, legFraction, journeyDone)}
-              totalDays={80}
-              from={journeyDone ? 'London' : currentLeg.from}
-              to={journeyDone ? 'London' : currentLeg.to}
-              legLabel={journeyDone ? 'JOURNEY COMPLETE' : `LEG ${participation.currentLeg + 1} OF ${JOURNEY_LEGS.length}`}
-              seasonNote={daysLeft !== null ? `${daysLeft} days left in ${season.activeSeason?.name ?? 'the season'}` : undefined}
-            />
+      <section className="space-y-2">
+        <Link to="/quests" className="flex items-baseline justify-between">
+          <h2 className="font-heading text-xl font-bold">Today’s quests</h2>
+          <span className="text-sm text-primary">{dailyLeft ? `${dailyLeft} left` : 'All done'} ›</span>
+        </Link>
+        {quests.daily.map((q) => (
+          <QuestRow key={q.id} quest={q} compact />
+        ))}
+      </section>
 
-            <div className="mb-6">
-              {journeyDone ? (
-                <HoloCard glow="magenta" className="p-5 text-center space-y-2">
-                  <Trophy className="w-8 h-8 text-secondary mx-auto" />
-                  <p className="font-heading font-bold text-lg">Wager won</p>
-                  <p className="text-sm text-muted-foreground">
-                    You've made it around the world. Keep charging for raids and climb the leaderboard until the season closes.
-                  </p>
-                  <Link to="/leaderboard" className="text-sm text-primary hover:underline">See the leaderboard</Link>
-                </HoloCard>
-              ) : (
-                <ActiveChallenge
-                  title={currentLeg.narrative.title}
-                  description={currentLeg.narrative.description}
-                  requiredEnergy={currentLeg.requiredEnergy}
-                  currentProgress={participation.legProgress}
-                  canDeploy={hasEnergy}
-                  onDeploy={() => setDeploymentOpen(true)}
-                />
-              )}
-            </div>
-          </>
-        )}
+      <section className="space-y-2">
+        <h2 className="font-heading text-xl font-bold">Reserves</h2>
+        <ReserveTanks />
+      </section>
 
-        {/* Energy Reserves */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-mono text-muted-foreground tracking-widest">ENERGY RESERVES</p>
-            <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
-              {frozen ? (
-                <>
-                  <ShieldOff className="w-3 h-3 text-accent" />
-                  <span className="text-accent">Decay frozen {formatTimeLeft(new Date(decayFrozenUntil!))}</span>
-                </>
-              ) : (
-                '−5% / day'
-              )}
-            </p>
-          </div>
-          <EnergyRow
-            reserves={{
-              nautical: energy.nautical,
-              terrestrial: energy.terrestrial,
-              transport: energy.transport,
-              strength: energy.strength,
-            }}
-          />
-        </div>
-
-        {/* Secondary info */}
-        <div className="space-y-3">
-          <HoloCard glow="purple" corners={false} className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-4 h-4 text-accent" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-heading font-bold">{DAILY_MISSION.name.toUpperCase()}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {DAILY_MISSION.description} · +{DAILY_MISSION.xpReward} XP, +{DAILY_MISSION.creditReward} credits
-                </p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className={`text-[10px] font-mono ${dailyDone ? 'text-success' : 'text-accent'}`}>{dailyDone ? '1/1 ✓' : '0/1'}</p>
-                <p className="text-[9px] text-muted-foreground">Resets {formatTimeLeft(midnight)}</p>
-              </div>
-            </div>
-          </HoloCard>
-
-          {streak > 0 && (
-            <HoloCard glow="none" corners={false} className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-secondary/10 border border-secondary/30 flex items-center justify-center flex-shrink-0">
-                  <Flame className="w-4 h-4 text-secondary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-heading font-bold">{streak}-DAY STREAK</p>
-                  <p className="text-[10px] text-muted-foreground">Log something every day to keep it going</p>
-                </div>
-              </div>
-            </HoloCard>
-          )}
-
-          <Link to="/raids" className="block">
-            {activeRaid ? (
-              <HoloCard glow="magenta" className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="w-4 h-4 text-destructive" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-heading font-bold text-destructive">RAID: {activeRaid.name.toUpperCase()}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Fix has {Math.max(0, activeRaid.goalKwh - (raidTotals[activeRaid.key]?.total ?? 0)).toFixed(0)} HP left · ends in {formatTimeLeft(activeRaid.end)}
-                    </p>
-                  </div>
-                </div>
-              </HoloCard>
-            ) : (
-              <HoloCard glow="none" corners={false} className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-muted/10 border border-muted flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-heading font-bold text-muted-foreground">NO ACTIVE RAID</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {nextRaid ? `${nextRaid.name} in ${formatTimeLeft(nextRaid.start)}` : 'No more raids this season'}
-                    </p>
-                  </div>
-                </div>
-              </HoloCard>
-            )}
-          </Link>
-
-          <HoloCard glow="cyan" corners={false} className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-heading font-bold">LATEST TRANSMISSION</p>
-                <p className="text-[11px] text-muted-foreground italic">
-                  {showMainJourney && !journeyDone ? currentLeg.narrative.departureQuote : JOURNEY_LEGS[0].narrative.departureQuote}
-                </p>
-              </div>
-            </div>
-          </HoloCard>
-        </div>
-      </div>
-
-      {/* Sticky LOG ACTIVITY button */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 bg-gradient-to-t from-background via-background/95 to-transparent p-4 pb-3 lg:bottom-0 lg:pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="max-w-md mx-auto">
-          <Button
-            onClick={() => {
-              haptic('tap');
-              setActivityLoggerOpen(true);
-            }}
-            className="w-full text-lg py-7 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.4)] font-heading tracking-wider"
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            LOG ACTIVITY
-          </Button>
-        </div>
-      </div>
-
-      <ActivityLogger open={activityLoggerOpen} onOpenChange={setActivityLoggerOpen} />
-      <EnergyDeployment open={deploymentOpen} onClose={() => setDeploymentOpen(false)} />
+      <ActivityLogger open={loggerOpen} onOpenChange={setLoggerOpen} />
+      <EnergyDeployment open={deployOpen} onClose={() => setDeployOpen(false)} />
     </div>
   );
 };

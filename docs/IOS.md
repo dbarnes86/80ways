@@ -26,10 +26,16 @@ In Xcode:
 
 1. Select the **App** target → **Signing & Capabilities** → choose your **Team**. The bundle id is
    `com.atw80ways.app`; change it here and in `capacitor.config.ts` if you register a different one.
-2. Click **+ Capability** → **In-App Purchase** (once).
+2. Click **+ Capability** → **In-App Purchase** (once). **HealthKit** and **Sign in with Apple**
+   are already in `App/App.entitlements`; with automatic signing Xcode turns them on for the App
+   ID the first time you build. If it complains, add both with **+ Capability** too.
 3. Pick an iPhone simulator or a connected iPhone and press **Run**.
 
-Run `npm run cap:sync` again after any change to the web code. Xcode picks up the new bundle on the
+Apple Health needs a real iPhone with some workouts in Health (the simulator's Health app is
+empty). Sign in with Apple works in the simulator if it's signed into an Apple ID.
+
+Run `npm run cap:sync` again after any change to the web code, and `npm ci` first whenever
+`package.json` changed (new native plugins, such as local notifications, need both). Xcode picks up the new bundle on the
 next Run.
 
 ## Testing purchases
@@ -72,6 +78,20 @@ Set these on the Supabase project (Project Settings → Edge Functions → Secre
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` | Web plans (Price ids) |
 | `STRIPE_TRIAL_DAYS` | Optional free trial on the web, e.g. `7` |
 | `APP_URL` | `https://80ways.co` (no trailing slash) |
+
+### Sign in with Apple (Supabase)
+
+Supabase → Authentication → Sign In / Providers → **Apple**: turn it on and add
+`com.atw80ways.app` to **Client IDs**. That's all the iPhone app needs: it signs in natively and
+Supabase checks Apple's token. (The secret key and Services ID are only for Apple sign-in on the
+web, which stays off unless you set the `VITE_AUTH_APPLE` GitHub variable to `true`.)
+
+### Email sending (Supabase)
+
+Supabase's built-in mailer sends a few emails an hour, and only to members of your Supabase team,
+so real players never get their confirmation or reset emails. Before launch, plug in a real sender
+(Resend, Postmark or similar) under Authentication → Emails → **SMTP Settings**, with a from
+address on 80ways.co. Sign in with Apple doesn't send email, so it works either way.
 
 ### Domain
 
