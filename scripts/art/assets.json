@@ -14,7 +14,7 @@
     {
       "name": "chest-bronze",
       "aspect": "1:1",
-      "prompt": "a closed small wooden treasure chest with bronze bands and a keyhole, lid shut, game loot box"
+      "prompt": "a locked small wooden treasure chest seen from the front, lid firmly closed and latched with a bronze padlock, bronze bands, the inside not visible, game loot box"
     },
     {
       "name": "chest-bronze-open",
@@ -49,7 +49,7 @@
     {
       "name": "orb-terrestrial",
       "aspect": "1:1",
-      "prompt": "a glowing lime green energy orb with swirling leaves and earth inside, a simple white lightning bolt shape in the centre, nothing around the orb"
+      "prompt": "a smooth glowing lime green glass sphere with swirling leaves inside, a simple white lightning bolt shape in the centre, no ring, no frame, no base, nothing around the sphere"
     },
     {
       "name": "orb-transport",
@@ -148,13 +148,7 @@
     }
   ],
   "skip": [
-    "orb-nautical",
-    "orb-terrestrial",
-    "orb-transport",
-    "orb-strength",
     "chest-bronze",
-    "chest-bronze-open",
-    "chest-silver",
-    "chest-silver-open"
+    "chest-bronze-open"
   ]
 }

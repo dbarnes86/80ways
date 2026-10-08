@@ -8,7 +8,9 @@
  *   node scripts/art/generate.mjs --optimize-only                    # redo cut-outs from scripts/art/raw
  *
  * In a Claude Code cloud session with Higgsfield connected, HF_KEY isn't needed: the network proxy
- * adds the credentials.
+ * adds the credentials. Node's fetch skips the proxy unless told, so run it as:
+ *   NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt \
+ *     HF_MODEL=higgsfield-ai/soul/standard node scripts/art/generate.mjs --force …
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
