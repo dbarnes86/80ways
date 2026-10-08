@@ -13,13 +13,15 @@
     },
     {
       "name": "chest-bronze",
+      "model": "recraft/v4.1/text-to-image",
       "aspect": "1:1",
-      "prompt": "a closed small wooden treasure chest with bronze bands and a keyhole, lid shut, game loot box"
+      "prompt": "a small purple and teal wooden treasure chest with bronze bands seen from the front, lid firmly closed and latched with a bronze padlock, the inside not visible, game loot box"
     },
     {
       "name": "chest-bronze-open",
+      "model": "recraft/v4.1/text-to-image",
       "aspect": "1:1",
-      "prompt": "an open small wooden treasure chest with bronze bands spilling gold coins and warm light"
+      "prompt": "a small purple and teal wooden treasure chest with bronze bands seen from the front, lid open, filled with gold coins and warm light, nothing flying out"
     },
     {
       "name": "chest-silver",
@@ -49,7 +51,7 @@
     {
       "name": "orb-terrestrial",
       "aspect": "1:1",
-      "prompt": "a glowing lime green energy orb with swirling leaves and earth inside, a simple white lightning bolt shape in the centre, nothing around the orb"
+      "prompt": "a smooth glowing lime green glass sphere with swirling leaves inside, a simple white lightning bolt shape in the centre, no ring, no frame, no base, nothing around the sphere"
     },
     {
       "name": "orb-transport",
@@ -93,68 +95,70 @@
     },
     {
       "name": "stamp-paris",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing the Eiffel Tower"
     },
     {
       "name": "stamp-suez",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a steamship on the Suez Canal with palm trees"
     },
     {
       "name": "stamp-bombay",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing the Gateway of India arch"
     },
     {
       "name": "stamp-calcutta",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing an elephant with a howdah"
     },
     {
       "name": "stamp-hong-kong",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a junk boat with red sails"
     },
     {
       "name": "stamp-yokohama",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Mount Fuji and a torii gate"
     },
     {
       "name": "stamp-san-francisco",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a steam train and hills"
     },
     {
       "name": "stamp-new-york",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a Victorian New York skyline with a harbour"
     },
     {
       "name": "stamp-liverpool",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Liverpool docks and a lighthouse"
     },
     {
       "name": "stamp-london",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Big Ben clock tower"
     },
     {
       "name": "stamp-london-port",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing an anchor and crates on a dock"
     }
   ],
-  "skip": [
-    "orb-nautical",
-    "orb-terrestrial",
-    "orb-transport",
-    "orb-strength",
-    "chest-bronze",
-    "chest-bronze-open",
-    "chest-silver",
-    "chest-silver-open"
-  ]
+  "skip": []
 }

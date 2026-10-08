@@ -8,7 +8,9 @@
  *   node scripts/art/generate.mjs --optimize-only                    # redo cut-outs from scripts/art/raw
  *
  * In a Claude Code cloud session with Higgsfield connected, HF_KEY isn't needed: the network proxy
- * adds the credentials.
+ * adds the credentials. Node's fetch skips the proxy unless told, so run it as:
+ *   NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt \
+ *     HF_MODEL=higgsfield-ai/soul/standard node scripts/art/generate.mjs --force …
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -43,17 +45,19 @@ const MODELS = [
   { id: 'bytedance/seedream/v4/text-to-image', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect, resolution: '2K' }) },
   { id: 'higgsfield-ai/soul/standard', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) },
 ];
+// An asset can name the model that suits it ("model" in assets.json), e.g. Recraft for chests.
 let chosen = process.env.HF_MODEL ? { id: process.env.HF_MODEL, body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) } : null;
 
 async function submitJob(asset) {
   const prompt = `${asset.prompt}. ${spec.style}`;
-  const candidates = chosen ? [chosen] : MODELS;
+  const own = asset.model && { id: asset.model, body: (p, aspect) => ({ prompt: p, aspect_ratio: aspect }) };
+  const candidates = own ? [own] : chosen ? [chosen] : MODELS;
   for (const model of candidates) {
     const res = await fetch(`${API}/${model.id}`, { method: 'POST', headers, body: JSON.stringify(model.body(prompt, asset.aspect)) });
     const job = await res.json().catch(() => ({}));
-    if (res.status === 404 && !chosen) continue; // not on this account; try the next
+    if (res.status === 404 && !chosen && !own) continue; // not on this account; try the next
     if (!res.ok) throw new Error(`${asset.name}: ${model.id} ${res.status} ${JSON.stringify(job)}`);
-    if (!chosen) {
+    if (!chosen && !own) {
       chosen = model;
       console.log(`Using model ${model.id}`);
     }
@@ -107,9 +111,10 @@ console.log(`Generating ${todo.length} asset(s)…`);
 
 // A few at a time: quick, without tripping rate limits.
 const failures = [];
-// The first asset finds a working model on its own, so the rest don't all probe at once.
-if (todo.length && !chosen) {
-  const a = todo.shift();
+// The first asset without its own model finds a working one alone, so the rest don't all probe at once.
+const probe = chosen ? -1 : todo.findIndex((a) => !a.model);
+if (probe >= 0) {
+  const [a] = todo.splice(probe, 1);
   await generate(a).then(
     (f) => console.log(`✓ ${a.name} → ${path.relative(root, f)}`),
     (e) => {
