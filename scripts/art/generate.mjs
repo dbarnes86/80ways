@@ -111,9 +111,10 @@ console.log(`Generating ${todo.length} asset(s)…`);
 
 // A few at a time: quick, without tripping rate limits.
 const failures = [];
-// The first asset finds a working model on its own, so the rest don't all probe at once.
-if (todo.length && !chosen) {
-  const a = todo.shift();
+// The first asset without its own model finds a working one alone, so the rest don't all probe at once.
+const probe = chosen ? -1 : todo.findIndex((a) => !a.model);
+if (probe >= 0) {
+  const [a] = todo.splice(probe, 1);
   await generate(a).then(
     (f) => console.log(`✓ ${a.name} → ${path.relative(root, f)}`),
     (e) => {

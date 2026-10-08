@@ -95,56 +95,67 @@
     },
     {
       "name": "stamp-paris",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing the Eiffel Tower"
     },
     {
       "name": "stamp-suez",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a steamship on the Suez Canal with palm trees"
     },
     {
       "name": "stamp-bombay",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing the Gateway of India arch"
     },
     {
       "name": "stamp-calcutta",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing an elephant with a howdah"
     },
     {
       "name": "stamp-hong-kong",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a junk boat with red sails"
     },
     {
       "name": "stamp-yokohama",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Mount Fuji and a torii gate"
     },
     {
       "name": "stamp-san-francisco",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a steam train and hills"
     },
     {
       "name": "stamp-new-york",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing a Victorian New York skyline with a harbour"
     },
     {
       "name": "stamp-liverpool",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Liverpool docks and a lighthouse"
     },
     {
       "name": "stamp-london",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing Big Ben clock tower"
     },
     {
       "name": "stamp-london-port",
+      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round magenta ink passport stamp with a plain double ring border and no lettering, showing an anchor and crates on a dock"
     }
