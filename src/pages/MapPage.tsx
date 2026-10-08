@@ -5,7 +5,8 @@ import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
 import { useEnergyStore } from '@/stores/energyStore';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { ENERGY_THEME } from '@/data/energyTheme';
-import { ENERGY_TYPES } from '@/data/gameConstants';
+import { ENERGY_TYPES, FREE_LEGS } from '@/data/gameConstants';
+import { useMembershipStore } from '@/stores/membershipStore';
 import { getDistanceCovered, getPlayerNarrativeDay } from '@/lib/gameEngine';
 import { haptic } from '@/lib/native';
 import { needsPass } from '@/lib/gameActions';
@@ -87,6 +88,9 @@ export default function MapPage() {
   const stamps = participation ? JOURNEY_LEGS.slice(1).filter((_, i) => legStatus(i + 1) === 'complete').length : 0;
   const hasEnergy = ENERGY_TYPES.some((t) => energy[t].current >= 0.1);
   const locked = needsPass(participation);
+  const member = useMembershipStore((st) => st.membership?.tier === 'member');
+  // Legs past the free ones are shown with a Season Pass tag, and only sold once the ship is docked at them.
+  const onPass = (i: number) => !member && !!participation && i >= participation.joinedAtLeg + FREE_LEGS;
 
   // London, then each leg's destination.
   const pathCities = [CITY_POINTS['London'], ...JOURNEY_LEGS.map((leg) => CITY_POINTS[leg.to])];
@@ -204,7 +208,10 @@ export default function MapPage() {
                   {status === 'complete' ? <Check className="size-5 text-accent" strokeWidth={3} /> : status === 'locked' ? <Lock className="size-4 text-muted-foreground" /> : <span className="size-3 animate-pulse-soft rounded-full bg-primary" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className={cn('font-heading text-lg font-bold leading-tight', active && 'text-accent')}>{leg.to}</p>
+                  <p className={cn('flex items-center gap-2 font-heading text-lg font-bold leading-tight', active && 'text-accent')}>
+                    {leg.to}
+                    {status === 'locked' && onPass(i) && <span className="rounded-full border border-secondary/60 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-secondary">Pass</span>}
+                  </p>
                   {active ? (
                     <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
                       <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(3, legFraction * 100)}%` }} />
@@ -259,7 +266,7 @@ export default function MapPage() {
             </DialogHeader>
             {selectedStatus === 'locked' ? (
               <p className="flex items-center gap-2 py-3 text-muted-foreground">
-                <Lock className="size-4" /> Not reached yet. Keep sailing.
+                <Lock className="size-4" /> {openLeg !== null && onPass(openLeg) ? 'On the Season Pass. The ship sails here once you have one.' : 'Not reached yet. Keep sailing.'}
               </p>
             ) : (
               <div className="space-y-3 text-base">

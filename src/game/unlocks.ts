@@ -13,7 +13,7 @@ export const UNLOCKS: { feature: Feature; level: number; label: string; blurb: s
   { feature: 'reserves', level: 2, label: 'Energy reserves', blurb: 'See what each workout charges' },
   { feature: 'map', level: 3, label: 'The Map', blurb: 'Your route around the world' },
   { feature: 'pass', level: 3, label: 'Season Pass', blurb: 'The whole voyage' },
-  { feature: 'store', level: 4, label: 'The Store', blurb: 'Spend coins on boosters' },
+  { feature: 'store', level: 4, label: 'The Chandlery', blurb: 'Your coins buy kit here' },
   { feature: 'raids', level: 5, label: 'Raids', blurb: 'Take on Detective Fix with the crew' },
   { feature: 'ranks', level: 6, label: 'Ranks', blurb: 'See how far ahead you are' },
 ];

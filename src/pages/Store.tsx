@@ -1,15 +1,14 @@
-import { Zap, Layers, ShieldOff, Coins, type LucideIcon } from "lucide-react";
-import { useUserStore } from "@/stores/userStore";
-import {
-  BOOSTERS,
-  CREDITS_PER_ACTIVITY,
-  CREDITS_PER_LEG_BASE,
-  type BoosterId,
-} from "@/data/gameConstants";
-import { activateDecayInhibitor, buyBooster } from "@/lib/gameActions";
-import { formatTimeLeft } from "@/data/raids";
+import { Layers, ShieldOff, Zap, type LucideIcon } from 'lucide-react';
+import { useUserStore } from '@/stores/userStore';
+import { BOOSTERS, CREDITS_PER_ACTIVITY, CREDITS_PER_LEG_BASE, type BoosterId } from '@/data/gameConstants';
+import { activateDecayInhibitor, buyBooster } from '@/lib/gameActions';
+import { formatTimeLeft } from '@/data/raids';
+import { haptic } from '@/lib/native';
 import { toast } from '@/components/toast';
-import { Button, Badge, HoloCard } from '@/components/ui';
+import { cn } from '@/components/ui';
+import { Coin } from '@/game/art';
+import { floatReward } from '@/game/rewards';
+import { play } from '@/game/sfx';
 
 const ICONS: Record<BoosterId, LucideIcon> = {
   energyAmplifier: Zap,
@@ -17,123 +16,151 @@ const ICONS: Record<BoosterId, LucideIcon> = {
   multiCharge: Layers,
 };
 
-const rarityGlow = (r: string) => (r === "epic" ? ("purple" as const) : r === "rare" ? ("cyan" as const) : ("none" as const));
-
-const rarityBadge = (r: string) =>
-  r === "epic"
-    ? "bg-accent/20 text-accent border-accent/40"
-    : r === "rare"
-      ? "bg-primary/20 text-primary border-primary/40"
-      : "bg-muted text-muted-foreground";
-
-const HOW_TO_USE: Record<BoosterId, string> = {
-  energyAmplifier: "Use it when you collect or log a workout.",
-  multiCharge: "Use it when you collect or log a workout.",
-  decayInhibitor: "Activate it here, any time.",
+/** What each piece of kit does, in the words the game uses everywhere else. */
+const WHAT_IT_DOES: Record<BoosterId, string> = {
+  energyAmplifier: 'Your next workout counts double.',
+  multiCharge: 'Your next workout also tops up every other reserve.',
+  decayInhibitor: 'Your reserves stop fading for three days.',
 };
 
+const ARMABLE: BoosterId[] = ['energyAmplifier', 'multiCharge'];
+
+/**
+ * The Chandlery: where coins become kit. The first visit is a lesson (what coins are for, what
+ * you can afford right now), and anything bought is armed on the spot so it has a use.
+ */
 export default function Store() {
   const inventory = useUserStore((s) => s.inventory);
+  const armed = useUserStore((s) => s.armedBooster);
+  const armBooster = useUserStore((s) => s.armBooster);
   const frozenUntil = useUserStore((s) => s.effects.decayInhibitorUntil);
-
   const frozen = frozenUntil && new Date(frozenUntil) > new Date();
 
-  const handleBuy = (id: BoosterId) => {
-    if (buyBooster(id)) {
-      toast({ title: `${BOOSTERS[id].name} acquired`, description: HOW_TO_USE[id] });
+  const cheapest = (Object.keys(BOOSTERS) as BoosterId[]).reduce((a, b) => (BOOSTERS[a].price <= BOOSTERS[b].price ? a : b));
+  const canAfford = inventory.credits >= BOOSTERS[cheapest].price;
+  const owned = ARMABLE.reduce((n, id) => n + inventory[id], 0) + inventory.decayInhibitor;
+
+  const buy = (id: BoosterId) => {
+    if (!buyBooster(id)) {
+      haptic('error');
+      toast({ title: 'Not enough coins', description: 'Workouts, quests and legs pay out. Come back with more.', variant: 'destructive' });
+      return;
+    }
+    play('coin');
+    haptic('success');
+    // Bought kit is armed on the spot unless something else already is, so the purchase has a use.
+    if (ARMABLE.includes(id) && (!armed || armed === id)) {
+      armBooster(id);
+      floatReward(`${BOOSTERS[id].name} armed`, 'streak');
     } else {
-      toast({ title: "Not enough credits", description: "Log activities and complete legs to earn more.", variant: "destructive" });
+      floatReward(`${BOOSTERS[id].name} in your kit`, 'streak');
     }
   };
 
-  const handleActivate = () => {
+  const arm = (id: BoosterId) => {
+    haptic('select');
+    play('tick');
+    armBooster(armed === id ? null : id);
+  };
+
+  const activate = () => {
     const until = activateDecayInhibitor();
-    if (until) toast({ title: "Decay frozen", description: `Your reserves won't decay until ${until.toLocaleString()}.` });
+    if (until) {
+      play('chime');
+      toast({ title: 'Decay frozen', description: `Your reserves hold until ${until.toLocaleString()}.` });
+    }
   };
 
   const ids = Object.keys(BOOSTERS) as BoosterId[];
 
   return (
-    <div className="mx-auto max-w-md px-4 pb-6 pt-4">
-      <div className="mb-5">
-        <h1 className="font-heading text-3xl font-bold mb-1 text-glow-cyan">Store</h1>
-        <p className="text-muted-foreground">Coins from workouts, quests and chests buy boosters.</p>
+    <div className="mx-auto max-w-md space-y-5 px-4 pb-6 pt-4">
+      <div>
+        <p className="kicker text-accent">Ship's stores</p>
+        <h1 className="font-heading text-3xl font-bold">The Chandlery</h1>
+        <p className="text-muted-foreground">Coins buy kit. Kit makes a workout count for more.</p>
       </div>
 
-      <HoloCard glow="cyan" className="p-5 mb-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Your balance</div>
-            <div className="text-4xl font-mono font-bold text-warning flex items-center gap-2">
-              <Coins className="w-8 h-8" /> {inventory.credits}
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground space-y-0.5 sm:text-right">
-            <p>+{CREDITS_PER_ACTIVITY} per workout · quests and chests</p>
-            <p>+{CREDITS_PER_LEG_BASE}+ per leg · a chest per raid won</p>
-          </div>
+      {/* The lesson, with the player's own numbers: what they can afford right now. */}
+      <div className="panel panel-hero space-y-2 p-5">
+        <div className="flex items-baseline justify-between">
+          <span className="kicker text-muted-foreground">Your coins</span>
+          <span className="flex items-center gap-2 font-heading text-4xl font-bold text-warning">
+            <Coin size={28} /> {inventory.credits}
+          </span>
         </div>
-      </HoloCard>
+        <p className="text-lg leading-snug">
+          {owned === 0
+            ? canAfford
+              ? `Enough for ${aOrAn(BOOSTERS[cheapest].name)}. ${WHAT_IT_DOES[cheapest]}`
+              : `${BOOSTERS[cheapest].price - inventory.credits} more coins and you can buy ${aOrAn(BOOSTERS[cheapest].name)}. ${WHAT_IT_DOES[cheapest]}`
+            : armed
+              ? `${BOOSTERS[armed].name} is armed. ${WHAT_IT_DOES[armed]}`
+              : 'Nothing armed. Arm a piece of kit and it fires on your next workout.'}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          +{CREDITS_PER_ACTIVITY} a workout · quests and trunks · +{CREDITS_PER_LEG_BASE} and up a leg
+        </p>
+      </div>
 
-      <div className="grid gap-4">
-        {ids.map((id, index) => {
+      <div className="space-y-3">
+        {ids.map((id) => {
           const booster = BOOSTERS[id];
           const Icon = ICONS[id];
-          const owned = inventory[id];
+          const have = inventory[id];
           const affordable = inventory.credits >= booster.price;
+          const isArmed = armed === id && have > 0;
           return (
-            <div className="animate-fade-up" key={id} style={{ animationDelay: `${index * 0.1}s` }}>
-              <HoloCard glow={rarityGlow(booster.rarity)} className="p-6 h-full flex flex-col">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${rarityBadge(booster.rarity)}`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <Badge className={rarityBadge(booster.rarity)}>{booster.rarity.toUpperCase()}</Badge>
+            <div key={id} className={cn('panel p-4', isArmed && 'border-accent/70')}>
+              <div className="flex items-start gap-3">
+                <div className={cn('flex size-12 shrink-0 items-center justify-center rounded-xl border', isArmed ? 'border-accent bg-accent/15 text-accent' : 'border-border bg-card text-foreground')}>
+                  <Icon className="size-6" />
                 </div>
-                <h3 className="text-xl font-heading mb-2">{booster.name}</h3>
-                <p className="text-sm text-muted-foreground mb-1">{booster.description}</p>
-                <p className="text-xs text-muted-foreground mb-4 flex-1">{HOW_TO_USE[id]}</p>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">In your kit</span>
-                    <span className="font-mono">{owned}</span>
-                  </div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-2xl font-mono text-warning flex items-center gap-1">
-                      <Coins className="w-5 h-5" /> {booster.price}
-                    </div>
-                    <div className="flex gap-2">
-                      {id === "decayInhibitor" && owned > 0 && (
-                        <Button size="sm" variant="outline" onClick={handleActivate}>
-                          Activate
-                        </Button>
-                      )}
-                      <Button size="sm" onClick={() => handleBuy(id)} disabled={!affordable}>
-                        Buy
-                      </Button>
-                    </div>
+                    <h3 className="font-heading text-xl font-bold">{booster.name}</h3>
+                    <span className="kicker text-muted-foreground">{booster.rarity}</span>
                   </div>
+                  <p className="text-sm text-muted-foreground">{WHAT_IT_DOES[id]}</p>
                 </div>
-              </HoloCard>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="text-sm text-muted-foreground">
+                  In your kit: <span className="font-heading font-bold text-foreground">{have}</span>
+                  {isArmed && <span className="ml-2 rounded-full border border-accent/60 px-2 py-0.5 font-heading text-xs font-bold text-accent">ARMED</span>}
+                </span>
+                <div className="flex gap-2">
+                  {ARMABLE.includes(id) && have > 0 && (
+                    <button type="button" onClick={() => arm(id)} className={cn('btn-game btn-sm', isArmed ? 'btn-quiet' : 'btn-primary')}>
+                      {isArmed ? 'Disarm' : 'Arm'}
+                    </button>
+                  )}
+                  {id === 'decayInhibitor' && have > 0 && (
+                    <button type="button" onClick={activate} className="btn-game btn-sm btn-primary">
+                      Activate
+                    </button>
+                  )}
+                  <button type="button" onClick={() => buy(id)} disabled={!affordable} className="btn-game btn-sm btn-gold">
+                    <Coin size={18} /> {booster.price}
+                  </button>
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
 
-      <HoloCard glow="none" className="p-6 mt-8">
-        <h2 className="text-2xl font-heading mb-4">Active effects</h2>
-        {frozen ? (
-          <div className="flex items-center gap-3">
-            <ShieldOff className="w-6 h-6 text-accent" />
-            <div>
-              <p className="font-heading">Decay Inhibitor</p>
-              <p className="text-sm text-muted-foreground">Reserves frozen for another {formatTimeLeft(new Date(frozenUntil!))}</p>
-            </div>
+      {frozen && (
+        <div className="panel flex items-center gap-3 p-4">
+          <ShieldOff className="size-6 text-accent" />
+          <div>
+            <p className="font-heading font-bold">Decay Inhibitor active</p>
+            <p className="text-sm text-muted-foreground">Reserves hold for another {formatTimeLeft(new Date(frozenUntil!))}</p>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Nothing active. Amplifiers and Multi-Charges apply when you collect or log a workout.</p>
-        )}
-      </HoloCard>
+        </div>
+      )}
     </div>
   );
 }
+
+const aOrAn = (name: string) => `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;

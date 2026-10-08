@@ -17,7 +17,9 @@ export type RewardMoment =
   | { kind: 'stamp'; city: string; credits: number }
   | { kind: 'journey' }
   | { kind: 'quest'; title: string; xp: number; credits: number }
-  | { kind: 'chest'; tier: ChestTier; title: string; credits: number; xp: number; booster?: BoosterId };
+  | { kind: 'chest'; tier: ChestTier; title: string; credits: number; xp: number; booster?: BoosterId }
+  /** Detective Fix boards: shown once, when raids unlock. */
+  | { kind: 'fix' };
 
 export interface Floater {
   id: number;
@@ -96,7 +98,12 @@ export function announce(p: Payout, opts: { floats?: boolean; from?: { x: number
   if (p.legCompletedCity) moments.push({ kind: 'stamp', city: p.legCompletedCity, credits: p.legCredits ?? 0 });
   if (p.journeyComplete) moments.push({ kind: 'journey' });
   if (p.starterCompleted) moments.push({ kind: 'liftOff' });
-  if (p.levelUp) moments.push({ kind: 'levelUp', ...p.levelUp, unlocks: takeUnannouncedUnlocks(p.levelUp.level) });
+  if (p.levelUp) {
+    const unlocks = takeUnannouncedUnlocks(p.levelUp.level);
+    moments.push({ kind: 'levelUp', ...p.levelUp, unlocks });
+    // The villain arrives in person the moment he can do something.
+    if (unlocks.some((u) => u.label === 'Raids')) moments.push({ kind: 'fix' });
+  }
   // Let the tokens land before a full-screen moment covers the HUD.
   if (flying && moments.length) setTimeout(() => moments.forEach(celebrate), 1100);
   else moments.forEach(celebrate);
