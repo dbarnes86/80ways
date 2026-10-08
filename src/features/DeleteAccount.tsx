@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button, Dialog, Input } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { resetLocalGame } from '@/lib/gameSync';
+import { wipeDevice } from '@/lib/gameSync';
 import { useMembershipStore } from '@/stores/membershipStore';
 
 /** In-app account deletion, required by the App Store for any app with sign-up. */
@@ -25,8 +25,8 @@ export function DeleteAccount() {
       return;
     }
     await supabase.auth.signOut().catch(() => undefined);
-    resetLocalGame();
-    navigate('/', { replace: true });
+    wipeDevice();
+    navigate('/onboard', { replace: true });
   };
 
   return (

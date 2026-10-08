@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Bell, HeartPulse, Loader2, Mail, MailCheck } from 'lucide-react';
 import foggPortrait from '@/assets/fogg-portrait.jpg';
-import { Button, HoloCard, Input, Label, cn } from '@/components/ui';
+import { HoloCard, Input, Label, cn } from '@/components/ui';
 import { toast } from '@/components/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { ENERGY_THEME } from '@/data/energyTheme';
@@ -100,9 +100,9 @@ export default function Onboard() {
             </div>
             <CollectPanel big onCollected={() => setTimeout(() => setStage('quest'), 400)} />
             {inboxCount === 0 && (
-              <Button onClick={() => setStage('quest')} className="h-14 w-full text-lg">
+              <button type="button" onClick={() => setStage('quest')} className="btn-game btn-primary w-full">
                 Next
-              </Button>
+              </button>
             )}
           </div>
         )}
@@ -152,10 +152,10 @@ function Story({ onDone }: { onDone: () => void }) {
 }
 
 const DISCIPLINES: { id: Discipline; label: string; energy: EnergyType; blurb: string }[] = [
-  { id: 'runner', label: 'Runner', energy: 'terrestrial', blurb: 'Runs, walks, hikes' },
-  { id: 'rider', label: 'Rider', energy: 'transport', blurb: 'Bikes, skates, skis' },
-  { id: 'swimmer', label: 'Swimmer', energy: 'nautical', blurb: 'Swims, rows, paddles' },
-  { id: 'lifter', label: 'Lifter', energy: 'strength', blurb: 'Weights, HIIT, yoga' },
+  { id: 'runner', label: 'Runner', energy: 'terrestrial', blurb: 'Run, walk, hike' },
+  { id: 'rider', label: 'Rider', energy: 'transport', blurb: 'Bike, skate, ski' },
+  { id: 'swimmer', label: 'Swimmer', energy: 'nautical', blurb: 'Swim, row, paddle' },
+  { id: 'lifter', label: 'Lifter', energy: 'strength', blurb: 'Lift, HIIT, yoga' },
 ];
 
 function PickDiscipline({ onDone }: { onDone: () => void }) {
@@ -184,7 +184,7 @@ function PickDiscipline({ onDone }: { onDone: () => void }) {
               type="button"
               onClick={() => pick(d.id)}
               className={cn(
-                'press flex aspect-square flex-col items-center justify-center gap-2 rounded-3xl border-2 bg-card/80 p-4 transition-all',
+                'press panel flex aspect-square flex-col items-center justify-center gap-2 p-4 transition-all',
                 picked === d.id ? `${theme.border} scale-105 shadow-[0_0_30px_currentColor] ${theme.text}` : 'border-border',
                 picked && picked !== d.id && 'opacity-40',
               )}
@@ -214,7 +214,7 @@ function AppleButton() {
       type="button"
       onClick={() => void go()}
       disabled={busy}
-      className="press flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-white text-xl font-semibold text-black disabled:opacity-70"
+      className="btn-game btn-white w-full"
     >
       {busy ? (
         <Loader2 className="animate-spin" />
@@ -240,9 +240,9 @@ function Join({ onEmail }: { onEmail: () => void }) {
       </div>
       <div className="space-y-3">
         {showApple() && <AppleButton />}
-        <Button variant={showApple() ? 'outline' : 'default'} onClick={onEmail} className="h-14 w-full text-lg">
+        <button type="button" onClick={onEmail} className={cn('btn-game w-full', showApple() ? 'btn-quiet btn-sm' : 'btn-primary')}>
           <Mail /> {showApple() ? 'Use email instead' : 'Sign up with email'}
-        </Button>
+        </button>
       </div>
       <p className="text-sm">
         <Link to="/login" className="text-muted-foreground hover:text-primary">Already on the crew? Sign in</Link>
@@ -305,9 +305,9 @@ function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => v
             <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={set('password')} placeholder="8+ characters" className="h-12 text-base" />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={busy} className="h-14 w-full text-lg">
+          <button type="submit" disabled={busy} className="btn-game btn-primary w-full">
             {busy ? <Loader2 className="animate-spin" /> : null} Create account
-          </Button>
+          </button>
         </form>
       </HoloCard>
       <button type="button" onClick={onBack} className="block w-full py-2 text-center text-muted-foreground hover:text-foreground">
@@ -348,11 +348,11 @@ function ConnectHealth({ userId, onDone }: { userId: string; onDone: (arrived: n
             void connect().then((r) => onDone(r?.arrived ?? 0));
           }}
           disabled={busy}
-          className="press shine flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-secondary font-heading text-2xl font-bold text-white shadow-[0_0_30px_hsl(var(--secondary)/0.45)] disabled:opacity-70"
+          className="btn-game btn-pass shine w-full"
         >
           {busy ? <Loader2 className="animate-spin" /> : <HeartPulse />} Connect Apple Health
         </button>
-        <button type="button" onClick={() => onDone(0)} className="py-2 text-muted-foreground hover:text-foreground">
+        <button type="button" onClick={() => onDone(0)} className="py-2 text-lg text-muted-foreground hover:text-foreground">
           Not now
         </button>
       </div>
@@ -379,9 +379,9 @@ function FirstQuest({ onDone }: { onDone: () => void }) {
           <QuestRow key={q.id} quest={q} compact />
         ))}
       </div>
-      <Button onClick={onDone} variant={ready ? 'outline' : 'default'} className={cn('h-14 w-full text-lg', !ready && 'shine')}>
+      <button type="button" onClick={onDone} className={cn('btn-game w-full', ready ? 'btn-quiet btn-sm' : 'btn-primary shine')}>
         {ready ? 'Later' : 'Next'}
-      </Button>
+      </button>
     </div>
   );
 }
@@ -399,7 +399,8 @@ function Nudges({ onDone }: { onDone: () => void }) {
         <p className="text-lg text-muted-foreground">Every two weeks he sabotages the voyage. Want a heads-up when he strikes, and when new quests land?</p>
       </div>
       <div className="space-y-3">
-        <Button
+        <button
+          type="button"
           onClick={() => {
             setBusy(true);
             void enableNudges()
@@ -408,10 +409,10 @@ function Nudges({ onDone }: { onDone: () => void }) {
               .finally(onDone);
           }}
           disabled={busy}
-          className="shine h-16 w-full text-xl"
+          className="btn-game btn-danger shine w-full"
         >
           {busy ? <Loader2 className="animate-spin" /> : <Bell />} Warn me
-        </Button>
+        </button>
         <button type="button" onClick={onDone} className="py-2 text-muted-foreground hover:text-foreground">
           Not now
         </button>

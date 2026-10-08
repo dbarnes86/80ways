@@ -80,6 +80,22 @@ export function claimLocalState(userId: string) {
   storage.set(OWNER_KEY, userId);
 }
 
+/**
+ * Forget everything this device knows about the player: the game, the onboarding flag, Health
+ * sync state, notification choice. Used when an account is deleted, so the next sign-up starts
+ * from the very first screen.
+ */
+export function wipeDevice() {
+  resetLocalGame();
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('atw80-')) localStorage.removeItem(key);
+    }
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 /** After sign-out the device belongs to nobody, so a new player's pre-sign-up choices survive. */
 export function forgetLocalOwner() {
   storage.remove(OWNER_KEY);

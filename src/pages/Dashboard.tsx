@@ -26,6 +26,7 @@ import { nextMove } from '@/game/nextMove';
 import { useQuests } from '@/game/questActions';
 import { celebrate } from '@/game/rewards';
 import { play } from '@/game/sfx';
+import { isUnlocked } from '@/game/unlocks';
 
 /**
  * Home, top to bottom: where you are (the voyage), the one thing to do next, today's quests,
@@ -85,6 +86,8 @@ const Dashboard = () => {
     credits,
     boosters: inventory.energyAmplifier + inventory.multiCharge + inventory.decayInhibitor,
     cheapestBooster: Math.min(...Object.values(BOOSTERS).map((b) => b.price)),
+    storeOpen: isUnlocked('store', progression.level),
+    raidsOpen: isUnlocked('raids', progression.level),
   });
 
   const board = async () => {
@@ -132,20 +135,24 @@ const Dashboard = () => {
 
       {user && <ConnectHealthCard userId={user.id} />}
 
+      {isUnlocked('quests', progression.level) && (
       <section className="space-y-2">
         <Link to="/quests" className="flex items-baseline justify-between">
-          <h2 className="font-heading text-xl font-bold">Today’s quests</h2>
+          <h2 className="font-heading text-2xl font-bold">Today’s quests</h2>
           <span className="text-sm text-primary">{dailyLeft ? `${dailyLeft} left` : 'All done'} ›</span>
         </Link>
         {quests.daily.map((q) => (
           <QuestRow key={q.id} quest={q} compact />
         ))}
       </section>
+      )}
 
-      <section className="space-y-2">
-        <h2 className="font-heading text-xl font-bold">Reserves</h2>
-        <ReserveTanks />
-      </section>
+      {isUnlocked('reserves', progression.level) && (
+        <section className="space-y-2">
+          <h2 className="font-heading text-2xl font-bold">Reserves</h2>
+          <ReserveTanks />
+        </section>
+      )}
 
       <ActivityLogger open={loggerOpen} onOpenChange={setLoggerOpen} />
       <EnergyDeployment open={deployOpen} onClose={() => setDeployOpen(false)} />

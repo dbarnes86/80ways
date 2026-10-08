@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { GameSync } from '@/components/GameSync'
 import { Toaster } from '@/components/toast'
 import { RewardLayer } from '@/game/RewardLayer'
+import { Gate } from '@/game/Gate'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { Layout } from '@/components/layout/Layout'
 import Landing from './pages/Landing'
@@ -55,14 +56,14 @@ const App = () => (
         <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
 
         <Route path="/dashboard" element={app(<Dashboard />)} />
-        <Route path="/map" element={app(<MapPage />)} />
+        <Route path="/map" element={app(<Gate feature="map"><MapPage /></Gate>)} />
         <Route path="/activity-history" element={app(<ActivityHistory />)} />
-        <Route path="/leaderboard" element={app(<Leaderboard />)} />
-        <Route path="/raids" element={app(<Raids />)} />
-        <Route path="/store" element={app(<Store />)} />
+        <Route path="/leaderboard" element={app(<Gate feature="ranks"><Leaderboard /></Gate>)} />
+        <Route path="/raids" element={app(<Gate feature="raids"><Raids /></Gate>)} />
+        <Route path="/store" element={app(<Gate feature="store"><Store /></Gate>)} />
         <Route path="/profile" element={app(<Profile />)} />
         <Route path="/membership" element={app(<Membership />)} />
-        <Route path="/quests" element={app(<Quests />)} />
+        <Route path="/quests" element={app(<Gate feature="quests"><Quests /></Gate>)} />
         <Route path="/stages" element={<Navigate to="/leaderboard" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

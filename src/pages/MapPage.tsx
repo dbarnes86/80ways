@@ -56,7 +56,7 @@ function shipPoint(from: Point, to: Point, t: number): Point {
 
 function Stat({ value, label, tone }: { value: string; label: string; tone: string }) {
   return (
-    <div className="flex-1 rounded-2xl border border-border bg-card/70 px-2 py-3 text-center">
+    <div className="panel flex-1 !rounded-2xl px-2 py-3 text-center">
       <p className={cn('font-heading text-2xl font-bold leading-none', tone)}>{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
     </div>
@@ -221,7 +221,7 @@ export default function MapPage() {
               {active && locked && (
                 <Link
                   to="/membership"
-                  className="press shine mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-secondary font-heading text-xl font-bold text-white shadow-[0_0_24px_hsl(var(--secondary)/0.4)]"
+                  className="btn-game btn-pass shine mt-3 w-full"
                 >
                   Keep sailing with the Season Pass
                 </Link>
@@ -233,7 +233,7 @@ export default function MapPage() {
                     haptic('tap');
                     setDeployOpen(true);
                   }}
-                  className="press shine mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-primary font-heading text-xl font-bold text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.4)]"
+                  className="btn-game btn-primary shine mt-3 w-full"
                 >
                   Stoke the boiler
                 </button>

@@ -8,6 +8,8 @@ import { useUserStore } from '@/stores/userStore';
 import { useMembershipStore } from '@/stores/membershipStore';
 import { isHealthPlatform, syncHealth } from '@/services/healthService';
 import { replanNudges } from '@/services/nudges';
+import { seedAnnouncedUnlocks } from '@/game/unlocks';
+import { useProgressionStore } from '@/stores/progressionStore';
 import { announceArrivals } from '@/features/health';
 
 const DECAY_TICK_MS = 15 * 60 * 1000;
@@ -43,6 +45,7 @@ export function GameSync() {
       void useMembershipStore.getState().fetch(userId);
       const pulled = await pullGameState(userId);
       if (cancelled) return;
+      seedAnnouncedUnlocks(useProgressionStore.getState().level);
       tickDecay();
       // Only after a good pull, so workouts already saved from another device aren't queued again.
       if (pulled) void importFromHealth(userId);

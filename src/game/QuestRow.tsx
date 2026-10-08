@@ -47,7 +47,7 @@ export function QuestRow({ quest, compact = false }: { quest: Quest; compact?: b
   const help = HELP[quest.action];
   const canHelp = !quest.complete && !quest.claimed && !!help.cta;
   return (
-    <div className={cn('rounded-2xl border bg-card/80 transition-colors', ready ? 'border-success/60 shadow-[0_0_20px_hsl(var(--success)/0.25)]' : 'border-border', quest.claimed && 'opacity-50')}>
+    <div className={cn('panel !rounded-2xl transition-colors', ready && '!border-success/70 shadow-[0_0_24px_hsl(var(--success)/0.3)]', quest.claimed && 'opacity-50')}>
     <div
       role={canHelp ? 'button' : undefined}
       tabIndex={canHelp ? 0 : undefined}
@@ -63,8 +63,8 @@ export function QuestRow({ quest, compact = false }: { quest: Quest; compact?: b
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <p className={cn('font-heading font-bold leading-tight', compact ? 'text-base' : 'text-lg')}>{quest.title}</p>
-        <p className="text-sm text-muted-foreground">
+        <p className={cn('font-heading font-bold leading-tight', compact ? 'text-lg' : 'text-xl')}>{quest.title}</p>
+        <p className="text-[0.95rem] text-muted-foreground">
           {quest.target > 1 || quest.unit ? `${fmt(quest, quest.progress)} / ${fmt(quest, quest.target)}${quest.unit ? ` ${quest.unit}` : ''}` : quest.hint ?? ''}
           {!compact && quest.hint && (quest.target > 1 || quest.unit) ? ` · ${quest.hint}` : ''}
         </p>
@@ -76,7 +76,7 @@ export function QuestRow({ quest, compact = false }: { quest: Quest; compact?: b
             haptic('heavy');
             claimQuest(quest);
           }}
-          className="press shine shrink-0 rounded-xl bg-success px-4 py-3 font-heading text-lg font-bold text-background shadow-[0_0_16px_hsl(var(--success)/0.5)]"
+          className="btn-game btn-go btn-sm shine shrink-0"
         >
           Claim
         </button>
@@ -104,12 +104,12 @@ export function QuestRow({ quest, compact = false }: { quest: Quest; compact?: b
     </div>
     {open && canHelp && (
       <div className="animate-fade-up space-y-3 border-t border-border p-3">
-        <p className="text-sm text-muted-foreground">{quest.hint ? `${quest.hint}. ` : ''}{help.text}</p>
+        <p className="text-base text-muted-foreground">{quest.hint ? `${quest.hint}. ` : ''}{help.text}</p>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-bold">
+          <span className="text-base font-bold">
             Reward: {quest.chest ? 'a chest' : `${quest.xp ? `+${quest.xp} XP` : ''}${quest.credits ? ` · ${quest.credits} coins` : ''}`}
           </span>
-          <button type="button" onClick={() => navigate(help.to!)} className="press rounded-xl bg-primary px-4 py-2.5 font-heading text-base font-bold text-primary-foreground">
+          <button type="button" onClick={() => navigate(help.to!)} className="btn-game btn-primary btn-sm shrink-0">
             {help.cta}
           </button>
         </div>

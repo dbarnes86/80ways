@@ -4,7 +4,8 @@ import { haptic } from '@/lib/native';
 import { cn } from '@/components/ui';
 import { Chest, Coin, Ship, Stamp } from './art';
 import { play } from './sfx';
-import { useRewardStore, type RewardMoment } from './rewards';
+import { flyTokens, useRewardStore, type RewardMoment } from './rewards';
+import { unlockLevel, useUnlocked } from './unlocks';
 
 /** Confetti burst from the centre. Pure CSS, a few dozen spans. */
 function Confetti({ count = 36, colors = ['#00e5ff', '#ff00ff', '#ffd24a', '#9be22d'] }: { count?: number; colors?: string[] }) {
@@ -75,6 +76,7 @@ function RewardChips({ xp, credits }: { xp?: number; credits?: number }) {
 
 function ChestMoment({ m, onDone }: { m: Extract<RewardMoment, { kind: 'chest' }>; onDone: () => void }) {
   const [open, setOpen] = useState(false);
+  const storeOpen = useUnlocked('store');
   const openIt = () => {
     if (open) return onDone();
     setOpen(true);
@@ -96,12 +98,15 @@ function ChestMoment({ m, onDone }: { m: Extract<RewardMoment, { kind: 'chest' }
               + {BOOSTERS[m.booster].name}
             </p>
           )}
-          <p className="animate-pop text-sm text-muted-foreground" style={{ animationDelay: '0.8s' }}>
-            {m.booster ? 'Use it when you collect your next workout.' : 'Coins buy boosters in the Store.'}
+          <p className="animate-pop text-base text-muted-foreground" style={{ animationDelay: '0.8s' }}>
+            {m.booster ? 'Use it when you collect your next workout.' : storeOpen ? 'Coins buy boosters in the Store.' : `Save them: the Store opens at level ${unlockLevel('store')}.`}
           </p>
+          <span className="btn-game btn-gold w-full animate-pop" style={{ animationDelay: '0.9s' }}>
+            Collect
+          </span>
         </div>
       ) : (
-        <p className="animate-pulse-soft font-heading text-2xl font-bold">Tap to open</p>
+        <span className="btn-game btn-gold w-full animate-pulse-soft">Open it</span>
       )}
     </button>
   );
@@ -118,10 +123,22 @@ function Moment({ m, onDone }: { m: RewardMoment; onDone: () => void }) {
             {m.level}
           </div>
           <p className="animate-pop font-heading text-3xl font-bold" style={{ animationDelay: '0.2s' }}>{m.name}</p>
-          {m.unlock && (
-            <p className="animate-pop rounded-full border border-secondary/50 bg-secondary/10 px-4 py-2 text-sm text-secondary" style={{ animationDelay: '0.4s' }}>
-              Unlocked: {m.unlock}
-            </p>
+          {m.unlocks.length > 0 && (
+            <div className="w-full space-y-2 pt-2">
+              <p className="animate-pop font-mono text-xs uppercase tracking-[0.3em] text-secondary" style={{ animationDelay: '0.35s' }}>
+                Unlocked
+              </p>
+              {m.unlocks.map((u, i) => (
+                <div
+                  key={u.label}
+                  className="animate-pop rounded-2xl border-2 border-secondary/60 bg-secondary/15 px-4 py-3 text-left"
+                  style={{ animationDelay: `${0.45 + i * 0.15}s` }}
+                >
+                  <p className="font-heading text-xl font-bold text-secondary">{u.label}</p>
+                  <p className="text-sm text-muted-foreground">{u.blurb}</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       );
@@ -190,8 +207,14 @@ const RAY_COLOR: Record<RewardMoment['kind'], string> = {
 
 /** Shows queued reward moments one at a time, plus the floating "+XP" numbers. Mounted once. */
 export function RewardLayer() {
-  const { queue, next, floaters } = useRewardStore();
+  const { queue, next: advance, floaters } = useRewardStore();
   const current = queue[0];
+  // Dismissing a moment sends its coins and XP flying into the HUD.
+  const next = () => {
+    if (current && 'credits' in current && current.credits) void flyTokens('credits', current.credits, undefined, true);
+    if (current && 'xp' in current && current.xp) void flyTokens('xp', current.xp, undefined, true);
+    advance();
+  };
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -237,9 +260,11 @@ export function RewardLayer() {
             <Moment m={current} onDone={next} />
           </div>
           {current.kind !== 'chest' && (
-            <p className={cn('absolute bottom-[max(2.5rem,env(safe-area-inset-bottom))] text-sm text-muted-foreground transition-opacity', ready ? 'opacity-100' : 'opacity-0')}>
-              Tap to continue
-            </p>
+            <div className={cn('absolute inset-x-6 bottom-[max(2rem,env(safe-area-inset-bottom))] mx-auto max-w-sm transition-all duration-300', ready ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0')}>
+              <button type="button" className={cn('btn-game w-full', 'credits' in current && current.credits ? 'btn-gold' : 'btn-primary')}>
+                {'credits' in current && current.credits ? 'Collect' : current.kind === 'levelUp' ? 'Let’s go' : 'Continue'}
+              </button>
+            </div>
           )}
         </div>
       )}

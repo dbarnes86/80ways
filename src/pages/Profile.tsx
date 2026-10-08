@@ -15,6 +15,7 @@ import { haptic } from '@/lib/native';
 import { DeleteAccount } from '@/features/DeleteAccount';
 import { HealthSetting } from '@/features/health';
 import { Passport } from '@/game/Passport';
+import { isUnlocked } from '@/game/unlocks';
 import { DISCIPLINE_ICON } from '@/game/Hud';
 import { floatReward } from '@/game/rewards';
 import { isMuted, play, setMuted } from '@/game/sfx';
@@ -151,18 +152,20 @@ export default function Profile() {
 
       <nav className="grid grid-cols-4 gap-2" aria-label="More">
         {[
-          { to: '/leaderboard', label: 'Ranks', icon: Trophy },
-          { to: '/activity-history', label: 'Logbook', icon: BookOpen },
-          { to: '/store', label: 'Store', icon: ShoppingBag },
-          { to: '/membership', label: 'Season Pass', icon: Crown },
-        ].map((l) => (
+          { to: '/activity-history', label: 'Logbook', icon: BookOpen, feature: null },
+          { to: '/store', label: 'Store', icon: ShoppingBag, feature: 'store' as const },
+          { to: '/membership', label: 'Season Pass', icon: Crown, feature: 'pass' as const },
+          { to: '/leaderboard', label: 'Ranks', icon: Trophy, feature: 'ranks' as const },
+        ]
+          .filter((l) => !l.feature || isUnlocked(l.feature, progression.level))
+          .map((l) => (
           <Link key={l.to} to={l.to} className="press flex flex-col items-center gap-1.5 rounded-2xl border border-primary/25 bg-card/60 px-1 py-3 text-xs font-semibold hover:border-primary/60">
             <l.icon className="size-7 text-primary" /> {l.label}
           </Link>
         ))}
       </nav>
 
-      <Passport />
+      {isUnlocked('map', progression.level) && <Passport />}
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">

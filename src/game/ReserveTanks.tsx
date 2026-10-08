@@ -14,7 +14,7 @@ export function ReserveTanks() {
         const pct = r.max > 0 ? Math.min(1, r.current / r.max) : 0;
         const color = orbColor(type);
         return (
-          <div key={type} className={cn('flex flex-col items-center gap-1.5 rounded-2xl border bg-card/70 p-2', ENERGY_THEME[type].border)}>
+          <div key={type} className={cn('panel flex flex-col items-center gap-1.5 !rounded-2xl p-2', ENERGY_THEME[type].border)}>
             <div className="relative h-20 w-9 overflow-hidden rounded-full border-2 bg-background/80" style={{ borderColor: `${color}66` }}>
               <div
                 className="absolute inset-x-0 bottom-0 rounded-b-full"
@@ -27,8 +27,8 @@ export function ReserveTanks() {
               />
             </div>
             <Orb type={type} size={20} />
-            <p className={cn('font-heading text-base font-bold leading-none', ENERGY_THEME[type].text)}>{r.current.toFixed(1)}</p>
-            <p className="text-[11px] font-medium text-muted-foreground">{ENERGY_THEME[type].label}</p>
+            <p className={cn('font-heading text-xl font-bold leading-none', ENERGY_THEME[type].text)}>{r.current.toFixed(1)}</p>
+            <p className="text-xs font-medium text-muted-foreground">{ENERGY_THEME[type].label}</p>
           </div>
         );
       })}

@@ -42,17 +42,17 @@ type ButtonVariant = 'default' | 'outline' | 'ghost' | 'secondary'
 type ButtonSize = 'default' | 'sm' | 'lg' | 'icon'
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-  secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/90',
-  outline: 'border border-primary/30 bg-transparent hover:bg-primary/10 text-foreground',
+  default: 'bg-primary text-primary-foreground shadow-[0_4px_0_#00788a] active:translate-y-[3px] active:shadow-[0_1px_0_#00788a]',
+  secondary: 'bg-secondary text-secondary-foreground shadow-[0_4px_0_#85008a] active:translate-y-[3px] active:shadow-[0_1px_0_#85008a]',
+  outline: 'border-2 border-primary/40 bg-transparent hover:bg-primary/10 text-foreground active:translate-y-px',
   ghost: 'bg-transparent hover:bg-muted/50 text-foreground',
 }
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  default: 'h-10 px-4 py-2 text-sm',
-  sm: 'h-9 px-3 text-sm',
-  lg: 'h-11 px-8 text-base',
-  icon: 'h-10 w-10',
+  default: 'h-12 px-5 text-base',
+  sm: 'h-10 px-4 text-sm',
+  lg: 'h-14 px-8 text-lg',
+  icon: 'h-11 w-11',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -66,9 +66,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
-        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors',
+        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-heading font-bold tracking-wide transition-[transform,box-shadow,background-color] duration-75',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        'disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
+        'disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0',
         withOverrides(BUTTON_VARIANTS[variant], className),
         BUTTON_SIZES[size],
         className,
