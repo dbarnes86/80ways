@@ -4,12 +4,38 @@
  */
 import type { SVGProps } from 'react';
 import type { EnergyType } from '@/data/gameConstants';
+import manifest from './artManifest.json';
+import { Bike, Dumbbell, PersonStanding, Waves } from 'lucide-react';
+import type { Discipline } from '@/stores/userStore';
 
 type ArtProps = SVGProps<SVGSVGElement> & { size?: number };
+
+/** Generated art (scripts/art/generate.mjs) wins over the hand-drawn SVG when it exists. */
+const GENERATED = new Set<string>(manifest as string[]);
+export const hasArt = (name: string) => GENERATED.has(name);
+/** The generated image's URL, or the fallback when there isn't one. */
+export const artSrc = (name: string, fallback: string) => (hasArt(name) ? `/art/${name}.webp` : fallback);
+
+/** A generated image, background already cut away (scripts/art/optimize.mjs). */
+export function ArtImage({ name, size, width, height, className, style }: { name: string; size?: number; width?: number; height?: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <img
+      src={`/art/${name}.webp`}
+      alt=""
+      aria-hidden
+      draggable={false}
+      width={width ?? size}
+      height={height ?? size}
+      className={className}
+      style={{ width: width ?? size, height: height ?? size, objectFit: 'contain', ...style }}
+    />
+  );
+}
 
 const glow = (color: string) => ({ filter: `drop-shadow(0 0 6px ${color})` });
 
 export function Coin({ size = 20, ...props }: ArtProps) {
+  if (hasArt('coin')) return <ArtImage name="coin" size={size} className={props.className} />;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...props}>
       <circle cx="12" cy="12" r="10" fill="#f5b83d" stroke="#ffe08a" strokeWidth="1.5" />
@@ -29,6 +55,7 @@ const ORB: Record<EnergyType, [string, string]> = {
 export const orbColor = (type: EnergyType) => ORB[type][0];
 
 export function Orb({ type, size = 18, ...props }: ArtProps & { type: EnergyType }) {
+  if (hasArt(`orb-${type}`)) return <ArtImage name={`orb-${type}`} size={size} className={props.className} />;
   const [c, hi] = ORB[type];
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden style={glow(c)} {...props}>
@@ -46,6 +73,8 @@ export function Orb({ type, size = 18, ...props }: ArtProps & { type: EnergyType
 }
 
 export function Chest({ size = 96, open = false, tier = 'bronze', ...props }: ArtProps & { open?: boolean; tier?: 'bronze' | 'silver' | 'gold' }) {
+  const art = `chest-${tier}${open ? '-open' : ''}`;
+  if (hasArt(art)) return <ArtImage name={art} size={size} className={props.className} />;
   const trim = { bronze: '#e08a3c', silver: '#cfe3f5', gold: '#ffd24a' }[tier];
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden style={glow(trim)} {...props}>
@@ -68,6 +97,7 @@ export function Chest({ size = 96, open = false, tier = 'bronze', ...props }: Ar
 }
 
 export function Ship({ size = 120, ...props }: ArtProps) {
+  if (hasArt('ship')) return <ArtImage name="ship" width={size} height={Math.round(size * 0.5625)} className={props.className} />;
   return (
     <svg width={size} height={size * 0.6} viewBox="0 0 200 120" aria-hidden style={glow('#00e5ff')} {...props}>
       <rect x="88" y="18" width="14" height="40" rx="2" fill="#0b1830" stroke="#00e5ff" strokeWidth="3" />
@@ -84,6 +114,8 @@ export function Ship({ size = 120, ...props }: ArtProps) {
 }
 
 export function Stamp({ city, size = 140, ...props }: ArtProps & { city: string }) {
+  const art = `stamp-${city.toLowerCase().replace(/\s+/g, '-')}`;
+  if (hasArt(art)) return <ArtImage name={art} size={size} className={props.className} />;
   return (
     <svg width={size} height={size} viewBox="0 0 140 140" aria-hidden style={glow('#ff00ff')} {...props}>
       <circle cx="70" cy="70" r="62" fill="none" stroke="#ff00ff" strokeWidth="5" />
@@ -106,4 +138,18 @@ export function Flame({ size = 20, lit = true, ...props }: ArtProps & { lit?: bo
       <path d="M12 13c.6 1.5 2 2 2 3.6a2 2 0 0 1-4 0c0-1 .6-1.7 1.2-2.2.1.5.4.8.8 1z" fill={lit ? '#ffd24a' : '#777'} />
     </svg>
   );
+}
+
+export const DISCIPLINE_ICON: Record<Discipline, typeof Waves> = {
+  runner: PersonStanding,
+  rider: Bike,
+  swimmer: Waves,
+  lifter: Dumbbell,
+};
+
+/** Your character: the generated avatar for your discipline, or its line icon until there is one. */
+export function Avatar({ discipline, size = 56, className, iconClassName }: { discipline: Discipline; size?: number; className?: string; iconClassName?: string }) {
+  if (hasArt(`avatar-${discipline}`)) return <ArtImage name={`avatar-${discipline}`} size={size} className={className} />;
+  const Icon = DISCIPLINE_ICON[discipline];
+  return <Icon className={iconClassName} />;
 }

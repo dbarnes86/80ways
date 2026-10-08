@@ -19,6 +19,8 @@ const base: NextMoveInput = {
   credits: 0,
   boosters: 0,
   cheapestBooster: 60,
+  storeOpen: true,
+  raidsOpen: true,
 };
 
 const quest = { id: 'd:x:move', title: 'Get moving' } as Quest;
@@ -52,6 +54,10 @@ describe('nextMove', () => {
 
   it('past the free legs without a pass: the Season Pass', () => {
     expect(nextMove({ ...base, starterDone: true, level: 3, joined: true, needsPass: true, energy: 4 }).action).toBe('pass');
+  });
+
+  it('never points at something not unlocked yet', () => {
+    expect(nextMove({ ...base, starterDone: true, level: 3, joined: true, energy: 2, raidActive: true, raidsOpen: false, leg: { to: 'Suez', type: 'terrestrial', remaining: 2 } }).action).toBe('deploy');
   });
 
   it('a live raid beats sailing when you have energy', () => {

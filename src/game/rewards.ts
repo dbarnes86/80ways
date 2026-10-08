@@ -5,11 +5,14 @@
  */
 import { create } from 'zustand';
 import type { BoosterId } from '@/data/gameConstants';
+import { takeUnannouncedUnlocks } from './unlocks';
+import { flyIcons } from './fx';
+import { play } from './sfx';
 
 export type ChestTier = 'bronze' | 'silver' | 'gold';
 
 export type RewardMoment =
-  | { kind: 'levelUp'; level: number; name: string; unlock?: string }
+  | { kind: 'levelUp'; level: number; name: string; unlocks: { label: string; blurb: string }[] }
   | { kind: 'liftOff' }
   | { kind: 'stamp'; city: string; credits: number }
   | { kind: 'journey' }
@@ -25,9 +28,13 @@ export interface Floater {
 interface RewardStore {
   queue: RewardMoment[];
   floaters: Floater[];
+  /** Coins and XP already paid but still flying to the HUD; the HUD shows its totals minus these. */
+  held: { credits: number; xp: number };
   celebrate: (m: RewardMoment) => void;
   next: () => void;
   float: (text: string, tone: Floater['tone']) => void;
+  hold: (kind: 'credits' | 'xp', amount: number) => void;
+  release: (kind: 'credits' | 'xp', amount: number) => void;
 }
 
 let floaterId = 1;
@@ -35,7 +42,15 @@ let floaterId = 1;
 export const useRewardStore = create<RewardStore>((set) => ({
   queue: [],
   floaters: [],
-  celebrate: (m) => set((s) => ({ queue: [...s.queue, m] })),
+  held: { credits: 0, xp: 0 },
+  hold: (kind, amount) => set((s) => ({ held: { ...s.held, [kind]: s.held[kind] + amount } })),
+  release: (kind, amount) => set((s) => ({ held: { ...s.held, [kind]: Math.max(0, s.held[kind] - amount) } })),
+  celebrate: (m) => {
+    // Coins and XP shown on a moment fly to the HUD when it's dismissed; hold them until then.
+    if ('credits' in m && m.credits) useRewardStore.getState().hold('credits', m.credits);
+    if ('xp' in m && m.xp) useRewardStore.getState().hold('xp', m.xp);
+    set((s) => ({ queue: [...s.queue, m] }));
+  },
   next: () => set((s) => ({ queue: s.queue.slice(1) })),
   float: (text, tone) => {
     const id = floaterId++;
@@ -59,27 +74,57 @@ export interface Payout {
   journeyComplete?: boolean;
 }
 
-/** Things a level unlocks, said on the level-up screen so levelling means something. */
-const LEVEL_UNLOCKS: Record<number, string> = {
-  2: 'Weekly telegrams from Fogg',
-  3: 'The season expedition',
-  4: 'Gold quest chests',
-  5: 'Title: Globetrotter',
-  6: 'Ship trail: Steam',
-  8: 'Title: Cartographer',
-  10: 'Ship trail: Aurora',
-};
-
-/** Announce a payout: floaters for the numbers, full-screen moments for the milestones, biggest last. */
-export function announce(p: Payout, opts: { floats?: boolean } = {}) {
-  const { floats = true } = opts;
+/**
+ * Announce a payout. Coins and XP fly from where it happened into the HUD (the balance ticks up as
+ * they land), then the milestones play, biggest last.
+ */
+export function announce(p: Payout, opts: { floats?: boolean; from?: { x: number; y: number } } = {}) {
+  const { floats = true, from } = opts;
+  let flying = false;
   if (floats) {
     if (p.energy) floatReward(`+${p.energy.toFixed(1)} kWh`, 'energy');
-    if (p.xp) floatReward(`+${Math.round(p.xp)} XP`, 'xp');
-    if (p.credits) floatReward(`+${Math.round(p.credits)}`, 'credits');
+    if (p.xp) {
+      void flyTokens('xp', Math.round(p.xp), from);
+      flying = true;
+    }
+    if (p.credits) {
+      void flyTokens('credits', Math.round(p.credits), from);
+      flying = true;
+    }
   }
-  if (p.legCompletedCity) celebrate({ kind: 'stamp', city: p.legCompletedCity, credits: p.legCredits ?? 0 });
-  if (p.journeyComplete) celebrate({ kind: 'journey' });
-  if (p.starterCompleted) celebrate({ kind: 'liftOff' });
-  if (p.levelUp) celebrate({ kind: 'levelUp', ...p.levelUp, unlock: LEVEL_UNLOCKS[p.levelUp.level] });
+  const moments: RewardMoment[] = [];
+  if (p.legCompletedCity) moments.push({ kind: 'stamp', city: p.legCompletedCity, credits: p.legCredits ?? 0 });
+  if (p.journeyComplete) moments.push({ kind: 'journey' });
+  if (p.starterCompleted) moments.push({ kind: 'liftOff' });
+  if (p.levelUp) moments.push({ kind: 'levelUp', ...p.levelUp, unlocks: takeUnannouncedUnlocks(p.levelUp.level) });
+  // Let the tokens land before a full-screen moment covers the HUD.
+  if (flying && moments.length) setTimeout(() => moments.forEach(celebrate), 1100);
+  else moments.forEach(celebrate);
+}
+
+/**
+ * Fly coins or XP sparks from a point (default: mid-screen) into the HUD. The amount is held back
+ * from the HUD and released a token at a time as they land, so the balance visibly fills up.
+ */
+export function flyTokens(kind: 'credits' | 'xp', amount: number, from?: { x: number; y: number }, alreadyHeld = false): Promise<void> {
+  if (amount <= 0) return Promise.resolve();
+  if (!alreadyHeld) useRewardStore.getState().hold(kind, amount);
+  const count = Math.max(3, Math.min(12, Math.round(kind === 'credits' ? amount / 5 : amount / 10)));
+  const per = amount / count;
+  let released = 0;
+  return flyIcons({
+    kind: kind === 'credits' ? 'coin' : 'xp',
+    count,
+    from,
+    to: kind === 'credits' ? 'hud-coins' : 'hud-level',
+    onLand: (i) => {
+      const share = i === count - 1 ? amount - released : per;
+      released += share;
+      useRewardStore.getState().release(kind, share);
+      play(kind === 'credits' ? 'tick' : 'collect', Math.min(12, i));
+    },
+  }).finally(() => {
+    // Whatever didn't land (no animation, reduced motion) is shown now.
+    if (released < amount) useRewardStore.getState().release(kind, amount - released);
+  });
 }

@@ -27,7 +27,7 @@ function BoosterChip({ on, onClick, label, count }: { on: boolean; onClick: () =
         onClick();
       }}
       className={cn(
-        'press flex-1 rounded-xl border-2 px-3 py-2 font-heading text-base font-bold',
+        'press flex-1 rounded-2xl border-2 px-3 py-2.5 font-heading text-lg font-bold',
         on ? 'border-secondary bg-secondary/20 text-secondary shadow-[0_0_14px_hsl(var(--secondary)/0.5)]' : 'border-border text-muted-foreground',
       )}
     >
@@ -93,7 +93,7 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <p className="font-heading text-xl font-bold">
+        <p className="font-heading text-2xl font-bold">
           {items.length === 1 ? 'A workout arrived' : `${items.length} workouts arrived`}
         </p>
         <p className="font-heading text-lg font-bold text-success">+{total.toFixed(1)} kWh</p>
@@ -110,7 +110,7 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
                 else refs.current.delete(item.id);
               }}
               className={cn(
-                'flex items-center gap-3 rounded-2xl border bg-card/80 p-3 transition-all duration-300',
+                'panel flex items-center gap-3 p-3 transition-all duration-300',
                 theme.border,
                 gone.has(item.id) && 'scale-95 opacity-0',
               )}
@@ -146,7 +146,7 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
         type="button"
         onClick={() => void collectAll()}
         disabled={busy}
-        className="press shine flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-success font-heading text-2xl font-bold tracking-wide text-background shadow-[0_0_30px_hsl(var(--success)/0.45)] disabled:opacity-70"
+        className="btn-game btn-go shine w-full"
       >
         {busy ? 'Collecting…' : 'Collect'}
       </button>

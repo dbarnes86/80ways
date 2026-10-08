@@ -15,7 +15,8 @@ import { haptic } from '@/lib/native';
 import { DeleteAccount } from '@/features/DeleteAccount';
 import { HealthSetting } from '@/features/health';
 import { Passport } from '@/game/Passport';
-import { DISCIPLINE_ICON } from '@/game/Hud';
+import { isUnlocked } from '@/game/unlocks';
+import { Avatar } from '@/game/art';
 import { floatReward } from '@/game/rewards';
 import { isMuted, play, setMuted } from '@/game/sfx';
 import { toast } from '@/components/toast';
@@ -110,7 +111,6 @@ export default function Profile() {
   }, [progression, stats, activities, raidXpAwarded, season.participation, hasJoined, best]);
 
   const earned = achievements.filter((a) => a.isEarned).length;
-  const Icon = DISCIPLINE_ICON[discipline ?? 'runner'];
   const since = user?.created_at ? new Date(user.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '';
 
   return (
@@ -118,7 +118,7 @@ export default function Profile() {
       {/* Who */}
       <div className="flex items-center gap-4">
         <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 ring-2 ring-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.4)]">
-          <Icon className="size-10 text-primary" />
+          <Avatar discipline={discipline ?? 'runner'} size={76} className="-mt-3" iconClassName="size-10 text-primary" />
           <span className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-primary font-heading text-lg font-bold text-primary-foreground ring-4 ring-background">
             {progression.level}
           </span>
@@ -151,18 +151,20 @@ export default function Profile() {
 
       <nav className="grid grid-cols-4 gap-2" aria-label="More">
         {[
-          { to: '/leaderboard', label: 'Ranks', icon: Trophy },
-          { to: '/activity-history', label: 'Logbook', icon: BookOpen },
-          { to: '/store', label: 'Store', icon: ShoppingBag },
-          { to: '/membership', label: 'Season Pass', icon: Crown },
-        ].map((l) => (
+          { to: '/activity-history', label: 'Logbook', icon: BookOpen, feature: null },
+          { to: '/store', label: 'Store', icon: ShoppingBag, feature: 'store' as const },
+          { to: '/membership', label: 'Season Pass', icon: Crown, feature: 'pass' as const },
+          { to: '/leaderboard', label: 'Ranks', icon: Trophy, feature: 'ranks' as const },
+        ]
+          .filter((l) => !l.feature || isUnlocked(l.feature, progression.level))
+          .map((l) => (
           <Link key={l.to} to={l.to} className="press flex flex-col items-center gap-1.5 rounded-2xl border border-primary/25 bg-card/60 px-1 py-3 text-xs font-semibold hover:border-primary/60">
             <l.icon className="size-7 text-primary" /> {l.label}
           </Link>
         ))}
       </nav>
 
-      <Passport />
+      {isUnlocked('map', progression.level) && <Passport />}
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">

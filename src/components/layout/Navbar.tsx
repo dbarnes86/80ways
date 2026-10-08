@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { useProgressionStore } from '@/stores/progressionStore';
+import { isUnlocked, useIsNew, type Feature } from '@/game/unlocks';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Home, LogOut, Map, ScrollText, Swords, User } from 'lucide-react';
 import { Button, cn } from '@/components/ui';
@@ -12,13 +14,23 @@ import { useQuests } from '@/game/questActions';
 import { floatReward } from '@/game/rewards';
 import { play } from '@/game/sfx';
 
-const TABS = [
+const TABS: { to: string; icon: typeof Home; label: string; feature?: Feature }[] = [
   { to: '/dashboard', icon: Home, label: 'Home' },
-  { to: '/quests', icon: ScrollText, label: 'Quests' },
-  { to: '/map', icon: Map, label: 'Map' },
-  { to: '/raids', icon: Swords, label: 'Raids' },
+  { to: '/quests', icon: ScrollText, label: 'Quests', feature: 'quests' },
+  { to: '/map', icon: Map, label: 'Map', feature: 'map' },
+  { to: '/raids', icon: Swords, label: 'Raids', feature: 'raids' },
   { to: '/profile', icon: User, label: 'Me' },
 ];
+
+/** A tab that's just been unlocked wears NEW until it's opened. */
+function NewBadge({ feature, active }: { feature: Feature; active: boolean }) {
+  const [isNew, markSeen] = useIsNew(feature);
+  useEffect(() => {
+    if (active && isNew) markSeen();
+  }, [active, isNew, markSeen]);
+  if (!isNew) return null;
+  return <span className="absolute -right-4 -top-2 animate-bump rounded-full bg-warning px-1.5 text-[10px] font-bold uppercase text-background ring-2 ring-card">New</span>;
+}
 
 function useRaidLive() {
   const season = useSeasonStore((s) => s.activeSeason);
@@ -47,6 +59,8 @@ export const Navbar = () => {
   const { claimable } = useQuests();
   const inbox = useInboxStore((s) => s.items.length);
   useQuestReadyPing(claimable);
+  const level = useProgressionStore((s) => s.level);
+  const tabs = TABS.filter((t) => !t.feature || isUnlocked(t.feature, level));
 
   const badge = (to: string) => (to === '/quests' ? claimable : to === '/dashboard' ? inbox : 0);
 
@@ -67,7 +81,7 @@ export const Navbar = () => {
                 <Hud />
               </div>
               <nav className="ml-auto hidden items-center gap-1 lg:flex" aria-label="Main">
-                {TABS.map((t) => (
+                {tabs.map((t) => (
                   <NavLink
                     key={t.to}
                     to={t.to}
@@ -100,11 +114,11 @@ export const Navbar = () => {
 
       {user && (
         <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 border-t border-primary/20 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
-          <ul className="mx-auto grid h-[4.5rem] max-w-md grid-cols-5">
-            {TABS.map((tab) => {
+          <ul className="mx-auto grid h-[4.75rem] max-w-md" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
+            {tabs.map((tab) => {
               const count = badge(tab.to);
               return (
-                <li key={tab.to}>
+                <li key={tab.to} className="flex">
                   <NavLink
                     to={tab.to}
                     onClick={() => {
@@ -112,12 +126,11 @@ export const Navbar = () => {
                       play('tick');
                     }}
                     className={({ isActive }) =>
-                      cn('press relative flex h-full flex-col items-center justify-center gap-1 text-xs font-semibold', isActive ? 'text-primary' : 'text-muted-foreground')
+                      cn('press relative mx-1 my-1.5 flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl font-heading text-sm font-bold tracking-wide', isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground')
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        {isActive && <span className="absolute top-0 h-[3px] w-10 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))]" />}
                         <span className="relative">
                           <tab.icon className={cn('size-7 transition-transform', isActive && 'scale-110 drop-shadow-[0_0_8px_hsl(var(--primary)/0.8)]')} />
                           {count > 0 && (
@@ -125,6 +138,7 @@ export const Navbar = () => {
                               {count}
                             </span>
                           )}
+                          {tab.feature && <NewBadge feature={tab.feature} active={isActive} />}
                           {tab.to === '/raids' && raidLive && <span className="absolute -right-1 -top-0.5 size-2.5 animate-pulse-soft rounded-full bg-destructive ring-2 ring-card" />}
                         </span>
                         {tab.label}

@@ -69,3 +69,62 @@ export const centreOf = (el: Element) => {
   const r = el.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 };
+
+const COIN_HTML =
+  '<svg viewBox="0 0 24 24" width="100%" height="100%"><circle cx="12" cy="12" r="10" fill="#f5b83d" stroke="#ffe08a" stroke-width="1.5"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#b9791b" stroke-width="1.5"/></svg>';
+const XP_HTML =
+  '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="#6ff6ff" stroke="#fff" stroke-width="1"/></svg>';
+
+/**
+ * Fly reward icons along an arc into a HUD element, calling onLand as each one arrives.
+ * Resolves when the last lands (immediately, with no landings, under reduced motion).
+ */
+export function flyIcons(opts: { kind: 'coin' | 'xp'; count: number; to: string; from?: { x: number; y: number }; onLand: (i: number) => void }): Promise<void> {
+  if (typeof document === 'undefined' || reducedMotion() || !document.getElementById(opts.to)) return Promise.resolve();
+  const from = opts.from ?? { x: window.innerWidth / 2, y: window.innerHeight * 0.55 };
+  const dest = target(opts.to);
+  const glowColor = opts.kind === 'coin' ? '#f5b83d' : '#6ff6ff';
+  const jobs: Promise<void>[] = [];
+
+  for (let i = 0; i < opts.count; i++) {
+    const el = document.createElement('div');
+    const size = opts.kind === 'coin' ? 26 : 20;
+    el.innerHTML = opts.kind === 'coin' ? COIN_HTML : XP_HTML;
+    Object.assign(el.style, {
+      position: 'fixed',
+      left: `${from.x - size / 2}px`,
+      top: `${from.y - size / 2}px`,
+      width: `${size}px`,
+      height: `${size}px`,
+      zIndex: '97',
+      pointerEvents: 'none',
+      filter: `drop-shadow(0 0 6px ${glowColor})`,
+    } satisfies Partial<CSSStyleDeclaration>);
+    document.body.appendChild(el);
+
+    const spreadX = (Math.random() - 0.5) * 140;
+    const spreadY = -40 - Math.random() * 80;
+    const dx = dest.x - from.x;
+    const dy = dest.y - from.y;
+    const anim = el.animate(
+      [
+        { transform: 'translate(0,0) scale(0.3) rotate(0deg)', opacity: 0 },
+        { transform: `translate(${spreadX}px, ${spreadY}px) scale(1.15) rotate(90deg)`, opacity: 1, offset: 0.35 },
+        { transform: `translate(${dx * 0.6 + spreadX * 0.3}px, ${dy * 0.6}px) scale(1) rotate(200deg)`, opacity: 1, offset: 0.7 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.55) rotate(320deg)`, opacity: 0.9 },
+      ],
+      { duration: 750, delay: i * 70, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' },
+    );
+    jobs.push(
+      anim.finished.then(
+        () => {
+          el.remove();
+          opts.onLand(i);
+          document.getElementById(opts.to)?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 180 });
+        },
+        () => el.remove(),
+      ),
+    );
+  }
+  return Promise.all(jobs).then(() => undefined);
+}

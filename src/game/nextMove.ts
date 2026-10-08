@@ -37,6 +37,9 @@ export interface NextMoveInput {
   credits: number;
   boosters: number;
   cheapestBooster: number;
+  /** Unlocked yet (see unlocks.ts). */
+  storeOpen: boolean;
+  raidsOpen: boolean;
 }
 
 export function nextMove(s: NextMoveInput): NextMove {
@@ -44,7 +47,7 @@ export function nextMove(s: NextMoveInput): NextMove {
     return { id: 'claim', kicker: 'Reward waiting', title: s.claimable.title, body: 'Quest complete. Claim it.', action: 'claim', cta: 'Claim', quest: s.claimable };
   }
 
-  if (s.raidActive && s.joined && s.energy >= 0.1) {
+  if (s.raidsOpen && s.raidActive && s.joined && s.energy >= 0.1) {
     return { id: 'raid', kicker: 'Raid', title: 'Fix attacks!', body: 'The crew needs your energy. Hit him.', action: 'raid', cta: 'Join the raid' };
   }
 
@@ -101,7 +104,7 @@ export function nextMove(s: NextMoveInput): NextMove {
     };
   }
 
-  if (s.boosters === 0 && s.credits >= s.cheapestBooster) {
+  if (s.storeOpen && s.boosters === 0 && s.credits >= s.cheapestBooster) {
     return { id: 'store', kicker: `${s.credits} coins`, title: 'Spend your coins', body: 'Boosters double a workout or stop your reserves fading.', action: 'store', cta: 'Open the Store' };
   }
 
