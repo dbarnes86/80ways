@@ -14,7 +14,7 @@ describe('unlocks', () => {
     seedAnnouncedUnlocks(1);
     expect(takeUnannouncedUnlocks(3).map((u) => u.label)).toEqual(['Quests', 'Energy reserves', 'The Map', 'Season Pass']);
     expect(takeUnannouncedUnlocks(3)).toEqual([]);
-    expect(takeUnannouncedUnlocks(4).map((u) => u.label)).toEqual(['The Store']);
+    expect(takeUnannouncedUnlocks(4).map((u) => u.label)).toEqual(['The Chandlery']);
   });
 
   it('existing players are not re-told about things they already had', () => {

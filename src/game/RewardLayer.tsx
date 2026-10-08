@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import fixPortrait from '@/assets/fix-portrait.jpg';
+import { enableNudges, nudgesEnabled, nudgesSupported, replanNudges } from '@/services/nudges';
 import { BOOSTERS } from '@/data/gameConstants';
 import { haptic } from '@/lib/native';
 import { cn } from '@/components/ui';
-import { Chest, Coin, Ship, Stamp } from './art';
+import { Chest, Coin, Ship, Stamp, artSrc, hasArt } from './art';
 import { burstCoins, centreOf } from './fx';
 import { play } from './sfx';
 import { celebrate, flyTokens, useRewardStore, type RewardMoment } from './rewards';
@@ -226,10 +229,51 @@ function Moment({ m, onDone }: { m: RewardMoment; onDone: () => void }) {
       );
     case 'chest':
       return <ChestMoment m={m} onDone={onDone} />;
+    case 'fix':
+      return <FixMoment />;
   }
 }
 
+/** Detective Fix boards. He explains himself, and asks to be allowed to warn you. */
+function FixMoment() {
+  const [asked, setAsked] = useState(() => !nudgesSupported() || nudgesEnabled());
+  return (
+    <div className="relative flex flex-col items-center gap-5 text-center">
+      <div className="relative size-44">
+        <div className="absolute inset-0 rounded-full bg-destructive/20 blur-2xl" />
+        <img
+          src={artSrc('fix', fixPortrait)}
+          alt="Detective Fix"
+          className={cn('animate-pop relative size-44', hasArt('fix') ? 'object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]' : 'rounded-full border-2 border-destructive/50 object-cover')}
+        />
+      </div>
+      <p className="animate-pop kicker text-destructive" style={{ animationDelay: '0.2s' }}>Scotland Yard</p>
+      <p className="animate-pop font-heading text-4xl font-bold" style={{ animationDelay: '0.3s' }}>Detective Fix has boarded</p>
+      <p className="animate-pop text-lg text-muted-foreground" style={{ animationDelay: '0.45s' }}>
+        He thinks Fogg robbed the Bank of England, and every two weeks he sabotages the voyage. When he strikes, the whole crew hits him with energy. Raids are open to you now.
+      </p>
+      {!asked && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setAsked(true);
+            void enableNudges()
+              .then((on) => on && replanNudges())
+              .catch(() => false);
+          }}
+          className="btn-game btn-danger btn-sm animate-pop w-full"
+          style={{ animationDelay: '0.6s' }}
+        >
+          Warn me when he strikes
+        </button>
+      )}
+    </div>
+  );
+}
+
 const SOUND: Record<RewardMoment['kind'], Parameters<typeof play>[0] | null> = {
+  fix: 'hit',
   levelUp: 'levelUp',
   liftOff: 'whistle',
   stamp: 'stamp',
@@ -239,6 +283,7 @@ const SOUND: Record<RewardMoment['kind'], Parameters<typeof play>[0] | null> = {
 };
 
 const HAPTIC: Record<RewardMoment['kind'], Parameters<typeof haptic>[0]> = {
+  fix: 'heavy',
   levelUp: 'success',
   liftOff: 'success',
   stamp: 'heavy',
@@ -249,6 +294,7 @@ const HAPTIC: Record<RewardMoment['kind'], Parameters<typeof haptic>[0]> = {
 
 const RAY_COLOR: Record<RewardMoment['kind'], string> = {
   // Brass sunbursts, like a poster; Volt only for Lift Off, the moment the engine starts.
+  fix: 'hsl(3 64% 54% / 0.25)',
   levelUp: 'hsl(39 66% 55% / 0.3)',
   liftOff: 'hsl(186 90% 60% / 0.3)',
   stamp: 'hsl(39 66% 55% / 0.3)',
@@ -263,12 +309,15 @@ if (import.meta.env.MODE === 'demo') (window as unknown as { __celebrate?: typeo
 /** Shows queued reward moments one at a time, plus the floating "+XP" numbers. Mounted once. */
 export function RewardLayer() {
   const { queue, next: advance, floaters } = useRewardStore();
+  const navigate = useNavigate();
+  const mapOpen = useUnlocked('map');
   const current = queue[0];
-  // Dismissing a moment sends its coins and XP flying into the HUD.
+  // Dismissing a moment sends its coins and XP flying into the HUD. A stamp opens the map.
   const next = () => {
     if (current && 'credits' in current && current.credits) void flyTokens('credits', current.credits, undefined, true);
     if (current && 'xp' in current && current.xp) void flyTokens('xp', current.xp, undefined, true);
     advance();
+    if (current?.kind === 'stamp' && mapOpen && queue.length === 1) navigate('/map');
   };
   const [ready, setReady] = useState(false);
 
@@ -324,7 +373,7 @@ export function RewardLayer() {
           {current.kind !== 'chest' && (
             <div className={cn('absolute inset-x-6 bottom-[max(2rem,env(safe-area-inset-bottom))] mx-auto max-w-sm transition-all duration-300', ready ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0')}>
               <button type="button" className={cn('btn-game w-full', 'credits' in current && current.credits ? 'btn-gold' : 'btn-primary')}>
-                {'credits' in current && current.credits ? 'Collect' : current.kind === 'levelUp' ? 'Let’s go' : 'Continue'}
+                {current.kind === 'stamp' ? (current.credits ? 'Collect and see the map' : 'See the map') : 'credits' in current && current.credits ? 'Collect' : current.kind === 'levelUp' ? 'Let’s go' : current.kind === 'fix' ? 'Noted' : 'Continue'}
               </button>
             </div>
           )}

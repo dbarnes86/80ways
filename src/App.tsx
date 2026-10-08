@@ -44,8 +44,8 @@ const App = () => (
   <AuthProvider>
     <GameSync />
     <Toaster />
-    <RewardLayer />
     <BrowserRouter>
+      <RewardLayer />
       <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route path="/" element={<Layout><Landing /></Layout>} />
