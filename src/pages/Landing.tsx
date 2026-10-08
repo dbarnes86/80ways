@@ -289,7 +289,7 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="text-center">
             <div className="mb-6">
-              <p className="text-xl font-heading text-primary">An Auguris Games production</p>
+              <p className="text-xl font-heading text-primary">A {COMPANY.name} production</p>
             </div>
             <div className="flex justify-center gap-6 text-sm text-muted-foreground">
               <Link to="/privacy" className="hover:text-primary transition-smooth">Privacy</Link>
@@ -299,7 +299,7 @@ export default function Landing() {
               <a href={`mailto:${COMPANY.supportEmail}`} className="hover:text-primary transition-smooth">Contact</a>
             </div>
             <div className="mt-6 text-xs text-muted-foreground font-mono">
-              © {new Date().getFullYear()} Auguris OÜ. All rights reserved.
+              © {new Date().getFullYear()} {COMPANY.name}. All rights reserved.
             </div>
           </div>
         </div>
