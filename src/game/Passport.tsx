@@ -16,13 +16,13 @@ export function Passport() {
     <section className="space-y-3">
       <div className="flex items-baseline justify-between">
         <h2 className="font-heading text-2xl font-bold">Passport</h2>
-        <span className="font-heading text-lg font-bold text-secondary">
+        <span className="font-heading text-lg font-bold text-accent">
           {count} / {legs.length}
         </span>
       </div>
       <div className="grid grid-cols-4 gap-2">
         {legs.map((leg, i) => (
-          <div key={leg.id} className={cn('flex aspect-square items-center justify-center rounded-2xl border bg-card/60', earned(i) ? 'border-secondary/50' : 'border-border')}>
+          <div key={leg.id} className={cn('flex aspect-square items-center justify-center rounded-2xl border bg-card/60', earned(i) ? 'border-accent/50' : 'border-border')}>
             <Stamp city={leg.to} size={72} className={cn(!earned(i) && 'opacity-20 grayscale', earned(i) && 'rotate-[-10deg]')} />
           </div>
         ))}

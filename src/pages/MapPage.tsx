@@ -105,14 +105,14 @@ export default function MapPage() {
   return (
     <div className="mx-auto max-w-md space-y-5 px-4 pb-6 pt-4">
       <div className="flex gap-2">
-        <Stat value={`${day}`} label="Day of 80" tone="text-primary" />
+        <Stat value={`${day}`} label="Day of 80" tone="text-accent" />
         <Stat value={covered >= 1000 ? `${(covered / 1000).toFixed(1)}k` : `${Math.round(covered)}`} label="km sailed" tone="text-success" />
-        <Stat value={`${stamps}/10`} label="Stamps" tone="text-secondary" />
+        <Stat value={`${stamps}/10`} label="Stamps" tone="text-accent" />
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-b from-[#071631] to-[#05050b] p-2">
+      <div className="overflow-hidden rounded-3xl border border-accent/40 bg-gradient-to-b from-[#132040] to-[#0E1526] p-2">
         <svg viewBox="0 12 100 40" className="w-full" aria-label="Route map">
-            <g opacity={0.32} fill="hsl(187 100% 50% / 0.05)" stroke="hsl(187 100% 50%)" strokeWidth={0.3}>
+            <g opacity={0.5} fill="hsl(39 66% 55% / 0.06)" stroke="hsl(39 66% 55%)" strokeWidth={0.3}>
               {/* North America */}
               <path d="M5,12 L8,10 L12,8 L18,7 L22,8 L25,10 L28,9 L30,11 L28,14 L30,16 L28,18 L26,20 L24,22 L22,26 L20,30 L18,32 L16,30 L14,28 L12,24 L10,20 L8,18 L6,16 L5,14 Z" />
               {/* South America */}
@@ -137,14 +137,14 @@ export default function MapPage() {
               <path d="M30,4 L34,3 L38,4 L36,7 L32,7 L30,5 Z" />
             </g>
 
-          <path d={buildRoute(pathCities)} fill="none" stroke="hsl(187 100% 50% / 0.3)" strokeWidth={0.45} strokeDasharray="1 1" />
+          <path d={buildRoute(pathCities)} fill="none" stroke="hsl(39 66% 55% / 0.45)" strokeWidth={0.45} strokeDasharray="1 1" />
           {completedLegs > 0 && (
             <path
               d={buildRoute(pathCities.slice(0, completedLegs + 1))}
               fill="none"
-              stroke="hsl(187 100% 50%)"
+              stroke="hsl(186 90% 60%)"
               strokeWidth={0.8}
-              style={{ filter: 'drop-shadow(0 0 1px hsl(187 100% 50%))' }}
+              style={{ filter: 'drop-shadow(0 0 1px hsl(186 90% 60%))' }}
             />
           )}
 
@@ -155,22 +155,22 @@ export default function MapPage() {
             return (
               <g key={i} onClick={() => i > 0 && open(i - 1)} className={i > 0 ? 'cursor-pointer' : undefined}>
                 <circle cx={p.x} cy={p.y} r={3.2} fill="transparent" />
-                <circle cx={p.x} cy={p.y} r={1.1} fill={lit ? 'hsl(300 100% 50%)' : status === 'active' ? 'hsl(187 100% 50%)' : 'hsl(240 20% 35%)'} />
+                <circle cx={p.x} cy={p.y} r={1.1} fill={lit ? 'hsl(39 66% 55%)' : status === 'active' ? 'hsl(186 90% 60%)' : 'hsl(240 20% 35%)'} />
               </g>
             );
           })}
 
           {/* the ship */}
           <g transform={`translate(${ship.x} ${ship.y})`} style={{ transition: 'transform 1.2s ease-out' }}>
-            <circle r={2.6} fill="none" stroke="hsl(187 100% 50%)" strokeWidth={0.25} className="animate-ring" />
-            <path d="M-2 -0.2 H2 L1.3 1 H-1.3 Z M-0.4 -0.2 V-1.6 H0.4 V-0.2" fill="hsl(187 100% 50%)" style={{ filter: 'drop-shadow(0 0 1px hsl(187 100% 50%))' }} />
+            <circle r={2.6} fill="none" stroke="hsl(186 90% 60%)" strokeWidth={0.25} className="animate-ring" />
+            <path d="M-2 -0.2 H2 L1.3 1 H-1.3 Z M-0.4 -0.2 V-1.6 H0.4 V-0.2" fill="hsl(186 90% 60%)" style={{ filter: 'drop-shadow(0 0 1px hsl(186 90% 60%))' }} />
           </g>
         </svg>
       </div>
 
       {!participation && (
-        <Link to="/dashboard" className="press block rounded-2xl border border-secondary/40 bg-secondary/10 p-4 text-center">
-          <p className="font-heading text-lg font-bold text-secondary">The ship is in port</p>
+        <Link to="/dashboard" className="press block rounded-2xl border border-accent/40 bg-accent/10 p-4 text-center">
+          <p className="font-heading text-lg font-bold text-accent">The ship is in port</p>
           <p className="text-sm text-muted-foreground">Finish Lift Off and board to start the voyage.</p>
         </Link>
       )}
@@ -189,25 +189,25 @@ export default function MapPage() {
                 onClick={() => open(i)}
                 className={cn(
                   'press flex w-full items-center gap-3 rounded-2xl border p-3 text-left',
-                  active ? 'border-primary/60 bg-primary/10 shadow-[0_0_20px_hsl(var(--primary)/0.25)]' : 'border-transparent',
+                  active ? 'border-accent/60 bg-accent/10' : 'border-transparent',
                   status === 'locked' && 'opacity-55',
                 )}
               >
                 <span
                   className={cn(
                     'relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full border-2',
-                    status === 'complete' && 'border-secondary bg-secondary/20',
-                    active && 'border-primary bg-background',
+                    status === 'complete' && 'border-accent bg-accent/20',
+                    active && 'border-accent bg-background',
                     status === 'locked' && 'border-border bg-background',
                   )}
                 >
-                  {status === 'complete' ? <Check className="size-5 text-secondary" strokeWidth={3} /> : status === 'locked' ? <Lock className="size-4 text-muted-foreground" /> : <span className="size-3 animate-pulse-soft rounded-full bg-primary" />}
+                  {status === 'complete' ? <Check className="size-5 text-accent" strokeWidth={3} /> : status === 'locked' ? <Lock className="size-4 text-muted-foreground" /> : <span className="size-3 animate-pulse-soft rounded-full bg-primary" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className={cn('font-heading text-lg font-bold leading-tight', active && 'text-primary')}>{leg.to}</p>
+                  <p className={cn('font-heading text-lg font-bold leading-tight', active && 'text-accent')}>{leg.to}</p>
                   {active ? (
                     <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-gradient-to-r from-primary to-secondary" style={{ width: `${Math.max(3, legFraction * 100)}%` }} />
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(3, legFraction * 100)}%` }} />
                     </div>
                   ) : (
                     <p className="truncate text-sm text-muted-foreground">{leg.narrative.title}</p>
@@ -223,7 +223,7 @@ export default function MapPage() {
                   to="/membership"
                   className="btn-game btn-pass shine mt-3 w-full"
                 >
-                  Keep sailing with the Season Pass
+                  Get the Season Pass
                 </Link>
               )}
               {active && !locked && hasEnergy && (
@@ -243,7 +243,7 @@ export default function MapPage() {
         })}
       </ol>
 
-      <Dialog open={openLeg !== null} onClose={() => setOpenLeg(null)} className="max-w-lg border-2 border-primary/50 bg-background">
+      <Dialog open={openLeg !== null} onClose={() => setOpenLeg(null)} className="max-w-lg border-2 border-accent/50 bg-background">
         {selected && (
           <>
             <DialogHeader>
@@ -265,7 +265,7 @@ export default function MapPage() {
               <div className="space-y-3 text-base">
                 <p className="italic text-muted-foreground">{selected.narrative.departureQuote}</p>
                 <p className="leading-relaxed">{selected.narrative.description}</p>
-                {selectedStatus === 'complete' && <p className="italic text-primary">{selected.narrative.arrivalQuote}</p>}
+                {selectedStatus === 'complete' && <p className="italic text-accent">{selected.narrative.arrivalQuote}</p>}
               </div>
             )}
           </>

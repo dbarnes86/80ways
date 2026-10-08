@@ -52,7 +52,7 @@ export function ConnectHealthCard({ userId }: { userId: string }) {
 
   return (
     <HoloCard glow="magenta" className="flex items-center gap-4 p-4">
-      <HeartPulse className="size-8 shrink-0 text-secondary" />
+      <HeartPulse className="size-8 shrink-0 text-destructive" />
       <div className="min-w-0 flex-1">
         <p className="font-heading font-bold">Connect Apple Health</p>
         <p className="text-xs text-muted-foreground">Workouts charge your reserves automatically. No logging.</p>

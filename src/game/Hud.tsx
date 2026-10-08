@@ -60,16 +60,16 @@ function LevelRing({ size = 44 }: { size?: number }) {
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="hsl(var(--primary))"
+          stroke="hsl(var(--accent))"
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - info.progress)}
-          style={{ transition: 'stroke-dashoffset 0.8s ease-out', filter: 'drop-shadow(0 0 4px hsl(var(--primary)/0.7))' }}
+          style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
         />
       </svg>
-      <Icon className="absolute inset-0 m-auto size-5 text-primary" />
-      <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary font-heading text-xs font-bold text-primary-foreground ring-2 ring-background">
+      <Icon className="absolute inset-0 m-auto size-5 text-accent" />
+      <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-accent font-heading text-xs font-bold text-background ring-2 ring-background">
         {level}
       </span>
     </div>
@@ -102,15 +102,15 @@ export function Hud() {
           <p className="truncate font-heading text-base font-bold leading-tight">Level {info.level}</p>
           <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-muted ring-1 ring-black/40">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-[width] duration-700 ease-out"
-              style={{ width: `${Math.max(4, info.progress * 100)}%`, boxShadow: '0 0 8px hsl(var(--primary)/0.6)' }}
+              className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
+              style={{ width: `${Math.max(4, info.progress * 100)}%` }}
             />
           </div>
         </div>
       </Link>
 
       <div className="flex shrink-0 items-center gap-1.5">
-        <span id="hud-energy" className={cn('flex items-center gap-1 rounded-xl border-2 border-success/40 bg-success/15 px-2 py-1 font-heading text-lg font-bold leading-none text-success', kwhBump && 'animate-bump')}>
+        <span id="hud-energy" className={cn('flex items-center gap-1 rounded-xl border-2 border-primary/40 bg-primary/10 px-2 py-1 font-heading text-lg font-bold leading-none text-success', kwhBump && 'animate-bump')}>
           ⚡{kwh.toFixed(1)}
         </span>
         <Link

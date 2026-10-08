@@ -1,30 +1,32 @@
 @import "tailwindcss";
 
 /*
- * Neon Victorian design tokens. Dark only.
+ * Victorian expedition, electric heart. Dark only.
  * The raw HSL channels in :root are kept so arbitrary values like
  * shadow-[0_0_8px_hsl(var(--primary)/0.6)] keep working; @theme maps them to Tailwind colours.
  */
 :root {
-  --background: 240 44% 3%;
-  --foreground: 0 0% 100%;
-  --card: 240 29% 11%;
-  --primary: 187 100% 50%;
-  --primary-foreground: 240 44% 3%;
-  --secondary: 300 100% 50%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 240 20% 20%;
-  --muted-foreground: 0 0% 65%;
-  --accent: 271 91% 65%;
-  --success: 84 81% 44%;
-  --warning: 25 95% 61%;
-  --destructive: 0 100% 63%;
-  --border: 240 29% 20%;
-  --input: 240 29% 15%;
+  /* Ink, Paper, Brass, Volt: printed materials, one electric accent. See the style guide. */
+  --background: 222 46% 10%;        /* Ink #0E1526 */
+  --foreground: 39 48% 90%;         /* Paper #F2EAD8 */
+  --card: 225 41% 16%;              /* Deep Ink #18213A */
+  --primary: 186 90% 60%;           /* Volt #3DE1F5: energy only */
+  --primary-foreground: 222 46% 10%;
+  --secondary: 272 35% 47%;         /* Plum #7B4FA3: Season Pass */
+  --secondary-foreground: 39 48% 90%;
+  --muted: 225 33% 25%;             /* Rule #2A3553 */
+  --muted-foreground: 223 17% 66%;  /* Fog #9AA3B8 */
+  --accent: 39 66% 55%;             /* Brass #D9A441 */
+  --success: 154 40% 51%;           /* Verdigris #4FB58A */
+  --warning: 39 66% 55%;            /* Brass: coins and rewards */
+  --destructive: 3 64% 54%;         /* Signal Red #D6453D */
+  --border: 225 33% 25%;
+  --input: 225 41% 13%;
 
-  --glow-cyan: 187 100% 50%;
-  --glow-magenta: 300 100% 50%;
-  --glow-purple: 271 91% 65%;
+  /* Kept for arbitrary shadow values in components; only Volt is allowed to glow. */
+  --glow-cyan: 186 90% 60%;
+  --glow-magenta: 39 66% 55%;
+  --glow-purple: 272 35% 47%;
 
   color-scheme: dark;
 }
@@ -49,9 +51,9 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
 
-  --font-heading: Rajdhani, system-ui, sans-serif;
+  --font-heading: Oswald, 'Arial Narrow', system-ui, sans-serif;
   --font-body: Inter, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: 'Courier Prime', 'Courier New', monospace;
 
   --radius-lg: 0.75rem;
   --radius-md: calc(0.75rem - 2px);
@@ -123,10 +125,11 @@
   }
 }
 
-@font-face { font-family: 'Rajdhani'; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/rajdhani-600-latin.woff2) format('woff2'); }
-@font-face { font-family: 'Rajdhani'; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/rajdhani-700-latin.woff2) format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/oswald-500-latin.woff2) format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/oswald-700-latin.woff2) format('woff2'); }
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 600; font-display: swap; src: url(/fonts/inter-latin.woff2) format('woff2'); }
-@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400 500; font-display: swap; src: url(/fonts/jetbrains-mono-latin.woff2) format('woff2'); }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/courier-prime-400-latin.woff2) format('woff2'); }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/courier-prime-700-latin.woff2) format('woff2'); }
 
 @utility container {
   margin-inline: auto;
@@ -143,11 +146,8 @@
     color: var(--color-foreground);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
-    background-image:
-      linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-    background-position: -1px -1px;
+    /* Paper grain: a faint noise so flat Ink reads as printed, not rendered. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   /* A notch bigger than the web default: this is read at arm's length on a phone. */
@@ -155,27 +155,18 @@
   body { overscroll-behavior-y: none; }
   /* App chrome shouldn't select like a document when tapped and held. */
   button, nav, [role="button"], [role="tab"] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: 700; }
+  h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: 700; letter-spacing: 0.02em; }
   code, pre { font-family: var(--font-mono); }
   button:not(:disabled), [role="button"] { cursor: pointer; }
 }
 
 @layer components {
-  .glow-cyan { box-shadow: 0 0 20px hsl(var(--glow-cyan) / 0.5), 0 0 40px hsl(var(--glow-cyan) / 0.3), 0 0 60px hsl(var(--glow-cyan) / 0.1); }
-  .glow-magenta { box-shadow: 0 0 20px hsl(var(--glow-magenta) / 0.5), 0 0 40px hsl(var(--glow-magenta) / 0.3), 0 0 60px hsl(var(--glow-magenta) / 0.1); }
-  .glow-purple { box-shadow: 0 0 20px hsl(var(--glow-purple) / 0.5), 0 0 40px hsl(var(--glow-purple) / 0.3), 0 0 60px hsl(var(--glow-purple) / 0.1); }
-  .text-glow, .text-glow-cyan { text-shadow: 0 0 10px hsl(var(--glow-cyan) / 0.8), 0 0 20px hsl(var(--glow-cyan) / 0.5), 0 0 30px hsl(var(--glow-cyan) / 0.3); }
-  .text-glow-magenta { text-shadow: 0 0 10px hsl(var(--glow-magenta) / 0.8), 0 0 20px hsl(var(--glow-magenta) / 0.5), 0 0 30px hsl(var(--glow-magenta) / 0.3); }
+  /* One glow in the app: Volt, for energy. Everything else is a printed shadow. */
+  .glow-cyan { box-shadow: 0 0 18px hsl(var(--glow-cyan) / 0.35), 0 10px 30px -14px rgb(0 0 0 / 0.9); }
+  .glow-magenta, .glow-purple { box-shadow: 0 10px 30px -14px rgb(0 0 0 / 0.9); }
+  .text-glow, .text-glow-cyan, .text-glow-magenta { text-shadow: none; }
   .transition-smooth { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-  .bg-grid-pattern {
-    background-image:
-      linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
-    background-size: 50px 50px;
-  }
-  .scan-lines {
-    background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.03) 2px, rgba(0, 240, 255, 0.03) 4px);
-  }
+  .bg-grid-pattern, .scan-lines { background-image: none; }
 
   /* Native range input styled to match the theme. */
   .range {
@@ -224,22 +215,23 @@
   .btn-game svg { width: 1.4em; height: 1.4em; flex-shrink: 0; }
   .btn-sm { height: 3rem; padding: 0 1.1rem; border-radius: 0.95rem; font-size: 1.15rem; box-shadow: 0 4px 0 var(--btn-edge), 0 8px 16px -8px var(--btn-glow), inset 0 2px 0 rgb(255 255 255 / 0.4); }
   .btn-sm:active:not(:disabled) { transform: translateY(3px); }
-  .btn-primary { --btn-top: #74f5ff; --btn-bg: #00cfe8; --btn-edge: #00788a; --btn-glow: rgb(0 229 255 / 0.55); --btn-fg: #021318; }
-  .btn-go { --btn-top: #c5f76a; --btn-bg: #86d422; --btn-edge: #4b7d10; --btn-glow: rgb(134 212 34 / 0.55); --btn-fg: #0d1a03; }
-  .btn-gold { --btn-top: #ffe9a6; --btn-bg: #f7bc3e; --btn-edge: #a46b14; --btn-glow: rgb(247 188 62 / 0.55); --btn-fg: #2b1700; }
-  .btn-pass { --btn-top: #ff8cff; --btn-bg: #e01be6; --btn-edge: #85008a; --btn-glow: rgb(224 27 230 / 0.55); --btn-fg: #ffffff; }
-  .btn-danger { --btn-top: #ff8a8a; --btn-bg: #ff3d4f; --btn-edge: #9c1626; --btn-glow: rgb(255 61 79 / 0.55); --btn-fg: #ffffff; }
-  .btn-white { --btn-top: #ffffff; --btn-bg: #e9ecf2; --btn-edge: #9aa1b0; --btn-glow: rgb(255 255 255 / 0.3); --btn-fg: #05050b; }
-  .btn-quiet { --btn-top: hsl(240 25% 24%); --btn-bg: hsl(240 25% 18%); --btn-edge: hsl(240 30% 9%); --btn-glow: transparent; --btn-fg: #e8eaf2; }
+  /* Paper for the main action, Brass for rewards, Verdigris to collect, Plum for the Pass, Signal for raids. */
+  .btn-primary { --btn-top: #fbf6ea; --btn-bg: #F2EAD8; --btn-edge: #a89a7c; --btn-glow: rgb(0 0 0 / 0.5); --btn-fg: #0E1526; }
+  .btn-go { --btn-top: #7fd1a8; --btn-bg: #4FB58A; --btn-edge: #2b6b50; --btn-glow: rgb(79 181 138 / 0.35); --btn-fg: #08201a; }
+  .btn-gold { --btn-top: #efc66e; --btn-bg: #D9A441; --btn-edge: #8a6320; --btn-glow: rgb(217 164 65 / 0.4); --btn-fg: #2b1a03; }
+  .btn-pass { --btn-top: #9f74c6; --btn-bg: #7B4FA3; --btn-edge: #46285f; --btn-glow: rgb(123 79 163 / 0.4); --btn-fg: #F2EAD8; }
+  .btn-danger { --btn-top: #e8736b; --btn-bg: #D6453D; --btn-edge: #7f251f; --btn-glow: rgb(214 69 61 / 0.4); --btn-fg: #F2EAD8; }
+  .btn-white { --btn-top: #ffffff; --btn-bg: #F2EAD8; --btn-edge: #a89a7c; --btn-glow: rgb(0 0 0 / 0.5); --btn-fg: #0E1526; }
+  .btn-quiet { --btn-top: #222d4a; --btn-bg: #18213A; --btn-edge: #090d1a; --btn-glow: transparent; --btn-fg: #F2EAD8; }
 
   /* Game panels: rounded, lit from the top edge, sitting on a soft shadow. */
   .panel {
     border-radius: 1.5rem;
-    background: linear-gradient(180deg, hsl(240 32% 15%), hsl(240 34% 10%));
-    border: 2px solid hsl(240 30% 22%);
+    background: linear-gradient(180deg, #1b2540, #141c31);
+    border: 2px solid #2A3553;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 10px 30px -14px rgb(0 0 0 / 0.9);
   }
-  .panel-hero { border-color: hsl(187 100% 50% / 0.45); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px hsl(187 100% 50% / 0.1), 0 14px 40px -16px hsl(187 100% 50% / 0.45); }
+  .panel-hero { border-color: hsl(39 66% 55% / 0.55); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 14px 40px -16px rgb(0 0 0 / 0.9); }
   .kicker { font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.25em; }
 
   /* A sheen that sweeps across primary actions so they read as "press me". */

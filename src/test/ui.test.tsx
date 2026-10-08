@@ -9,19 +9,19 @@ describe('variant overrides', () => {
     expect(cls).toContain('bg-secondary')
     expect(cls).not.toMatch(/\bbg-primary\b/)
     expect(cls).not.toContain('hover:bg-primary/90')
-    expect(cls).toContain('text-primary-foreground')
+    expect(cls).toContain('text-background')
   })
 
   it('keeps variant classes nothing overrides', () => {
     render(<Badge className="bg-muted text-muted-foreground">COMMON</Badge>)
     const cls = screen.getByText('COMMON').className
     expect(cls).not.toMatch(/\bbg-primary\b/)
-    expect(cls).not.toContain('text-primary-foreground')
+    expect(cls).not.toContain('text-background')
     expect(cls).toContain('border-transparent')
   })
 
   it('does not treat text sizes as colour overrides', () => {
     render(<Button className="text-lg">Go</Button>)
-    expect(screen.getByRole('button').className).toContain('text-primary-foreground')
+    expect(screen.getByRole('button').className).toContain('text-background')
   })
 })

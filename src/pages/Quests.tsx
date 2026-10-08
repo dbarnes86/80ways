@@ -46,7 +46,7 @@ export default function Quests() {
     <div className="mx-auto max-w-md space-y-7 px-4 pb-6 pt-4">
       {q.story && (
         <section className="space-y-2">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-secondary">Story</p>
+          <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">Story</p>
           <QuestRow quest={q.story} />
         </section>
       )}

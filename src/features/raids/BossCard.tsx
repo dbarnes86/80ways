@@ -16,7 +16,7 @@ export interface Hit {
 
 const PHASE_LABEL = ['CONFIDENT', 'RATTLED', 'DESPERATE', 'DEFEATED'] as const;
 const PHASE_RING = [
-  'ring-secondary/60 shadow-[0_0_30px_hsl(var(--secondary)/0.45)]',
+  'ring-destructive/60 shadow-[0_10px_30px_-14px_rgb(0_0_0/0.9)]',
   'ring-warning/70 shadow-[0_0_34px_hsl(var(--warning)/0.5)]',
   'ring-destructive/80 shadow-[0_0_40px_hsl(var(--destructive)/0.6)]',
   'ring-success/70 shadow-[0_0_30px_hsl(var(--success)/0.45)]',
@@ -123,7 +123,7 @@ export function BossCard({
         <div className="w-full min-w-0 flex-1">
           <p className="font-mono text-[10px] tracking-widest text-muted-foreground">DETECTIVE FIX · {PHASE_LABEL[phase]}</p>
           <h2 className="mb-2 text-2xl font-heading font-bold text-glow-magenta md:text-3xl">{raid.name}</h2>
-          <blockquote className="mb-4 border-l-2 border-secondary/50 pl-3 text-sm italic text-foreground/85">"{raid.taunts[phase]}"</blockquote>
+          <blockquote className="mb-4 border-l-2 border-accent/50 pl-3 text-sm italic text-foreground/85">"{raid.taunts[phase]}"</blockquote>
 
           {/* Health bar */}
           <div className="mb-1 flex justify-between font-mono text-xs">
@@ -134,7 +134,7 @@ export function BossCard({
             <div
               className={cn(
                 'h-full transition-[width] duration-700 ease-out',
-                phase === 0 ? 'bg-secondary' : phase === 1 ? 'bg-warning' : 'bg-destructive',
+                phase === 0 ? 'bg-accent' : phase === 1 ? 'bg-warning' : 'bg-destructive',
               )}
               style={{ width: `${hpPct}%` }}
             />
@@ -145,7 +145,7 @@ export function BossCard({
 
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <div className="rounded-md border border-border bg-muted/20 p-2">
-              <Users className="mx-auto mb-0.5 size-4 text-secondary" />
+              <Users className="mx-auto mb-0.5 size-4 text-accent" />
               <p className="font-mono text-sm">{totals?.participants ?? 0}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Crew</p>
             </div>
@@ -169,7 +169,7 @@ export function BossCard({
                 <Crown className="size-4" /> Get the Season Pass to join the raid
               </Link>
             ) : (
-              <Button onClick={onStrike} disabled={!available || !canStrike} className="glow-magenta h-12 w-full bg-secondary text-base text-secondary-foreground hover:bg-secondary/90 md:w-auto md:px-10">
+              <Button onClick={onStrike} disabled={!available || !canStrike} className="h-12 w-full bg-destructive text-base text-secondary-foreground hover:bg-secondary/90 md:w-auto md:px-10">
                 <Swords /> {canStrike ? 'Strike' : 'Charge up to strike'}
               </Button>
             )}

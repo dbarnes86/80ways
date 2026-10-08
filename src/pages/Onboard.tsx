@@ -191,7 +191,7 @@ function PickDiscipline({ onDone }: { onDone: () => void }) {
                 picked && picked !== d.id && 'opacity-40',
               )}
             >
-              <Avatar discipline={d.id} size={88} className="-my-2 drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)]" iconClassName={cn('size-14', theme.text)} />
+              <Avatar discipline={d.id} size={112} className="-my-3" iconClassName={cn('size-14', theme.text)} />
               <span className="font-heading text-2xl font-bold text-foreground">{d.label}</span>
               <span className="text-xs text-muted-foreground">{d.blurb}</span>
             </button>
@@ -335,8 +335,8 @@ function ConnectHealth({ userId, onDone }: { userId: string; onDone: (arrived: n
   return (
     <div className="animate-fade-up space-y-8 text-center">
       <div className="relative mx-auto flex size-32 items-center justify-center">
-        <div className="absolute inset-0 animate-pulse-soft rounded-full bg-secondary/30 blur-2xl" />
-        <HeartPulse className="relative size-20 text-secondary" />
+        <div className="absolute inset-0 animate-pulse-soft rounded-full bg-destructive/30 blur-2xl" />
+        <HeartPulse className="relative size-20 text-destructive" />
       </div>
       <div className="space-y-3">
         <h1 className="font-heading text-4xl font-bold text-glow-cyan">Your workouts are the fuel</h1>
@@ -370,7 +370,7 @@ function FirstQuest({ onDone }: { onDone: () => void }) {
   return (
     <div className="animate-fade-up space-y-6">
       <div className="text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-secondary">Quests</p>
+        <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">Quests</p>
         <h1 className="font-heading text-4xl font-bold text-glow-cyan">{ready ? 'Claim your first reward' : 'Here’s how it works'}</h1>
         <p className="text-muted-foreground">Workouts complete quests. Quests pay out. Three new ones every day.</p>
       </div>
