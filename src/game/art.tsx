@@ -7,6 +7,7 @@ import type { EnergyType } from '@/data/gameConstants';
 import manifest from './artManifest.json';
 import { Bike, Dumbbell, PersonStanding, Waves } from 'lucide-react';
 import type { Discipline } from '@/stores/userStore';
+import { cn } from '@/components/ui';
 
 type ArtProps = SVGProps<SVGSVGElement> & { size?: number };
 
@@ -153,4 +154,26 @@ export function Avatar({ discipline, size = 56, className, iconClassName }: { di
   if (hasArt(`avatar-${discipline}`)) return <ArtImage name={`avatar-${discipline}`} size={size} className={className} />;
   const Icon = DISCIPLINE_ICON[discipline];
   return <Icon className={iconClassName} />;
+}
+
+/**
+ * A player's crest at a fixed size: masked to a clean circle with one brass ring drawn here, not in
+ * the art, so it matches the crest picker whatever the generated image does at its edges.
+ */
+export function CrestCircle({ discipline, size, className }: { discipline: Discipline; size: number; className?: string }) {
+  const name = `avatar-${discipline}`;
+  return (
+    <span
+      className={cn('relative block shrink-0 overflow-hidden rounded-full bg-background ring-2 ring-accent/70 ring-offset-2 ring-offset-background', className)}
+      style={{ width: size, height: size }}
+    >
+      {hasArt(name) ? (
+        <img src={`/art/${name}.webp`} alt="" className="size-full scale-[1.12] object-cover" draggable={false} />
+      ) : (
+        <span className="flex size-full items-center justify-center">
+          <Avatar discipline={discipline} iconClassName="size-1/2 text-accent" />
+        </span>
+      )}
+    </span>
+  );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Crown, Loader2, LogOut, Pencil, ShoppingBag, Trophy } from 'lucide-react';
+import { BookOpen, Crown, Loader2, LogOut, Pencil, Settings, ShoppingBag, Trophy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useProgressionStore } from '@/stores/progressionStore';
@@ -14,13 +14,13 @@ import { schedulePush } from '@/lib/gameSync';
 import { haptic } from '@/lib/native';
 import { DeleteAccount } from '@/features/DeleteAccount';
 import { HealthSetting } from '@/features/health';
-import { Passport } from '@/game/Passport';
+import { Passport, usePassportCount } from '@/game/Passport';
 import { isUnlocked } from '@/game/unlocks';
-import { Avatar } from '@/game/art';
+import { CrestCircle } from '@/game/art';
 import { floatReward } from '@/game/rewards';
 import { isMuted, play, setMuted } from '@/game/sfx';
 import { toast } from '@/components/toast';
-import { Button, Input, Switch, cn } from '@/components/ui';
+import { Button, Dialog, Input, Switch, cn } from '@/components/ui';
 
 const RARITY_RING: Record<string, string> = {
   legendary: 'border-warning shadow-[0_0_16px_hsl(var(--warning)/0.6)]',
@@ -38,7 +38,7 @@ function Tile({ value, label }: { value: string; label: string }) {
   );
 }
 
-/** You: who you are, what you've done, what you've collected, and the settings at the bottom. */
+/** You: who you are, what you've done, one collection at a time; settings behind the gear. */
 export default function Profile() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +53,10 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [soundOn, setSoundOn] = useState(() => !isMuted());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const stamps = usePassportCount();
+  const passportOpen = isUnlocked('map', progression.level);
+  const [shelf, setShelf] = useState<'passport' | 'badges'>(passportOpen ? 'passport' : 'badges');
 
   useEffect(() => {
     if (!user) return;
@@ -117,9 +121,9 @@ export default function Profile() {
     <div className="mx-auto max-w-md space-y-6 px-4 pb-6 pt-4">
       {/* Who */}
       <div className="flex items-center gap-4">
-        <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-card ring-2 ring-accent/70 shadow-[0_10px_30px_-14px_rgb(0_0_0/0.9)]">
-          <Avatar discipline={discipline ?? 'runner'} size={76} className="-mt-3" iconClassName="size-10 text-accent" />
-          <span className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-primary font-heading text-lg font-bold text-primary-foreground ring-4 ring-background">
+        <div className="relative shrink-0">
+          <CrestCircle discipline={discipline ?? 'runner'} size={76} />
+          <span className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-accent font-heading text-lg font-bold text-background ring-4 ring-background">
             {progression.level}
           </span>
         </div>
@@ -137,9 +141,20 @@ export default function Profile() {
               <Pencil className="size-4 shrink-0 text-muted-foreground" />
             </button>
           )}
-          <p className="font-heading text-lg text-primary">{progression.levelName}</p>
+          <p className="font-heading text-lg text-accent">{progression.levelName}</p>
           {since && <p className="text-xs text-muted-foreground">On the crew since {since}</p>}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            haptic('select');
+            setSettingsOpen(true);
+          }}
+          className="press flex size-11 shrink-0 items-center justify-center self-start rounded-full border border-border text-muted-foreground hover:text-foreground"
+          aria-label="Settings"
+        >
+          <Settings className="size-5" />
+        </button>
       </div>
 
       <div className="grid grid-cols-4 gap-2">
@@ -164,74 +179,102 @@ export default function Profile() {
         ))}
       </nav>
 
-      {isUnlocked('map', progression.level) && <Passport />}
-
+      {/* One collection at a time: the passport (once the map is open) or the badges. */}
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-heading text-2xl font-bold">Badges</h2>
-          <span className="font-heading text-lg font-bold text-primary">
-            {earned} / {achievements.length}
-          </span>
-        </div>
-        <div className="grid grid-cols-4 gap-3">
-          {achievements.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => {
-                play('tick');
-                floatReward(`${a.name}: ${a.description}`, a.isEarned ? 'xp' : 'streak');
-              }}
-              className="flex flex-col items-center gap-1"
-              aria-label={`${a.name}. ${a.description}. ${a.isEarned ? 'Earned' : 'Not yet'}`}
-            >
-              <span
-                className={cn(
-                  'flex size-16 items-center justify-center rounded-full border-2 bg-card text-3xl',
-                  a.isEarned ? RARITY_RING[a.rarity] : 'border-border opacity-30 grayscale',
-                )}
+        {passportOpen && (
+          <div className="grid grid-cols-2 rounded-full border border-border p-1" role="tablist" aria-label="Collections">
+            {(['passport', 'badges'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="tab"
+                aria-selected={shelf === k}
+                onClick={() => {
+                  haptic('select');
+                  play('tick');
+                  setShelf(k);
+                }}
+                className={cn('rounded-full py-2 font-heading text-lg font-bold transition-colors', shelf === k ? 'bg-accent text-background' : 'text-muted-foreground')}
               >
-                {a.icon}
-              </span>
-              <span className={cn('line-clamp-2 text-center text-[11px] font-semibold leading-tight', !a.isEarned && 'text-muted-foreground')}>{a.name}</span>
-            </button>
-          ))}
-        </div>
+                {k === 'passport' ? `Passport ${stamps.count}/${stamps.total}` : `Badges ${earned}/${achievements.length}`}
+              </button>
+            ))}
+          </div>
+        )}
+        {shelf === 'passport' && passportOpen ? (
+          <Passport />
+        ) : (
+          <>
+            {!passportOpen && (
+              <div className="flex items-baseline justify-between">
+                <h2 className="font-heading text-2xl font-bold">Badges</h2>
+                <span className="font-heading text-lg font-bold text-accent">
+                  {earned} / {achievements.length}
+                </span>
+              </div>
+            )}
+          <div className="grid grid-cols-5 gap-x-2 gap-y-3">
+            {achievements.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  play('tick');
+                  floatReward(`${a.name}: ${a.description}`, a.isEarned ? 'xp' : 'streak');
+                }}
+                className="flex flex-col items-center gap-1"
+                aria-label={`${a.name}. ${a.description}. ${a.isEarned ? 'Earned' : 'Not yet'}`}
+              >
+                <span
+                  className={cn(
+                    'flex size-14 items-center justify-center rounded-full border-2 bg-card text-2xl',
+                    a.isEarned ? RARITY_RING[a.rarity] : 'border-border opacity-30 grayscale',
+                  )}
+                >
+                  {a.icon}
+                </span>
+                <span className={cn('line-clamp-2 text-center text-[10px] font-semibold leading-tight', !a.isEarned && 'text-muted-foreground')}>{a.name}</span>
+              </button>
+            ))}
+          </div>
+          </>
+        )}
       </section>
 
-      <section className="space-y-5 rounded-3xl border border-border bg-card/50 p-5">
-        <h2 className="font-heading text-2xl font-bold">Settings</h2>
-        {user && <HealthSetting userId={user.id} />}
-        <div className="flex items-center justify-between">
-          <p className="font-medium">Sound effects</p>
-          <Switch
-            checked={soundOn}
-            label="Sound effects"
-            onChange={(c) => {
-              setMuted(!c);
-              setSoundOn(c);
-              if (c) play('chime');
-            }}
-          />
+      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
+        <div className="space-y-5">
+          {user && <HealthSetting userId={user.id} />}
+          <div className="flex items-center justify-between">
+            <p className="font-medium">Sound effects</p>
+            <Switch
+              checked={soundOn}
+              label="Sound effects"
+              onChange={(c) => {
+                setMuted(!c);
+                setSoundOn(c);
+                if (c) play('chime');
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="font-medium">Miles instead of km</p>
+            <Switch
+              checked={imperial}
+              label="Imperial units"
+              onChange={(c) => {
+                setUnits(c ? 'imperial' : 'metric');
+                schedulePush();
+              }}
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+            <Button variant="outline" onClick={() => void signOut().then(() => navigate('/login'))}>
+              <LogOut /> Sign out
+            </Button>
+            <DeleteAccount />
+          </div>
         </div>
-        <div className="flex items-center justify-between">
-          <p className="font-medium">Miles instead of km</p>
-          <Switch
-            checked={imperial}
-            label="Imperial units"
-            onChange={(c) => {
-              setUnits(c ? 'imperial' : 'metric');
-              schedulePush();
-            }}
-          />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
-          <Button variant="outline" onClick={() => void signOut().then(() => navigate('/login'))}>
-            <LogOut /> Sign out
-          </Button>
-          <DeleteAccount />
-        </div>
-      </section>
+      </Dialog>
     </div>
   );
 }
