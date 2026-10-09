@@ -9,8 +9,9 @@
  *
  * In a Claude Code cloud session with Higgsfield connected, HF_KEY isn't needed: the network proxy
  * adds the credentials. Node's fetch skips the proxy unless told, so run it as:
- *   NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt \
- *     HF_MODEL=higgsfield-ai/soul/standard node scripts/art/generate.mjs --force …
+ *   NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt node scripts/art/generate.mjs --force …
+ *
+ * Model: "model" in assets.json (Recraft 4.1) unless an asset names its own or HF_MODEL is set.
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -45,12 +46,15 @@ const MODELS = [
   { id: 'bytedance/seedream/v4/text-to-image', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect, resolution: '2K' }) },
   { id: 'higgsfield-ai/soul/standard', body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) },
 ];
-// An asset can name the model that suits it ("model" in assets.json), e.g. Recraft for chests.
-let chosen = process.env.HF_MODEL ? { id: process.env.HF_MODEL, body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) } : null;
+// The default is "model" in assets.json (Recraft: the best fit for the flat poster look). An asset
+// can name its own, and HF_MODEL overrides everything. The MODELS list above is only the fallback
+// when neither is set.
+const generic = (id) => ({ id, body: (prompt, aspect) => ({ prompt, aspect_ratio: aspect }) });
+let chosen = process.env.HF_MODEL ? generic(process.env.HF_MODEL) : spec.model ? generic(spec.model) : null;
 
 async function submitJob(asset) {
   const prompt = `${asset.prompt}. ${spec.style}`;
-  const own = asset.model && { id: asset.model, body: (p, aspect) => ({ prompt: p, aspect_ratio: aspect }) };
+  const own = asset.model && generic(asset.model);
   const candidates = own ? [own] : chosen ? [chosen] : MODELS;
   for (const model of candidates) {
     const res = await fetch(`${API}/${model.id}`, { method: 'POST', headers, body: JSON.stringify(model.body(prompt, asset.aspect)) });
