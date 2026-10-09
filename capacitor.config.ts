@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.atw80ways.app',
   appName: '80 Ways',
   webDir: 'dist',
-  backgroundColor: '#05050b',
+  backgroundColor: '#0E1526',
   ios: {
     contentInset: 'never',
     scheme: '80 Ways',
@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
-      backgroundColor: '#05050b',
+      backgroundColor: '#0E1526',
       showSpinner: false,
     },
     StatusBar: {
