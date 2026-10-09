@@ -73,58 +73,72 @@ export function Intro({ onDone }: { onDone: () => void }) {
   };
 
   const cue = INTRO_SHOTS[shot];
+  const ended = phase === 'end';
 
+  // One stage for the whole sequence: the frame sits in a fixed place and never moves, the line
+  // under it has a fixed-height slot, and the mark and the closing question both appear inside
+  // the frame, so the eye stays in one spot from the first fade to the last.
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background" role="dialog" aria-label="Opening titles">
-      {phase === 'mark' && <StudioMark className="animate-mark text-4xl" />}
-
-      {phase === 'film' && (
-        <div className="flex w-full flex-col items-center">
-          <div className="relative aspect-video w-full overflow-hidden bg-black">
-            {stills ? (
+    <div className="fixed inset-0 z-50 bg-background" role="dialog" aria-label="Opening titles">
+      <div className="mx-auto flex h-full w-full max-w-md flex-col pt-[max(18dvh,calc(env(safe-area-inset-top)+4rem))]">
+        <div className="relative aspect-video w-full overflow-hidden bg-black">
+          {phase !== 'mark' &&
+            (stills ? (
               INTRO_SHOTS.map((s, i) => (
                 <img
                   key={s.still}
                   src={`/intro/${s.still}.webp`}
                   alt=""
-                  className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', i === shot ? 'opacity-100' : 'opacity-0')}
+                  className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', i === shot && !ended ? 'opacity-100' : 'opacity-0')}
                 />
               ))
             ) : (
               <video
                 ref={video}
                 src={VIDEO}
-                poster={`/intro/${INTRO_SHOTS[0].still}.webp`}
                 muted
                 playsInline
                 preload="auto"
                 onTimeUpdate={onTime}
                 onEnded={() => setPhase('end')}
                 onError={() => setStills(true)}
-                className="absolute inset-0 size-full object-cover"
+                className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', ended && 'opacity-0')}
               />
-            )}
-          </div>
-          {/* The line fades up with its shot and out before the next; the same clock as the film. */}
-          <div key={shot} className="animate-caption mt-8 px-8 text-center" style={{ animationDuration: `${SHOT}s` }} aria-live="polite">
-            <p className="kicker text-accent">{cue.kicker}</p>
-            <p className="mt-3 font-heading text-4xl font-bold leading-tight">{cue.line}</p>
-          </div>
-        </div>
-      )}
+            ))}
 
-      {phase === 'end' && (
-        <div className="animate-fade-up px-8 text-center">
-          <p className="kicker text-accent">Your turn</p>
-          <p className="mt-3 font-heading text-6xl font-bold leading-none text-accent">What moves you?</p>
-        </div>
-      )}
+          {phase === 'mark' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background">
+              <StudioMark className="animate-mark text-4xl" />
+            </div>
+          )}
 
-      {phase === 'end' ? (
-        <button type="button" onClick={finish} className="btn-game btn-primary animate-fade-up absolute bottom-[max(2.5rem,env(safe-area-inset-bottom))] px-8">
-          Begin
-        </button>
-      ) : (
+          {ended && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background px-6 text-center">
+              <p className="kicker animate-fade-up text-accent">Your turn</p>
+              <p className="animate-fade-up mt-3 font-heading text-5xl font-bold leading-none text-accent" style={{ animationDelay: '0.15s' }}>
+                What moves you?
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Fixed-height slot: a two- or three-line caption never pushes the frame around. */}
+        <div className="flex h-48 flex-col items-center px-8 pt-8 text-center">
+          {phase === 'film' && (
+            <div key={shot} className="animate-caption" style={{ animationDuration: `${SHOT}s` }} aria-live="polite">
+              <p className="kicker text-accent">{cue.kicker}</p>
+              <p className="mt-3 font-heading text-[2rem] font-bold leading-tight">{cue.line}</p>
+            </div>
+          )}
+          {ended && (
+            <button type="button" onClick={finish} className="btn-game btn-primary animate-fade-up px-10" style={{ animationDelay: '0.4s' }}>
+              Begin
+            </button>
+          )}
+        </div>
+      </div>
+
+      {!ended && (
         <button type="button" onClick={finish} className="kicker absolute right-5 top-[max(1.25rem,env(safe-area-inset-top))] text-muted-foreground">
           Skip
         </button>

@@ -60,7 +60,8 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
   if (!items.length && !busy) return null;
 
   const collectOne = async (item: InboxItem, pitch: number, boosters: { amplifier?: boolean; multiCharge?: boolean } = {}): Promise<LogActivityResult | null> => {
-    const el = refs.current.get(item.id);
+    // Workouts folded into the "+N more" tile fly from that tile.
+    const el = refs.current.get(item.id) ?? refs.current.get('more');
     if (el) void flyOrbs(centreOf(el), item.targetType, 6 + Math.min(10, Math.round(previewEnergy(item) * 6)));
     play('collect', pitch);
     haptic('tap');
@@ -97,7 +98,11 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
   };
 
   const total = items.reduce((t, i) => t + previewEnergy(i), 0);
-  const shown = items.slice(0, big ? 6 : 3);
+  // Never a scrolling list: at most one row of tiles on Home, two in onboarding, and the rest
+  // counted in the last tile, so Collect is always on screen however many workouts arrived.
+  const cap = big ? 6 : 3;
+  const overflow = items.length > cap ? items.length - (cap - 1) : 0;
+  const shown = overflow ? items.slice(0, cap - 1) : items;
 
   return (
     <div className="space-y-3">
@@ -108,7 +113,7 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
         <p className="font-heading text-lg font-bold text-success">+{total.toFixed(1)} kWh</p>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="grid grid-cols-3 gap-2">
         {shown.map((item) => {
           const theme = ENERGY_THEME[item.targetType];
           return (
@@ -119,25 +124,34 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
                 else refs.current.delete(item.id);
               }}
               className={cn(
-                'panel flex items-center gap-3 p-3 transition-all duration-300',
+                'panel flex flex-col items-center gap-1 px-2 py-2.5 text-center transition-all duration-300',
                 theme.border,
-                gone.has(item.id) && 'scale-95 opacity-0',
+                gone.has(item.id) && 'scale-90 opacity-0',
               )}
             >
-              <div className={cn('flex size-12 shrink-0 items-center justify-center rounded-xl', theme.bgSoft)}>
-                <Orb type={item.targetType} size={30} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-heading text-lg font-bold leading-tight">{item.activityType}</p>
-                <p className="text-sm text-muted-foreground">
-                  {item.durationMin} min{item.distanceKm ? ` · ${item.distanceKm.toFixed(1)} km` : ''} · {day(item.performedAt)}
-                </p>
-              </div>
-              <span className={cn('font-heading text-lg font-bold', theme.text)}>+{previewEnergy(item).toFixed(1)}</span>
+              <Orb type={item.targetType} size={34} />
+              <span className={cn('font-heading text-lg font-bold leading-none', theme.text)}>+{previewEnergy(item).toFixed(1)}</span>
+              <span className="w-full truncate text-xs text-muted-foreground" title={`${item.activityType} · ${day(item.performedAt)}`}>
+                {item.activityType}
+              </span>
             </li>
           );
         })}
-        {items.length > shown.length && <li className="text-center text-sm text-muted-foreground">and {items.length - shown.length} more</li>}
+        {overflow > 0 && (
+          <li
+            ref={(el) => {
+              if (el) refs.current.set('more', el);
+              else refs.current.delete('more');
+            }}
+            className={cn(
+              'panel flex flex-col items-center justify-center px-2 py-2.5 text-center transition-all duration-300',
+              busy && 'scale-90 opacity-0',
+            )}
+          >
+            <span className="font-heading text-2xl font-bold leading-none">+{overflow}</span>
+            <span className="text-xs text-muted-foreground">more</span>
+          </li>
+        )}
       </ul>
 
       {(amplifiers > 0 || multiCharges > 0) && !busy && (
