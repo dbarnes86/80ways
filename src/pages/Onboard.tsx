@@ -20,6 +20,7 @@ import { STARTER_EVENT } from '@/data/gameConstants';
 import { liftOffAdvice } from '@/game/coach';
 import { CollectPanel } from '@/game/CollectPanel';
 import { Hud } from '@/game/Hud';
+import { Intro } from '@/game/Intro';
 import { Avatar, Chest, Ship, artSrc, hasArt } from '@/game/art';
 import { claimQuest, useQuests } from '@/game/questActions';
 import { useRewardStore } from '@/game/rewards';
@@ -30,13 +31,14 @@ import { play } from '@/game/sfx';
  * the end of it (a stamp slams, a crest is picked, a ticket prints, a trunk opens), and a boarding
  * pass at the top punches a hole every time. The account comes after you have something to save.
  */
-type Stage = 'wager' | 'crest' | 'name' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
+type Stage = 'intro' | 'wager' | 'crest' | 'name' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
 
-const PRE_AUTH: Stage[] = ['wager', 'crest', 'name', 'save', 'email'];
+const PRE_AUTH: Stage[] = ['intro', 'wager', 'crest', 'name', 'save', 'email'];
 const BEATS = ['Wager', 'Crest', 'Name', 'Ticket', 'Fuel', 'Kit'];
-const DONE: Record<Stage, number> = { wager: 0, crest: 1, name: 2, save: 3, email: 3, inbox: 3, fuel: 4, trunk: 5, fix: 6 };
+const DONE: Record<Stage, number> = { intro: 0, wager: 0, crest: 1, name: 2, save: 3, email: 3, inbox: 3, fuel: 4, trunk: 5, fix: 6 };
 
 const ONBOARDED = 'atw80-onboarded';
+const INTRO_SEEN = 'atw80-intro-seen';
 const PENDING_NAME = 'atw80-pending-name';
 const store = {
   get: (k: string) => {
@@ -72,7 +74,7 @@ export default function Onboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [stage, setStage] = useState<Stage>('wager');
+  const [stage, setStage] = useState<Stage>(() => (store.get(INTRO_SEEN) ? 'wager' : 'intro'));
   const discipline = useUserStore((s) => s.discipline) ?? 'runner';
 
   const finish = () => {
@@ -110,9 +112,17 @@ export default function Onboard() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background">
       <header className="mx-auto w-full max-w-md px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))]">
-        {signedIn ? <Hud /> : stage !== 'wager' && <BoardingPass done={DONE[stage]} />}
+        {signedIn ? <Hud /> : stage !== 'intro' && stage !== 'wager' && <BoardingPass done={DONE[stage]} />}
       </header>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        {stage === 'intro' && (
+          <Intro
+            onDone={() => {
+              store.set(INTRO_SEEN, '1');
+              setStage('wager');
+            }}
+          />
+        )}
         {stage === 'wager' && <Wager onDone={() => setStage('crest')} />}
         {stage === 'crest' && <PickCrest onDone={() => setStage('name')} />}
         {stage === 'name' && <NameBeat discipline={discipline} onDone={() => setStage('save')} />}
