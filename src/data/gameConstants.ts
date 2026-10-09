@@ -58,6 +58,13 @@ export const XP_PER_ACTIVITY = {
   vigorous: 50,
 } as const;
 
+/**
+ * Workouts from before the player joined (the first Health import's backlog) pay their energy in
+ * full but share this much XP between them: enough for level 2. A keen exerciser's week would
+ * otherwise jump them to level 5 and unlock half the game in the first sitting.
+ */
+export const HISTORY_XP_CAP = 50;
+
 export const XP_PER_ENERGY_DEPLOYED = 15; // per kWh deployed
 export const XP_PER_LEG_COMPLETED = 200;
 export const XP_PER_RAID_CONTRIBUTION = 100;

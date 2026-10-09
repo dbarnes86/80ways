@@ -38,6 +38,8 @@ export interface UserGameData {
   discipline: Discipline | null;
   /** A booster set to fire on the next workout collected, so a reward can be used on the spot. */
   armedBooster: BoosterId | null;
+  /** XP paid so far for workouts from before the player joined; capped at HISTORY_XP_CAP. */
+  historyXp: number;
 }
 
 export type Discipline = 'runner' | 'rider' | 'swimmer' | 'lifter';
@@ -58,6 +60,7 @@ interface UserStore extends UserGameData {
   logDeployment: (dayKey: string, kwh: number) => void;
   setDiscipline: (d: Discipline) => void;
   armBooster: (id: BoosterId | null) => void;
+  addHistoryXp: (amount: number) => void;
   hydrate: (data: Partial<UserGameData>) => void;
   reset: () => void;
 }
@@ -74,6 +77,7 @@ const initialData = (): UserGameData => ({
   deployLog: {},
   discipline: null,
   armedBooster: null,
+  historyXp: 0,
 });
 
 export const useUserStore = create<UserStore>()(
@@ -125,6 +129,7 @@ export const useUserStore = create<UserStore>()(
 
       setDiscipline: (discipline) => set({ discipline }),
       armBooster: (armedBooster) => set({ armedBooster }),
+      addHistoryXp: (amount) => set((s) => ({ historyXp: s.historyXp + amount })),
 
       hydrate: (data) => set((s) => ({
         inventory: { ...s.inventory, ...data.inventory },
@@ -139,6 +144,8 @@ export const useUserStore = create<UserStore>()(
         deployLog: { ...s.deployLog, ...data.deployLog },
         discipline: data.discipline ?? s.discipline,
         armedBooster: data.armedBooster === undefined ? s.armedBooster : data.armedBooster,
+        // The higher of the two, so the cap holds whichever device collected the backlog.
+        historyXp: Math.max(s.historyXp, data.historyXp ?? 0),
       })),
 
       reset: () => set(initialData()),

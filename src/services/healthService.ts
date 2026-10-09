@@ -123,6 +123,8 @@ async function runSync(userId: string): Promise<HealthSyncResult> {
       distanceKm: plan.distanceKm,
       performedAt: plan.performedAt.toISOString(),
       sourceName: plan.sourceName,
+      // Everything in the very first import was done before the player joined.
+      history: !state.lastSync,
     });
   }
   useInboxStore.getState().add(items);

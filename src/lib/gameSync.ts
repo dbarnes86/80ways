@@ -131,6 +131,7 @@ const buildGameState = (): GameState => {
       deployLog: u.deployLog,
       discipline: u.discipline,
       armedBooster: u.armedBooster,
+      historyXp: u.historyXp,
     },
   };
 };

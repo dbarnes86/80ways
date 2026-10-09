@@ -106,12 +106,22 @@ export function CollectPanel({ onCollected, big = false }: { onCollected?: () =>
 
   return (
     <div className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <p className="font-heading text-2xl font-bold">
-          {items.length === 1 ? 'A workout arrived' : `${items.length} workouts arrived`}
-        </p>
-        <p className="font-heading text-lg font-bold text-success">+{total.toFixed(1)} kWh</p>
-      </div>
+      {big ? (
+        // Onboarding sits under a centred title, so the summary is centred too: the total leads.
+        <div className="text-center">
+          <p className="font-heading text-5xl font-bold leading-none text-success">+{total.toFixed(1)} kWh</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            from {items.length === 1 ? 'one workout' : `${items.length} workouts`}
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-baseline justify-between">
+          <p className="font-heading text-2xl font-bold">
+            {items.length === 1 ? 'A workout arrived' : `${items.length} workouts arrived`}
+          </p>
+          <p className="font-heading text-lg font-bold text-success">+{total.toFixed(1)} kWh</p>
+        </div>
+      )}
 
       <ul className="grid grid-cols-3 gap-2">
         {shown.map((item) => {
