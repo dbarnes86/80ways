@@ -2,7 +2,7 @@
 
 Six shots, each a poster-style still animated by Higgsfield DoP, stitched with crossfades.
 
-1. Stills: `public/intro/*.png`, generated with `recraft/v4.1/text-to-image` at 16:9 using the
+1. Stills: `public/intro/*.webp` (the PNG originals are only needed while animating), generated with `recraft/v4.1/text-to-image` at 16:9 using the
    style string in `scripts/art/assets.json` (prompts are in the git history of this folder).
 2. Clips: `higgsfield-ai/dop/standard` with `{ prompt, image_url }`, where `image_url` is a public
    URL of the still (the raw GitHub URL of the committed file works). About four minutes a clip.

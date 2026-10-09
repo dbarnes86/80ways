@@ -15,7 +15,7 @@ OUT=${OUT:-public/intro/intro.mp4}
 inputs=(); filter=""; n=0
 for f in "$@"; do
   inputs+=(-i "$f")
-  filter+="[$n:v]trim=0:$SHOT,setpts=PTS-STARTPTS,scale=1280:720:flags=lanczos,fps=24,format=yuv420p[v$n];"
+  filter+="[$n:v]trim=0:$SHOT,setpts=PTS-STARTPTS,scale=960:540:flags=lanczos,fps=24,format=yuv420p[v$n];"
   n=$((n+1))
 done
 prev="v0"
@@ -26,5 +26,5 @@ for ((i=1; i<n; i++)); do
   prev=$out
 done
 ffmpeg -y -loglevel error "${inputs[@]}" -filter_complex "${filter%;}" -map "[out]" \
-  -c:v libx264 -preset slow -crf 23 -profile:v high -level 4.0 -pix_fmt yuv420p -movflags +faststart -an "$OUT"
+  -c:v libx264 -preset slow -crf 28 -profile:v high -level 4.0 -pix_fmt yuv420p -movflags +faststart -an "$OUT"
 echo "wrote $OUT ($(du -h "$OUT" | cut -f1))"

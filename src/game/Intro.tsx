@@ -89,7 +89,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
               INTRO_SHOTS.map((s, i) => (
                 <img
                   key={s.still}
-                  src={`/intro/${s.still}.png`}
+                  src={`/intro/${s.still}.webp`}
                   alt=""
                   className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', i === shot ? 'opacity-100' : 'opacity-0')}
                 />
@@ -98,7 +98,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
               <video
                 ref={video}
                 src={VIDEO}
-                poster={`/intro/${INTRO_SHOTS[0].still}.png`}
+                poster={`/intro/${INTRO_SHOTS[0].still}.webp`}
                 muted
                 playsInline
                 preload="auto"
