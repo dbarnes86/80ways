@@ -89,3 +89,18 @@ export function useIsNew(f: Feature): [boolean, () => void] {
   };
   return [unlocked && !seen.has(f), markSeen];
 }
+
+/**
+ * Of these tabs, the first that's unlocked and not yet opened: only it wears NEW, so a burst of
+ * unlocks shows one badge at a time instead of a row of them.
+ */
+export function useFirstNew(features: Feature[]): Feature | null {
+  const level = useProgressionStore((st) => st.level);
+  const [seen, setSeen] = useState(readSeen);
+  useEffect(() => {
+    const sync = () => setSeen(readSeen());
+    window.addEventListener('atw80-unlock-seen', sync);
+    return () => window.removeEventListener('atw80-unlock-seen', sync);
+  }, []);
+  return features.find((f) => isUnlocked(f, level) && !seen.has(f)) ?? null;
+}

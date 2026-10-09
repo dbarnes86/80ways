@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useProgressionStore } from '@/stores/progressionStore';
-import { isUnlocked, useIsNew, type Feature } from '@/game/unlocks';
+import { isUnlocked, useFirstNew, useIsNew, type Feature } from '@/game/unlocks';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Home, LogOut, Map, ScrollText, Swords, User } from 'lucide-react';
 import { Button, cn } from '@/components/ui';
@@ -22,13 +22,13 @@ const TABS: { to: string; icon: typeof Home; label: string; feature?: Feature }[
   { to: '/profile', icon: User, label: 'Me' },
 ];
 
-/** A tab that's just been unlocked wears NEW until it's opened. */
-function NewBadge({ feature, active }: { feature: Feature; active: boolean }) {
+/** A tab that's just been unlocked wears NEW until it's opened; only one tab at a time shows it. */
+function NewBadge({ feature, active, first }: { feature: Feature; active: boolean; first: Feature | null }) {
   const [isNew, markSeen] = useIsNew(feature);
   useEffect(() => {
     if (active && isNew) markSeen();
   }, [active, isNew, markSeen]);
-  if (!isNew) return null;
+  if (!isNew || feature !== first) return null;
   return <span className="absolute -right-4 -top-2 animate-bump rounded-full bg-warning px-1.5 text-[10px] font-bold uppercase text-background ring-2 ring-card">New</span>;
 }
 
@@ -61,6 +61,7 @@ export const Navbar = () => {
   useQuestReadyPing(claimable);
   const level = useProgressionStore((s) => s.level);
   const tabs = TABS.filter((t) => !t.feature || isUnlocked(t.feature, level));
+  const firstNew = useFirstNew(TABS.flatMap((t) => (t.feature ? [t.feature] : [])));
 
   const badge = (to: string) => (to === '/quests' ? claimable : to === '/dashboard' ? inbox : 0);
 
@@ -138,7 +139,7 @@ export const Navbar = () => {
                               {count}
                             </span>
                           )}
-                          {tab.feature && <NewBadge feature={tab.feature} active={isActive} />}
+                          {tab.feature && <NewBadge feature={tab.feature} active={isActive} first={firstNew} />}
                           {tab.to === '/raids' && raidLive && <span className="absolute -right-1 -top-0.5 size-2.5 animate-pulse-soft rounded-full bg-destructive ring-2 ring-card" />}
                         </span>
                         {tab.label}

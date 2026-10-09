@@ -4,31 +4,28 @@ import { useEnergyStore } from '@/stores/energyStore';
 import { cn } from '@/components/ui';
 import { Orb, orbColor } from './art';
 
-/** The four reserves as glowing tanks. Glanceable: colour, fill, number. */
+/** The four reserves in one slim row: colour, number, a fill bar. Glanceable, never a scroll. */
 export function ReserveTanks() {
   const energy = useEnergyStore();
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="panel grid grid-cols-4 divide-x divide-border/60 px-1 py-3">
       {ENERGY_TYPES.map((type) => {
         const r = energy[type];
         const pct = r.max > 0 ? Math.min(1, r.current / r.max) : 0;
         const color = orbColor(type);
         return (
-          <div key={type} className={cn('panel flex flex-col items-center gap-1.5 !rounded-2xl p-2', ENERGY_THEME[type].border)}>
-            <div className="relative h-20 w-9 overflow-hidden rounded-full border-2 bg-background/80" style={{ borderColor: `${color}66` }}>
+          <div key={type} className="flex flex-col items-center gap-1.5 px-2">
+            <div className="flex items-center gap-1.5">
+              <Orb type={type} size={16} />
+              <span className={cn('font-heading text-xl font-bold leading-none', ENERGY_THEME[type].text)}>{r.current.toFixed(1)}</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="absolute inset-x-0 bottom-0 rounded-b-full"
-                style={{
-                  height: `${Math.max(pct > 0 ? 6 : 0, pct * 100)}%`,
-                  background: `linear-gradient(to top, ${color}, ${color}88)`,
-                  boxShadow: `0 0 14px ${color}`,
-                  transition: 'height 1s cubic-bezier(.2,.8,.2,1)',
-                }}
+                className="h-full rounded-full"
+                style={{ width: `${Math.max(pct > 0 ? 6 : 0, pct * 100)}%`, background: color, transition: 'width 1s cubic-bezier(.2,.8,.2,1)' }}
               />
             </div>
-            <Orb type={type} size={20} />
-            <p className={cn('font-heading text-xl font-bold leading-none', ENERGY_THEME[type].text)}>{r.current.toFixed(1)}</p>
-            <p className="text-xs font-medium text-muted-foreground">{ENERGY_THEME[type].label}</p>
+            <span className="text-[11px] font-medium text-muted-foreground">{ENERGY_THEME[type].label}</span>
           </div>
         );
       })}

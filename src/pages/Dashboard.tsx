@@ -11,6 +11,7 @@ import { ConnectHealthCard } from '@/features/health';
 import { ActivityLogger } from '@/components/ActivityLogger';
 import { EnergyDeployment } from '@/components/EnergyDeployment';
 import { toast } from '@/components/toast';
+import { cn } from '@/components/ui';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { BOOSTERS, ENERGY_TYPES, MAIN_JOURNEY_UNLOCK_LEVEL, STARTER_EVENT } from '@/data/gameConstants';
 import { getRaidSchedule, getRaidStatus } from '@/data/raids';
@@ -19,7 +20,6 @@ import { needsPass } from '@/lib/gameActions';
 import { isHealthConnected } from '@/services/healthService';
 import { CollectPanel } from '@/game/CollectPanel';
 import { NextMoveCard } from '@/game/NextMoveCard';
-import { QuestRow } from '@/game/QuestRow';
 import { ReserveTanks } from '@/game/ReserveTanks';
 import { VoyageScene } from '@/game/VoyageScene';
 import { nextMove } from '@/game/nextMove';
@@ -29,8 +29,9 @@ import { play } from '@/game/sfx';
 import { isUnlocked } from '@/game/unlocks';
 
 /**
- * Home, top to bottom: where you are (the voyage), the one thing to do next, today's quests,
- * your reserves. Anything waiting to collect takes the "next" slot.
+ * Home fits one screen, top to bottom: where you are (the voyage), the one thing to do next,
+ * one line for today's quests, one row of reserves. Anything waiting to collect takes the "next"
+ * slot.
  */
 const Dashboard = () => {
   const energy = useEnergyStore();
@@ -128,7 +129,7 @@ const Dashboard = () => {
   const dailyLeft = quests.daily.filter((q) => !q.claimed).length;
 
   return (
-    <div className="mx-auto max-w-md space-y-5 px-4 pb-6 pt-4">
+    <div className="mx-auto max-w-md space-y-4 px-4 pb-6 pt-4">
       <VoyageScene {...scene} />
 
       {inbox > 0 ? (
@@ -139,24 +140,20 @@ const Dashboard = () => {
 
       {user && <ConnectHealthCard userId={user.id} />}
 
+      {/* One line each: the detail lives on its own tab, Home stays on one screen. */}
       {isUnlocked('quests', progression.level) && (
-      <section className="space-y-2">
-        <Link to="/quests" className="flex items-baseline justify-between">
-          <h2 className="font-heading text-2xl font-bold">Today’s quests</h2>
-          <span className="text-sm text-primary">{dailyLeft ? `${dailyLeft} left` : 'All done'} ›</span>
+        <Link to="/quests" className="press panel flex items-center gap-3 px-4 py-3">
+          <span className="font-heading text-xl font-bold">Today’s quests</span>
+          <span className="flex flex-1 justify-end gap-1.5" aria-hidden>
+            {quests.daily.map((q) => (
+              <span key={q.id} className={cn('size-2.5 rounded-full', q.claimed ? 'bg-accent' : q.complete ? 'animate-pulse-soft bg-success' : 'bg-muted')} />
+            ))}
+          </span>
+          <span className="text-sm text-muted-foreground">{dailyLeft ? `${dailyLeft} left` : 'All done'} ›</span>
         </Link>
-        {quests.daily.map((q) => (
-          <QuestRow key={q.id} quest={q} compact />
-        ))}
-      </section>
       )}
 
-      {isUnlocked('reserves', progression.level) && (
-        <section className="space-y-2">
-          <h2 className="font-heading text-2xl font-bold">Reserves</h2>
-          <ReserveTanks />
-        </section>
-      )}
+      {isUnlocked('reserves', progression.level) && <ReserveTanks />}
 
       <ActivityLogger open={loggerOpen} onOpenChange={setLoggerOpen} />
       <EnergyDeployment open={deployOpen} onClose={() => setDeployOpen(false)} />
