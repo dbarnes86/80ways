@@ -48,7 +48,7 @@ export function VoyageScene({ from, to, progress, headline, sub, docked = false,
         <p className="font-heading text-3xl font-bold">{headline}</p>
       </div>
 
-      <div className="relative mt-2 h-36">
+      <div className="relative mt-2 h-28 [@media(min-height:740px)]:h-36">
         {/* the route */}
         <div className="absolute inset-x-6 bottom-12 h-1 rounded-full bg-muted/60" />
         <div

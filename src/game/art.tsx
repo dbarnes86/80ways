@@ -45,11 +45,12 @@ export function Coin({ size = 20, ...props }: ArtProps) {
   );
 }
 
+// The style guide's colours, matching ENERGY_THEME: Volt, Verdigris, Brass, Plum.
 const ORB: Record<EnergyType, [string, string]> = {
-  nautical: ['#00e5ff', '#b3f7ff'],
-  terrestrial: ['#9be22d', '#e1ffb3'],
-  transport: ['#ff8c3a', '#ffd2ad'],
-  strength: ['#ff00ff', '#ffb3ff'],
+  nautical: ['#3DE1F5', '#C2F6FC'],
+  terrestrial: ['#4FB58A', '#C4EBD9'],
+  transport: ['#D9A441', '#F2DDB0'],
+  strength: ['#9A6CC4', '#DCC8EE'],
 };
 
 export const orbColor = (type: EnergyType) => ORB[type][0];
