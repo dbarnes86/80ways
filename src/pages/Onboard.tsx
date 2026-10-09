@@ -21,21 +21,21 @@ import { liftOffAdvice } from '@/game/coach';
 import { CollectPanel } from '@/game/CollectPanel';
 import { Hud } from '@/game/Hud';
 import { Intro } from '@/game/Intro';
-import { Avatar, Chest, Ship, artSrc, hasArt } from '@/game/art';
+import { Avatar, Chest, artSrc, hasArt } from '@/game/art';
 import { claimQuest, useQuests } from '@/game/questActions';
 import { useRewardStore } from '@/game/rewards';
 import { play } from '@/game/sfx';
 
 /**
- * The first two minutes, as seven beats. Each one is a single idea with a payoff you can feel at
- * the end of it (a stamp slams, a crest is picked, a ticket prints, a trunk opens), and a boarding
+ * The first two minutes, as seven beats. The opening titles tell the story and land on the crest;
+ * each beat after is a single idea with a payoff you can feel at the end of it (a stamp slams, a crest is picked, a ticket prints, a trunk opens), and a boarding
  * pass at the top punches a hole every time. The account comes after you have something to save.
  */
-type Stage = 'intro' | 'wager' | 'crest' | 'name' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
+type Stage = 'intro' | 'crest' | 'name' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
 
-const PRE_AUTH: Stage[] = ['intro', 'wager', 'crest', 'name', 'save', 'email'];
+const PRE_AUTH: Stage[] = ['intro', 'crest', 'name', 'save', 'email'];
 const BEATS = ['Wager', 'Crest', 'Name', 'Ticket', 'Fuel', 'Kit'];
-const DONE: Record<Stage, number> = { intro: 0, wager: 0, crest: 1, name: 2, save: 3, email: 3, inbox: 3, fuel: 4, trunk: 5, fix: 6 };
+const DONE: Record<Stage, number> = { intro: 0, crest: 1, name: 2, save: 3, email: 3, inbox: 3, fuel: 4, trunk: 5, fix: 6 };
 
 const ONBOARDED = 'atw80-onboarded';
 const INTRO_SEEN = 'atw80-intro-seen';
@@ -74,7 +74,7 @@ export default function Onboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [stage, setStage] = useState<Stage>(() => (store.get(INTRO_SEEN) ? 'wager' : 'intro'));
+  const [stage, setStage] = useState<Stage>(() => (store.get(INTRO_SEEN) ? 'crest' : 'intro'));
   const discipline = useUserStore((s) => s.discipline) ?? 'runner';
 
   const finish = () => {
@@ -112,18 +112,17 @@ export default function Onboard() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background">
       <header className="mx-auto w-full max-w-md px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))]">
-        {signedIn ? <Hud /> : stage !== 'intro' && stage !== 'wager' && <BoardingPass done={DONE[stage]} />}
+        {signedIn ? <Hud /> : stage !== 'intro' && <BoardingPass done={DONE[stage]} />}
       </header>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
         {stage === 'intro' && (
           <Intro
             onDone={() => {
               store.set(INTRO_SEEN, '1');
-              setStage('wager');
+              setStage('crest');
             }}
           />
         )}
-        {stage === 'wager' && <Wager onDone={() => setStage('crest')} />}
         {stage === 'crest' && <PickCrest onDone={() => setStage('name')} />}
         {stage === 'name' && <NameBeat discipline={discipline} onDone={() => setStage('save')} />}
         {stage === 'save' && <SaveTicket discipline={discipline} onEmail={() => setStage('email')} />}
@@ -172,9 +171,8 @@ function BoardingPass({ done }: { done: number }) {
   );
 }
 
-/* ─── Beat 1: the wager ──────────────────────────────────────────────────────── */
+/* ─── Beat 1 is the opening titles (src/game/Intro.tsx); the story lands on the crest ──── */
 
-/** Types a line out like a telegram arriving. */
 function TypeLine({ text, speed = 26, className, onDone }: { text: string; speed?: number; className?: string; onDone?: () => void }) {
   const [n, setN] = useState(0);
   const finished = useRef(false);
@@ -201,80 +199,6 @@ function TypeLine({ text, speed = 26, className, onDone }: { text: string; speed
       {text.slice(0, n)}
       {n < text.length && <span className="animate-pulse-soft">▌</span>}
     </span>
-  );
-}
-
-function Wager({ onDone }: { onDone: () => void }) {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (i === 1) {
-      play('stamp');
-      haptic('heavy');
-    } else if (i === 2) {
-      play('whoosh');
-      haptic('tap');
-    }
-  }, [i]);
-  const next = () => {
-    if (i < 2) {
-      tap();
-      setI(i + 1);
-    } else onDone();
-  };
-
-  return (
-    <div className="flex flex-col items-center gap-8 text-center">
-      <button type="button" onClick={i < 2 ? next : undefined} className="flex min-h-[58dvh] w-full flex-col items-center justify-center gap-6" aria-label="Continue">
-        {i === 0 && (
-          <div key="fogg" className="animate-fade-up space-y-6">
-            <div className="relative mx-auto size-44">
-              <div className="absolute inset-0 rounded-full bg-accent/15 blur-2xl" />
-              {hasArt('fogg') ? (
-                <img src={artSrc('fogg', foggPortrait)} alt="Phileas Fogg" className="relative size-44 object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
-              ) : (
-                <img src={foggPortrait} alt="Phileas Fogg" className="relative size-44 rounded-full border-2 border-accent/50 object-cover" />
-              )}
-            </div>
-            <p className="kicker text-accent">London, 1872</p>
-            <h1 className="font-heading text-4xl font-bold leading-tight">
-              <TypeLine text="Phileas Fogg makes a wager." />
-            </h1>
-          </div>
-        )}
-        {i === 1 && (
-          <div key="stamp" className="space-y-6">
-            <div className="animate-stamp mx-auto inline-block rounded-xl border-4 border-accent px-6 py-3 text-accent">
-              <p className="font-heading text-6xl font-bold leading-none">£20,000</p>
-              <p className="kicker mt-2 text-accent">Reform Club · London</p>
-            </div>
-            <h1 className="animate-fade-up font-heading text-4xl font-bold leading-tight" style={{ animationDelay: '0.35s' }}>
-              Round the world in 80 days. Not one more.
-            </h1>
-          </div>
-        )}
-        {i === 2 && (
-          <div key="ship" className="space-y-6">
-            <Ship size={260} className="animate-sail-in mx-auto" />
-            <p className="kicker text-accent">You</p>
-            <h1 className="animate-fade-up font-heading text-4xl font-bold leading-tight" style={{ animationDelay: '0.4s' }}>
-              Every workout you do powers his journey.
-            </h1>
-          </div>
-        )}
-      </button>
-      <div className="flex gap-2">
-        {[0, 1, 2].map((k) => (
-          <span key={k} className={cn('h-2 rounded-full transition-all', k === i ? 'w-8 bg-accent' : 'w-2 bg-muted')} />
-        ))}
-      </div>
-      {i < 2 ? (
-        <p className="animate-pulse-soft text-sm text-muted-foreground">Tap to continue</p>
-      ) : (
-        <button type="button" onClick={next} className="btn-game btn-primary shine animate-fade-up w-full" style={{ animationDelay: '0.7s' }}>
-          I'm in
-        </button>
-      )}
-    </div>
   );
 }
 

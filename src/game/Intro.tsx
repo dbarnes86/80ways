@@ -4,22 +4,22 @@ import { cn } from '@/components/ui';
 import { haptic } from '@/lib/native';
 
 /**
- * The opening titles: the studio mark, then a short animated sequence in the poster style that
- * ends on the question the whole game asks. One tap skips it. The video is four shots stitched with
- * crossfades (scripts/intro/stitch.sh); the stills are the same frames and stand in when the video
- * can't play (reduced motion, a failed load, a browser that refuses autoplay).
+ * The opening titles: the studio mark, then the story in four shots, each fading in from black
+ * with its own line, and a final card that asks the question the crest picker then answers. One
+ * tap skips. The video is the shots stitched with fades (scripts/intro/stitch.sh); the stills are
+ * the same frames and stand in when the video can't play (reduced motion, a failed load, a browser
+ * that refuses autoplay).
  */
 export const INTRO_SHOTS = [
-  { still: 'london', caption: 'London, 1872.' },
-  { still: 'ship-profile', caption: 'A wager: round the world in eighty days.' },
-  { still: 'train-profile', caption: 'By any means at all.' },
-  { still: 'runner-profile', caption: 'What moves you?' },
+  { still: 'london', kicker: 'London, 1872', line: 'Phileas Fogg bets £20,000' },
+  { still: 'ship-profile', kicker: 'The wager', line: 'that he can circle the world in 80 days.' },
+  { still: 'train-profile', kicker: 'The journey', line: 'By ship. By rail. By any means at all.' },
+  { still: 'runner-road', kicker: 'You', line: 'Every workout you do moves him on.' },
 ] as const;
 
-/** Each shot is SHOT seconds long and overlaps the next by XFADE; the stitch script uses the same numbers. */
-export const SHOT = 3.6;
-export const XFADE = 0.4;
-export const shotStart = (i: number) => i * (SHOT - XFADE);
+/** Each shot is SHOT seconds long, fades included; the stitch script uses the same number. */
+export const SHOT = 4.0;
+export const shotStart = (i: number) => i * SHOT;
 
 const MARK_MS = 2400;
 const VIDEO = '/intro/intro.mp4';
@@ -61,28 +61,26 @@ export function Intro({ onDone }: { onDone: () => void }) {
       const t = setTimeout(() => setPhase('end'), SHOT * 1000);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setShot(shot + 1), (SHOT - XFADE) * 1000);
+    const t = setTimeout(() => setShot(shot + 1), SHOT * 1000);
     return () => clearTimeout(t);
   }, [phase, stills, shot]);
 
   const onTime = () => {
     const t = video.current?.currentTime ?? 0;
     let i = 0;
-    while (i + 1 < INTRO_SHOTS.length && t >= shotStart(i + 1) + XFADE / 2) i++;
+    while (i + 1 < INTRO_SHOTS.length && t >= shotStart(i + 1)) i++;
     if (i !== shot) setShot(i);
   };
 
-  const last = shot === INTRO_SHOTS.length - 1;
+  const cue = INTRO_SHOTS[shot];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background" role="dialog" aria-label="Opening titles">
-      {phase === 'mark' && (
-        <StudioMark className="animate-mark text-4xl" />
-      )}
+      {phase === 'mark' && <StudioMark className="animate-mark text-4xl" />}
 
-      {phase !== 'mark' && (
-        <div className="animate-fade-in flex w-full flex-col items-center">
-          <div className="relative aspect-video w-full overflow-hidden border-y border-accent/40 bg-black">
+      {phase === 'film' && (
+        <div className="flex w-full flex-col items-center">
+          <div className="relative aspect-video w-full overflow-hidden bg-black">
             {stills ? (
               INTRO_SHOTS.map((s, i) => (
                 <img
@@ -107,13 +105,18 @@ export function Intro({ onDone }: { onDone: () => void }) {
               />
             )}
           </div>
-          <p
-            key={shot}
-            className={cn('animate-fade-up mt-6 px-6 text-center font-heading font-bold leading-tight', last ? 'text-4xl text-accent' : 'text-2xl')}
-            aria-live="polite"
-          >
-            {INTRO_SHOTS[shot].caption}
-          </p>
+          {/* The line fades up with its shot and out before the next; the same clock as the film. */}
+          <div key={shot} className="animate-caption mt-8 px-8 text-center" style={{ animationDuration: `${SHOT}s` }} aria-live="polite">
+            <p className="kicker text-accent">{cue.kicker}</p>
+            <p className="mt-3 font-heading text-4xl font-bold leading-tight">{cue.line}</p>
+          </div>
+        </div>
+      )}
+
+      {phase === 'end' && (
+        <div className="animate-fade-up px-8 text-center">
+          <p className="kicker text-accent">Your turn</p>
+          <p className="mt-3 font-heading text-6xl font-bold leading-none text-accent">What moves you?</p>
         </div>
       )}
 
