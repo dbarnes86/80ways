@@ -1,180 +1,152 @@
 {
   "style": "screen-printed poster illustration with the craft of Olly Moss and Firewatch key art, in the lineage of Cassandre's 1935 Normandie poster and WPA national park posters, bold graphic composition, dramatic low camera angle, strong single light source, layered flat shapes with visible halftone and paper grain, limited palette of deep navy, cream, brass gold and a warm amber highlight, one small electric cyan glow, no outlines, no 3D render, no gradients, centred single subject on a pure black background, absolutely no text, letters, numbers or lettering anywhere",
+  "model": "recraft/v4.1/text-to-image",
+  "skip": [],
   "assets": [
     {
       "name": "ship",
       "aspect": "16:9",
-      "prompt": "a Victorian paddle steamer seen from low on the water at a heroic three-quarter angle, its cream hull towering, brass paddle wheel churning stylised navy waves, two funnels pouring great plumes of cream smoke that fill the top of the frame, warm amber light on the hull from a low sun, one boiler window glowing electric cyan",
-      "model": "ideogram/v4.0"
+      "prompt": "a Victorian paddle steamer seen from low on the water at a heroic three-quarter angle, its cream hull towering, brass paddle wheel churning stylised navy waves, two funnels pouring great plumes of cream smoke that fill the top of the frame, warm amber light on the hull from a low sun, one boiler window glowing electric cyan"
     },
     {
       "name": "coin",
       "aspect": "1:1",
-      "prompt": "a single thick brass sovereign coin seen face on at a slight tilt, an embossed steam-engine gear emblem, matte engraved finish, flat poster shading",
-      "model": "ideogram/v4.0"
+      "prompt": "a single thick brass sovereign coin seen face on at a slight tilt, an embossed steam-engine gear emblem, matte engraved finish, flat poster shading"
     },
     {
       "name": "chest-bronze",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a Victorian travelling trunk seen from the front at a slight angle, worn tan leather with brass bands, lid firmly shut and locked, the inside not visible, brass corner caps and a brass lock plate"
     },
     {
       "name": "chest-bronze-open",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a Victorian travelling trunk seen from the front at a slight angle, worn tan leather with brass bands, lid open, filled with brass coins and a warm amber glow, brass corner caps and a brass lock plate"
     },
     {
       "name": "chest-silver",
       "aspect": "1:1",
-      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, riveted tin and steel with navy leather straps, lid firmly shut and locked, the inside not visible, brass corner caps and a brass lock plate, evenly lit, no spotlight, no light beam, nothing behind it",
-      "model": "ideogram/v4.0"
+      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, riveted tin and steel with navy leather straps, lid firmly shut and locked, the inside not visible, brass corner caps and a brass lock plate, evenly lit, no spotlight, no light beam, nothing behind it"
     },
     {
       "name": "chest-silver-open",
       "aspect": "1:1",
-      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, riveted tin and steel with navy leather straps, lid open, filled with brass coins and a small electric cyan gem glowing, brass corner caps and a brass lock plate",
-      "model": "ideogram/v4.0"
+      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, riveted tin and steel with navy leather straps, lid open, filled with brass coins and a small electric cyan gem glowing, brass corner caps and a brass lock plate"
     },
     {
       "name": "chest-gold",
       "aspect": "1:1",
-      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, polished brass with engraved filigree and cream enamel panels, lid firmly shut and locked, the inside not visible, brass corner caps and a brass lock plate",
-      "model": "ideogram/v4.0"
+      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, polished brass with engraved filigree and cream enamel panels, lid firmly shut and locked, the inside not visible, brass corner caps and a brass lock plate"
     },
     {
       "name": "chest-gold-open",
       "aspect": "1:1",
-      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, polished brass with engraved filigree and cream enamel panels, lid open, overflowing with brass coins and amber light rays, brass corner caps and a brass lock plate",
-      "model": "ideogram/v4.0"
+      "prompt": "a Victorian travelling trunk seen from the front at a slight angle, polished brass with engraved filigree and cream enamel panels, lid open, overflowing with brass coins and amber light rays, brass corner caps and a brass lock plate"
     },
     {
       "name": "orb-nautical",
       "aspect": "1:1",
-      "prompt": "a glass sphere set in a small brass collar, rolling stylised waves inside, lit from within by an electric cyan core tinted deep teal, the one glowing object, soft halo",
-      "model": "ideogram/v4.0"
+      "prompt": "a glass sphere set in a small brass collar, rolling stylised waves inside, lit from within by an electric cyan core tinted deep teal, the one glowing object, soft halo"
     },
     {
       "name": "orb-terrestrial",
       "aspect": "1:1",
-      "prompt": "a glass sphere set in a small brass collar, a sprig of laurel leaves inside, lit from within by an electric cyan core tinted verdigris green, the one glowing object, soft halo",
-      "model": "ideogram/v4.0"
+      "prompt": "a glass sphere set in a small brass collar, a sprig of laurel leaves inside, lit from within by an electric cyan core tinted verdigris green, the one glowing object, soft halo"
     },
     {
       "name": "orb-transport",
       "aspect": "1:1",
-      "prompt": "a glass sphere set in a small brass collar, a spoked locomotive wheel inside, lit from within by an electric cyan core tinted warm amber, the one glowing object, soft halo",
-      "model": "ideogram/v4.0"
+      "prompt": "a glass sphere set in a small brass collar, a spoked locomotive wheel inside, lit from within by an electric cyan core tinted warm amber, the one glowing object, soft halo"
     },
     {
       "name": "orb-strength",
       "aspect": "1:1",
-      "prompt": "a glass sphere set in a small brass collar, a pair of crossed Indian clubs inside, lit from within by an electric cyan core tinted signal red, the one glowing object, soft halo",
-      "model": "ideogram/v4.0"
+      "prompt": "a glass sphere set in a small brass collar, a pair of crossed Indian clubs inside, lit from within by an electric cyan core tinted signal red, the one glowing object, soft halo"
     },
     {
       "name": "fogg",
       "aspect": "1:1",
-      "prompt": "half-length poster portrait of Phileas Fogg, a composed Victorian English gentleman of fifty in a top hat, high collar and dark frock coat, a brass pocket watch in hand, calm unreadable expression, cream and amber light on one side of the face, deep navy shadow on the other",
-      "model": "ideogram/v4.0"
+      "prompt": "half-length poster portrait of Phileas Fogg, a composed Victorian English gentleman of fifty in a top hat, high collar and dark frock coat, a brass pocket watch in hand, calm unreadable expression, cream and amber light on one side of the face, deep navy shadow on the other"
     },
     {
       "name": "fix",
       "aspect": "1:1",
-      "prompt": "half-length poster portrait of Detective Fix, a wiry suspicious Victorian detective in a bowler hat and buttoned overcoat, narrowed eyes, a signal red cravat as the one red accent, cream and amber light on one side of the face, deep navy shadow on the other",
-      "model": "ideogram/v4.0"
+      "prompt": "half-length poster portrait of Detective Fix, a wiry suspicious Victorian detective in a bowler hat and buttoned overcoat, narrowed eyes, a signal red cravat as the one red accent, cream and amber light on one side of the face, deep navy shadow on the other"
     },
     {
       "name": "avatar-runner",
       "aspect": "1:1",
-      "prompt": "a richly embroidered round club crest badge, a winged running boot in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture",
-      "model": "ideogram/v4.0"
+      "prompt": "a richly embroidered round club crest badge, a winged running boot in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture"
     },
     {
       "name": "avatar-rider",
       "aspect": "1:1",
-      "prompt": "a richly embroidered round club crest badge, a spoked penny-farthing wheel in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture",
-      "model": "ideogram/v4.0"
+      "prompt": "a richly embroidered round club crest badge, a spoked penny-farthing wheel in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture"
     },
     {
       "name": "avatar-swimmer",
       "aspect": "1:1",
-      "prompt": "a richly embroidered round club crest badge, a wave and a fouled anchor in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture",
-      "model": "ideogram/v4.0"
+      "prompt": "a richly embroidered round club crest badge, a wave and a fouled anchor in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture"
     },
     {
       "name": "avatar-lifter",
       "aspect": "1:1",
-      "prompt": "a richly embroidered round club crest badge, a kettlebell with two crossed Indian clubs in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture",
-      "model": "ideogram/v4.0"
+      "prompt": "a richly embroidered round club crest badge, a kettlebell with two crossed Indian clubs in brass gold thread at the centre, framed by laurel sprigs and a stitched ribbon band below, on deep navy felt, cream and amber thread details, visible embroidery texture"
     },
     {
       "name": "stamp-paris",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, the Eiffel Tower in solid silhouette with the Seine and a bridge in the foreground, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-suez",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, a steamship passing between palm trees on the Suez Canal in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-bombay",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, the Gateway of India arch with the harbour below in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-calcutta",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, an elephant with a howdah under a banyan tree in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-hong-kong",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, a junk boat with battened sails on the harbour in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-yokohama",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, Mount Fuji behind a torii gate in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-san-francisco",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, a steam locomotive crossing a trestle in the hills in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-new-york",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, a Victorian harbour skyline with a clipper ship in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-liverpool",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, a lighthouse and dock cranes in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-london",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, the Big Ben clock tower in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     },
     {
       "name": "stamp-london-port",
-      "model": "ideogram/v4.0",
       "aspect": "1:1",
       "prompt": "a round passport stamp in a single brass gold ink, a fouled anchor and a dock crane in solid silhouette, framed by a plain double ring with a thin laurel inner border, worn ink with grain"
     }
-  ],
-  "skip": []
+  ]
 }
