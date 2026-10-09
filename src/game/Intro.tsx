@@ -5,22 +5,20 @@ import { haptic } from '@/lib/native';
 
 /**
  * The opening titles: the studio mark, then a short animated sequence in the poster style that
- * ends on the question the whole game asks. One tap skips it. The video is six shots stitched with
+ * ends on the question the whole game asks. One tap skips it. The video is four shots stitched with
  * crossfades (scripts/intro/stitch.sh); the stills are the same frames and stand in when the video
  * can't play (reduced motion, a failed load, a browser that refuses autoplay).
  */
 export const INTRO_SHOTS = [
   { still: 'london', caption: 'London, 1872.' },
-  { still: 'ship-leaves-london', caption: 'A wager. Round the world in eighty days.' },
-  { still: 'train', caption: 'By rail.' },
-  { still: 'elephant', caption: 'By elephant.' },
-  { still: 'storm', caption: 'By any means at all.' },
-  { still: 'runner', caption: 'What moves you?' },
+  { still: 'ship-profile', caption: 'A wager: round the world in eighty days.' },
+  { still: 'train-profile', caption: 'By any means at all.' },
+  { still: 'runner-profile', caption: 'What moves you?' },
 ] as const;
 
 /** Each shot is SHOT seconds long and overlaps the next by XFADE; the stitch script uses the same numbers. */
-export const SHOT = 4.2;
-export const XFADE = 0.5;
+export const SHOT = 3.6;
+export const XFADE = 0.4;
 export const shotStart = (i: number) => i * (SHOT - XFADE);
 
 const MARK_MS = 2400;
