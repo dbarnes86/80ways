@@ -75,6 +75,7 @@ export default function MapPage() {
   const legFraction = participation ? participation.legProgress / currentLeg.requiredEnergy.amount : 0;
   const [openLeg, setOpenLeg] = useState<number | null>(null);
   const [deployOpen, setDeployOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const legStatus = (i: number): LegStatus => {
     if (!participation) return 'locked';
@@ -103,11 +104,17 @@ export default function MapPage() {
     setOpenLeg(i);
   };
 
+  // The list shows where you are and the next two stops; the whole route is one tap away. The map
+  // above already shows every city, so the long list was mostly scroll.
+  const focus = journeyDone ? JOURNEY_LEGS.length - 3 : currentLegIndex;
+  const nearby = (i: number) => i >= focus && i < focus + 3;
+  const shown = JOURNEY_LEGS.map((_, i) => i).filter((i) => showAll || nearby(i));
+
   const selected = openLeg !== null ? JOURNEY_LEGS[openLeg] : null;
   const selectedStatus = openLeg !== null ? legStatus(openLeg) : 'locked';
 
   return (
-    <div className="mx-auto max-w-md space-y-5 px-4 pb-6 pt-4">
+    <div className="mx-auto max-w-md space-y-4 px-4 pb-6 pt-4">
       <div className="flex gap-2">
         <Stat value={`${day}`} label="Day of 80" tone="text-accent" />
         <Stat value={covered >= 1000 ? `${(covered / 1000).toFixed(1)}k` : `${Math.round(covered)}`} label="km sailed" tone="text-success" />
@@ -179,10 +186,11 @@ export default function MapPage() {
         </Link>
       )}
 
-      {/* The route, one stop per city. */}
+      {/* The route near you: the current leg and the next two; the rest on request. */}
       <ol className="relative space-y-2">
         <span className="absolute bottom-6 left-[1.6rem] top-6 w-0.5 bg-border" aria-hidden />
-        {JOURNEY_LEGS.map((leg, i) => {
+        {shown.map((i) => {
+          const leg = JOURNEY_LEGS[i];
           const status = legStatus(i);
           const theme = ENERGY_THEME[leg.requiredEnergy.type];
           const active = status === 'active';
@@ -249,6 +257,16 @@ export default function MapPage() {
           );
         })}
       </ol>
+      <button
+        type="button"
+        onClick={() => {
+          haptic('select');
+          setShowAll((v) => !v);
+        }}
+        className="block w-full py-1 text-center text-sm text-muted-foreground hover:text-foreground"
+      >
+        {showAll ? 'Show fewer stops' : `Show all ${JOURNEY_LEGS.length} stops`}
+      </button>
 
       <Dialog open={openLeg !== null} onClose={() => setOpenLeg(null)} className="max-w-lg border-2 border-accent/50 bg-background">
         {selected && (
