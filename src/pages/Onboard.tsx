@@ -16,6 +16,7 @@ import { enableNudges, nudgesSupported, replanNudges } from '@/services/nudges';
 import { useConnectHealth } from '@/features/health';
 import { useUserStore, type Discipline } from '@/stores/userStore';
 import { useProgressionStore } from '@/stores/progressionStore';
+import { useActivityStore } from '@/stores/activityStore';
 import { STARTER_EVENT } from '@/data/gameConstants';
 import { liftOffAdvice } from '@/game/coach';
 import { CollectPanel } from '@/game/CollectPanel';
@@ -127,7 +128,7 @@ export default function Onboard() {
         {stage === 'save' && <SaveTicket discipline={discipline} onEmail={() => setStage('email')} />}
         {stage === 'email' && <EmailSignUp onBack={() => setStage('save')} onInbox={() => setStage('inbox')} />}
         {stage === 'inbox' && <Inbox />}
-        {stage === 'fuel' && user && <Fuel userId={user.id} onDone={() => setStage('trunk')} />}
+        {stage === 'fuel' && user && <Fuel userId={user.id} onDone={() => setStage('trunk')} onReturning={finish} />}
         {stage === 'trunk' && <Trunk onDone={afterTrunk} />}
         {stage === 'fix' && <FixWarning onDone={finish} />}
       </main>
@@ -483,7 +484,7 @@ function LiftOffMeter({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Fuel({ userId, onDone }: { userId: string; onDone: () => void }) {
+function Fuel({ userId, onDone, onReturning }: { userId: string; onDone: () => void; onReturning: () => void }) {
   const { busy, connect } = useConnectHealth(userId);
   const [phase, setPhase] = useState<'ask' | 'collect' | 'meter'>('ask');
 
@@ -522,6 +523,11 @@ function Fuel({ userId, onDone }: { userId: string; onDone: () => void }) {
               if (n) {
                 play('chime');
                 setPhase('collect');
+              } else if (useActivityStore.getState().activities.length > 0) {
+                // A returning player (new phone, reinstall): their workouts were collected before,
+                // so nothing new arrives. Say so and go home rather than skip silently.
+                toast({ title: 'Welcome back', description: 'Your logbook is up to date. New workouts arrive as you do them.' });
+                onReturning();
               } else onDone();
             });
           }}
