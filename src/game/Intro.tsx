@@ -5,7 +5,7 @@ import { haptic } from '@/lib/native';
 
 /**
  * The opening titles: the studio mark, then the story in four shots, each fading in from black
- * with its own line, and a final card that asks the question the crest picker then answers. One
+ * with its own line, then hands straight to the crest picker, which asks "What moves you?". One
  * tap skips. The video is the shots stitched with fades (scripts/intro/stitch.sh); the stills are
  * the same frames and stand in when the video can't play (reduced motion, a failed load, a browser
  * that refuses autoplay).
@@ -24,7 +24,7 @@ export const shotStart = (i: number) => i * SHOT;
 const MARK_MS = 2400;
 const VIDEO = '/intro/intro.mp4';
 
-type Phase = 'mark' | 'film' | 'end';
+type Phase = 'mark' | 'film';
 
 export function Intro({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>('mark');
@@ -58,7 +58,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     if (phase !== 'film' || !stills) return;
     if (shot >= INTRO_SHOTS.length - 1) {
-      const t = setTimeout(() => setPhase('end'), SHOT * 1000);
+      const t = setTimeout(finish, SHOT * 1000);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setShot(shot + 1), SHOT * 1000);
@@ -73,11 +73,11 @@ export function Intro({ onDone }: { onDone: () => void }) {
   };
 
   const cue = INTRO_SHOTS[shot];
-  const ended = phase === 'end';
 
   // One stage for the whole sequence: the frame sits in a fixed place and never moves, the line
-  // under it has a fixed-height slot, and the mark and the closing question both appear inside
-  // the frame, so the eye stays in one spot from the first fade to the last.
+  // under it has a fixed-height slot, and the mark appears inside the frame, so the eye stays in
+  // one spot from the first fade to the last. The film hands straight to the crest picker, which
+  // asks the closing question itself.
   return (
     <div className="fixed inset-0 z-50 bg-background" role="dialog" aria-label="Opening titles">
       <div className="mx-auto flex h-full w-full max-w-md flex-col pt-[max(18dvh,calc(env(safe-area-inset-top)+4rem))]">
@@ -89,7 +89,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
                   key={s.still}
                   src={`/intro/${s.still}.webp`}
                   alt=""
-                  className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', i === shot && !ended ? 'opacity-100' : 'opacity-0')}
+                  className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', i === shot ? 'opacity-100' : 'opacity-0')}
                 />
               ))
             ) : (
@@ -100,9 +100,9 @@ export function Intro({ onDone }: { onDone: () => void }) {
                 playsInline
                 preload="auto"
                 onTimeUpdate={onTime}
-                onEnded={() => setPhase('end')}
+                onEnded={finish}
                 onError={() => setStills(true)}
-                className={cn('absolute inset-0 size-full object-cover transition-opacity duration-500', ended && 'opacity-0')}
+                className="absolute inset-0 size-full object-cover"
               />
             ))}
 
@@ -112,14 +112,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
             </div>
           )}
 
-          {ended && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background px-6 text-center">
-              <p className="kicker animate-fade-up text-accent">Your turn</p>
-              <p className="animate-fade-up mt-3 font-heading text-5xl font-bold leading-none text-accent" style={{ animationDelay: '0.15s' }}>
-                What moves you?
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Fixed-height slot: a two- or three-line caption never pushes the frame around. */}
@@ -130,19 +122,12 @@ export function Intro({ onDone }: { onDone: () => void }) {
               <p className="mt-3 font-heading text-[2rem] font-bold leading-tight">{cue.line}</p>
             </div>
           )}
-          {ended && (
-            <button type="button" onClick={finish} className="btn-game btn-primary animate-fade-up px-10" style={{ animationDelay: '0.4s' }}>
-              Begin
-            </button>
-          )}
         </div>
       </div>
 
-      {!ended && (
-        <button type="button" onClick={finish} className="kicker absolute right-5 top-[max(1.25rem,env(safe-area-inset-top))] text-muted-foreground">
-          Skip
-        </button>
-      )}
+      <button type="button" onClick={finish} className="kicker absolute right-5 top-[max(1.25rem,env(safe-area-inset-top))] text-muted-foreground">
+        Skip
+      </button>
     </div>
   );
 }

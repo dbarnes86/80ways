@@ -31,11 +31,11 @@ import { play } from '@/game/sfx';
  * each beat after is a single idea with a payoff you can feel at the end of it (a stamp slams, a crest is picked, a ticket prints, a trunk opens), and a boarding
  * pass at the top punches a hole every time. The account comes after you have something to save.
  */
-type Stage = 'intro' | 'crest' | 'name' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
+type Stage = 'intro' | 'crest' | 'save' | 'email' | 'inbox' | 'fuel' | 'trunk' | 'fix';
 
-const PRE_AUTH: Stage[] = ['intro', 'crest', 'name', 'save', 'email'];
-const BEATS = ['Wager', 'Crest', 'Name', 'Ticket', 'Fuel', 'Kit'];
-const DONE: Record<Stage, number> = { intro: 0, crest: 1, name: 2, save: 3, email: 3, inbox: 3, fuel: 4, trunk: 5, fix: 6 };
+const PRE_AUTH: Stage[] = ['intro', 'crest', 'save', 'email'];
+const BEATS = ['Crest', 'Ticket', 'Fuel', 'Kit'];
+const DONE: Record<Stage, number> = { intro: 0, crest: 0, save: 1, email: 1, inbox: 1, fuel: 2, trunk: 3, fix: 4 };
 
 const ONBOARDED = 'atw80-onboarded';
 const INTRO_SEEN = 'atw80-intro-seen';
@@ -123,8 +123,7 @@ export default function Onboard() {
             }}
           />
         )}
-        {stage === 'crest' && <PickCrest onDone={() => setStage('name')} />}
-        {stage === 'name' && <NameBeat discipline={discipline} onDone={() => setStage('save')} />}
+        {stage === 'crest' && <PickCrest onDone={() => setStage('save')} />}
         {stage === 'save' && <SaveTicket discipline={discipline} onEmail={() => setStage('email')} />}
         {stage === 'email' && <EmailSignUp onBack={() => setStage('save')} onInbox={() => setStage('inbox')} />}
         {stage === 'inbox' && <Inbox />}
@@ -266,7 +265,7 @@ function PickCrest({ onDone }: { onDone: () => void }) {
   );
 }
 
-/* ─── Beat 3: your name on the ticket ────────────────────────────────────────── */
+/* ─── The crew ticket ───────────────────────────────────────────────────────── */
 
 function CrewTicket({ discipline, name, live = false, compact = false }: { discipline: Discipline; name: string; live?: boolean; compact?: boolean }) {
   const [typed, setTyped] = useState(!live);
@@ -302,69 +301,7 @@ function CrewTicket({ discipline, name, live = false, compact = false }: { disci
   );
 }
 
-function NameBeat({ discipline, onDone }: { discipline: Discipline; onDone: () => void }) {
-  const [name, setName] = useState(() => store.get(PENDING_NAME) ?? '');
-  const [error, setError] = useState<string | null>(null);
-  const [printed, setPrinted] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  const print = (e: React.FormEvent) => {
-    e.preventDefault();
-    const n = name.trim();
-    if (n.length < 2 || n.length > 50) return setError('Two letters at least. Fogg insists.');
-    store.set(PENDING_NAME, n);
-    play('chime');
-    haptic('success');
-    setPrinted(true);
-    setTimeout(() => setReady(true), 1400 + n.length * 60);
-  };
-
-  if (printed) {
-    return (
-      <div className="animate-fade-up space-y-6">
-        <div className="text-center">
-          <p className="kicker text-accent">Printing</p>
-          <h1 className="font-heading text-4xl font-bold">Your ticket</h1>
-        </div>
-        <CrewTicket discipline={discipline} name={name.trim()} live />
-        {ready && (
-          <button type="button" onClick={onDone} className="btn-game btn-primary shine animate-fade-up w-full">
-            Keep it safe
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={print} className="animate-fade-up space-y-6">
-      <div className="text-center">
-        <p className="kicker text-accent">The manifest</p>
-        <h1 className="font-heading text-4xl font-bold">What should Fogg call you?</h1>
-        <p className="text-muted-foreground">It goes on your ticket and the crew list.</p>
-      </div>
-      <Input
-        value={name}
-        onChange={(e) => {
-          setName(e.target.value);
-          setError(null);
-        }}
-        autoFocus
-        autoComplete="nickname"
-        maxLength={50}
-        placeholder="Your name"
-        aria-label="Your name"
-        className="h-16 text-center font-heading text-3xl font-bold"
-      />
-      {error && <p className="text-center text-sm text-destructive">{error}</p>}
-      <button type="submit" className="btn-game btn-primary shine w-full">
-        Print my ticket
-      </button>
-    </form>
-  );
-}
-
-/* ─── Beat 4: save the ticket (the account) ──────────────────────────────────── */
+/* ─── Beat 3: save the ticket (the account); Apple supplies the name ──────────── */
 
 function AppleButton() {
   const [busy, setBusy] = useState(false);
@@ -392,15 +329,15 @@ function AppleButton() {
 const showApple = () => isNativeApp() || env.appleAuth;
 
 function SaveTicket({ discipline, onEmail }: { discipline: Discipline; onEmail: () => void }) {
-  const name = store.get(PENDING_NAME) ?? 'Explorer';
+  const label = DISCIPLINES.find((d) => d.id === discipline)?.label ?? 'Explorer';
   return (
     <div className="animate-fade-up space-y-6 text-center">
       <div>
         <p className="kicker text-accent">Your ticket</p>
-        <h1 className="font-heading text-4xl font-bold">Keep your ticket</h1>
-        <p className="text-muted-foreground">Free. Your crest, your name and everything you earn, saved to you.</p>
+        <h1 className="font-heading text-4xl font-bold">Claim your ticket</h1>
+        <p className="text-muted-foreground">Free. Then your week's workouts arrive, ready to collect.</p>
       </div>
-      <CrewTicket discipline={discipline} name={name} compact />
+      <CrewTicket discipline={discipline} name={label} live />
       <div className="space-y-3">
         {showApple() && <AppleButton />}
         <button type="button" onClick={onEmail} className={cn('btn-game w-full', showApple() ? 'btn-quiet btn-sm' : 'btn-primary')}>
@@ -419,7 +356,7 @@ function SaveTicket({ discipline, onEmail }: { discipline: Discipline; onEmail: 
 }
 
 function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => void }) {
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -429,9 +366,11 @@ function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => v
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.name.trim().length < 2) return setError('Two letters at least. Fogg insists.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError("That email doesn't look right.");
     if (form.password.length < 8) return setError('Password needs at least 8 characters.');
-    const name = store.get(PENDING_NAME)?.trim() || 'Explorer';
+    const name = form.name.trim();
+    store.set(PENDING_NAME, name);
 
     setBusy(true);
     const { data, error } = await supabase.auth.signUp({
@@ -453,10 +392,11 @@ function EmailSignUp({ onBack, onInbox }: { onBack: () => void; onInbox: () => v
     <div className="animate-fade-up space-y-6">
       <div className="text-center">
         <p className="kicker text-accent">Your ticket</p>
-        <h1 className="font-heading text-4xl font-bold">Keep your ticket</h1>
+        <h1 className="font-heading text-4xl font-bold">Claim your ticket</h1>
       </div>
       <form onSubmit={submit} className="panel space-y-4 p-5" noValidate>
-        <Input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={form.email} onChange={set('email')} placeholder="Email" aria-label="Email" className="h-14 text-lg" autoFocus />
+        <Input autoComplete="nickname" maxLength={50} value={form.name} onChange={set('name')} placeholder="What should Fogg call you?" aria-label="Your name" className="h-14 text-lg" autoFocus />
+        <Input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={form.email} onChange={set('email')} placeholder="Email" aria-label="Email" className="h-14 text-lg" />
         <Input type="password" autoComplete="new-password" value={form.password} onChange={set('password')} placeholder="Password (8+ characters)" aria-label="Password" className="h-14 text-lg" />
         {error && <p className="text-sm text-destructive">{error}</p>}
         <button type="submit" disabled={busy} className="btn-game btn-primary w-full">
