@@ -222,23 +222,25 @@ function PickCrest({ onDone }: { onDone: () => void }) {
     setTimeout(onDone, 900);
   };
   return (
-    <div className="animate-fade-up space-y-6">
+    // Fills the screen under the boarding pass: heading at the top, the four crests share the rest.
+    <div className="animate-fade-up flex flex-1 flex-col gap-6">
       <div className="text-center">
         <p className="kicker text-accent">Your crest</p>
         <h1 className="font-heading text-4xl font-bold">What moves you?</h1>
-        <p className="text-muted-foreground">Every kind of workout counts. This is just where you start.</p>
+        <p className="text-sm text-muted-foreground">Every workout counts. Pick where you start.</p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid max-h-[40rem] min-h-0 flex-1 grid-cols-1 grid-rows-4 gap-3">
         {DISCIPLINES.map((d) => {
-          const theme = ENERGY_THEME[d.energy];
           const on = picked === d.id;
           return (
             <button
               key={d.id}
               type="button"
               onClick={() => pick(d.id)}
+              // A size container, so the badge can be sized off whichever side of the card is shorter.
+              style={{ containerType: 'size' }}
               className={cn(
-                'press panel relative flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden p-4 transition-all duration-300',
+                'press panel relative flex min-h-0 items-center gap-4 overflow-hidden px-3 py-3 text-left transition-all duration-300',
                 on && 'scale-105 border-accent',
                 picked && !on && 'scale-95 opacity-30',
               )}
@@ -250,18 +252,43 @@ function PickCrest({ onDone }: { onDone: () => void }) {
                   style={{ background: 'conic-gradient(from 0deg, hsl(var(--accent) / 0.55), transparent 60%)' }}
                 />
               )}
-              <Avatar discipline={d.id} size={112} className="-my-3" iconClassName={cn('size-14', theme.text)} />
-              {on ? (
-                <span className="animate-stamp rounded-md border-2 border-accent px-2 py-0.5 font-heading text-2xl font-bold uppercase tracking-wider text-accent">{d.label}</span>
-              ) : (
-                <span className="font-heading text-2xl font-bold text-foreground">{d.label}</span>
-              )}
-              <span className="text-xs text-muted-foreground">{d.blurb}</span>
+              <CrestBadge discipline={d.id} energy={d.energy} />
+              <div className="relative flex min-w-0 flex-col items-start gap-1.5">
+                {on ? (
+                  <span className="animate-stamp rounded-md border-2 border-accent px-2 py-0.5 font-heading text-3xl font-bold uppercase leading-none tracking-wider text-accent">{d.label}</span>
+                ) : (
+                  <span className="font-heading text-3xl font-bold leading-none text-foreground">{d.label}</span>
+                )}
+                <span className="text-sm text-muted-foreground">{d.blurb}</span>
+              </div>
             </button>
           );
         })}
       </div>
     </div>
+  );
+}
+
+/**
+ * A crest, always a clean circle with the same brass ring, whatever the generated art does at its
+ * edges: the image is masked to the circle and the ring is drawn here, not in the art.
+ */
+function CrestBadge({ discipline, energy }: { discipline: Discipline; energy: EnergyType }) {
+  const name = `avatar-${discipline}`;
+  return (
+    <span
+      className="relative shrink-0 overflow-hidden rounded-full bg-background ring-2 ring-accent/70 ring-offset-2 ring-offset-card"
+      // Always a circle: the row's height less its padding, capped so the name keeps room beside it.
+      style={{ width: 'min(100cqh - 1.75rem, 38cqw)', height: 'min(100cqh - 1.75rem, 38cqw)' }}
+    >
+      {hasArt(name) ? (
+        <img src={artSrc(name, '')} alt="" className="size-full scale-[1.12] object-cover" draggable={false} />
+      ) : (
+        <span className="flex size-full items-center justify-center">
+          <Avatar discipline={discipline} iconClassName={cn('size-1/2', ENERGY_THEME[energy].text)} />
+        </span>
+      )}
+    </span>
   );
 }
 
