@@ -7,8 +7,8 @@
 # same two numbers to time the captions, so change them in both places. Clips come from Higgsfield
 # DoP (image-to-video) run over the stills in public/intro, see scripts/intro/README.md.
 set -euo pipefail
-SHOT=${SHOT:-4.2}
-XFADE=${XFADE:-0.5}
+SHOT=${SHOT:-3.6}
+XFADE=${XFADE:-0.4}
 OUT=${OUT:-public/intro/intro.mp4}
 [ $# -ge 2 ] || { echo "usage: $0 clip1.mp4 clip2.mp4 …" >&2; exit 1; }
 
