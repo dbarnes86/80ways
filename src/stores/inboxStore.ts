@@ -13,6 +13,8 @@ export interface InboxItem {
   distanceKm?: number;
   performedAt: string;
   sourceName: string;
+  /** From the first import: done before the player joined, so its XP is capped. */
+  history?: boolean;
 }
 
 interface InboxStore {

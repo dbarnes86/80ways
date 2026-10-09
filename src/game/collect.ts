@@ -36,6 +36,7 @@ export function collectItem(item: InboxItem, boosters: { amplifier?: boolean; mu
     performedAt: new Date(item.performedAt),
     useAmplifier: !!boosters.amplifier,
     useMultiCharge: !!boosters.multiCharge,
+    history: item.history,
   });
   useInboxStore.getState().remove(item.id);
   announce({ energy: r.energy });

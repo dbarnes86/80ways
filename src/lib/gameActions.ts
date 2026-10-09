@@ -19,8 +19,7 @@ import {
   XP_PER_LEG_COMPLETED,
   type BoosterId,
   type EnergyType,
-  type Intensity,
-} from '@/data/gameConstants';
+  type Intensity, HISTORY_XP_CAP } from '@/data/gameConstants';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { RAID_XP_FIRST_CONTRIBUTION, type ScheduledRaid } from '@/data/raids';
 import {
@@ -66,6 +65,8 @@ export interface LogActivityInput {
   performedAt: Date;
   useAmplifier: boolean;
   useMultiCharge: boolean;
+  /** Done before the player joined: full energy, XP drawn from the shared HISTORY_XP_CAP. */
+  history?: boolean;
 }
 
 export interface LogActivityResult extends Rewards {
@@ -131,6 +132,12 @@ export function logActivity(input: LogActivityInput): LogActivityResult {
     xp += DAILY_MISSION.xpReward;
     credits += DAILY_MISSION.creditReward;
     useUserStore.getState().setLastDailyMission(today);
+  }
+
+  if (input.history) {
+    const left = Math.max(0, HISTORY_XP_CAP - useUserStore.getState().historyXp);
+    xp = Math.min(xp, left);
+    useUserStore.getState().addHistoryXp(xp);
   }
 
   const [starterCompleted, levelUp] = withLevelTracking(() => {
