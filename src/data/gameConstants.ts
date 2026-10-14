@@ -266,4 +266,23 @@ export const BOOSTERS: Record<BoosterId, { name: string; description: string; pr
 };
 
 export const DECAY_INHIBITOR_HOURS = 72;
+
+// ─── The day's departure ────────────────────────────────────────
+/**
+ * Stoking the boiler once a day is a small ritual: an encounter card (its outcome hidden until the
+ * energy is spent) and a punctuality bonus for leaving on time. Both multiply energy that came
+ * from real workouts and never create any; together they top out at +20%.
+ */
+export const ENCOUNTER_BONUS = { triumph: 0.15, steady: 0.05, setback: 0 } as const;
+export type EncounterOutcome = keyof typeof ENCOUNTER_BONUS;
+/** Share of the energy spent that must be the favoured kind for a triumph, or for steady going. */
+export const ENCOUNTER_TRIUMPH_SHARE = 0.5;
+export const ENCOUNTER_STEADY_SHARE = 0.2;
+export const PUNCTUALITY_BONUS = 0.05;
+/** Minutes either side of the chosen departure time that count as on time. */
+export const DEPARTURE_WINDOW_MINUTES = 60;
+/** Fogg: "We depart at 8:45 PM sharp." Players can pick their own. */
+export const DEFAULT_DEPARTURE_MINUTES = 20 * 60 + 45;
+/** Coins for finishing a stop's set of souvenirs. */
+export const SOUVENIR_SET_CREDITS = 60;
 export const MULTI_CHARGE_SPILLOVER = 0.25;

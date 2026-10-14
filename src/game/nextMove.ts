@@ -45,6 +45,12 @@ export interface NextMoveInput {
   discipline?: Discipline | null;
   /** An Amplifier is armed for the next workout. */
   armed?: boolean;
+  /** kWh the reserves will lose by this time tomorrow. */
+  decayTomorrow?: number;
+  /** Today's encounter hasn't been played yet. */
+  encounterWaiting?: boolean;
+  /** The player's departure time, and whether its window is open now. */
+  departure?: { label: string; open: boolean };
 }
 
 export function nextMove(s: NextMoveInput): NextMove {
@@ -90,11 +96,12 @@ export function nextMove(s: NextMoveInput): NextMove {
   if (s.joined && !s.journeyDone && s.leg) {
     const label = ENERGY_THEME[s.leg.type].label;
     if (s.energy >= 0.1) {
+      const fading = s.decayTomorrow && s.decayTomorrow >= 0.05 ? ` Your reserves lose ${s.decayTomorrow.toFixed(1)} kWh by tomorrow.` : '';
       return {
         id: 'deploy',
-        kicker: `Next stop: ${s.leg.to}`,
-        title: 'Stoke the boiler',
-        body: `${s.leg.remaining.toFixed(1)} kWh to go. ${label} energy goes furthest.`,
+        kicker: s.departure?.open ? `On time for ${s.departure.label}` : `Next stop: ${s.leg.to}`,
+        title: s.encounterWaiting ? 'An encounter awaits' : 'Stoke the boiler',
+        body: `${s.leg.remaining.toFixed(1)} kWh to go. ${label} energy goes furthest.${fading}`,
         action: 'deploy',
         cta: 'Stoke the boiler',
       };
