@@ -73,85 +73,74 @@ export default function Store() {
 
   const ids = Object.keys(BOOSTERS) as BoosterId[];
 
-  return (
-    <div className="mx-auto max-w-md space-y-5 px-4 pb-6 pt-4">
-      <div>
-        <p className="kicker text-accent">Ship's stores</p>
-        <h1 className="font-heading text-3xl font-bold">The Chandlery</h1>
-        <p className="text-muted-foreground">Coins buy kit. Kit makes a workout count for more.</p>
-      </div>
+  const lesson =
+    owned === 0
+      ? canAfford
+        ? `Enough for ${aOrAn(BOOSTERS[cheapest].name)}. ${WHAT_IT_DOES[cheapest]}`
+        : `${BOOSTERS[cheapest].price - inventory.credits} more coins and you can buy ${aOrAn(BOOSTERS[cheapest].name)}.`
+      : armed
+        ? `${BOOSTERS[armed].name} is armed. ${WHAT_IT_DOES[armed]}`
+        : 'Nothing armed. Arm a piece of kit and it fires on your next workout.';
 
-      {/* The lesson, with the player's own numbers: what they can afford right now. */}
-      <div className="panel panel-hero space-y-2 p-5">
-        <div className="flex items-baseline justify-between">
-          <span className="kicker text-muted-foreground">Your coins</span>
-          <span className="flex items-center gap-2 font-heading text-4xl font-bold text-warning">
-            <Coin size={28} /> {inventory.credits}
-          </span>
+  return (
+    <div className="mx-auto max-w-md space-y-4 px-4 pb-6 pt-4">
+      {/* Title and wallet on one line; the lesson, with the player's own numbers, under it. */}
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="kicker text-accent">Ship's stores</p>
+          <h1 className="font-heading text-3xl font-bold leading-none">The Chandlery</h1>
         </div>
-        <p className="text-lg leading-snug">
-          {owned === 0
-            ? canAfford
-              ? `Enough for ${aOrAn(BOOSTERS[cheapest].name)}. ${WHAT_IT_DOES[cheapest]}`
-              : `${BOOSTERS[cheapest].price - inventory.credits} more coins and you can buy ${aOrAn(BOOSTERS[cheapest].name)}. ${WHAT_IT_DOES[cheapest]}`
-            : armed
-              ? `${BOOSTERS[armed].name} is armed. ${WHAT_IT_DOES[armed]}`
-              : 'Nothing armed. Arm a piece of kit and it fires on your next workout.'}
-        </p>
+        <span className="flex items-center gap-1.5 font-heading text-3xl font-bold leading-none text-warning">
+          <Coin size={24} /> {inventory.credits}
+        </span>
+      </div>
+      <div className="space-y-1">
+        <p className="leading-snug">{lesson}</p>
         <p className="text-xs text-muted-foreground">
           +{CREDITS_PER_ACTIVITY} a workout · quests and trunks · +{CREDITS_PER_LEG_BASE} and up a leg
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {ids.map((id) => {
           const booster = BOOSTERS[id];
           const Icon = ICONS[id];
           const have = inventory[id];
           const affordable = inventory.credits >= booster.price;
           const isArmed = armed === id && have > 0;
+          const canUse = (ARMABLE.includes(id) || id === 'decayInhibitor') && have > 0;
           return (
-            <div key={id} className={cn('panel p-4', isArmed && 'border-accent/70')}>
-              <div className="flex items-start gap-3">
-                <div className={cn('flex size-12 shrink-0 items-center justify-center rounded-xl border', isArmed ? 'border-accent bg-accent/15 text-accent' : 'border-border bg-card text-foreground')}>
-                  <Icon className="size-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-heading text-xl font-bold">{booster.name}</h3>
-                    <span className="kicker text-muted-foreground">{booster.rarity}</span>
+            <div key={id} className={cn('panel flex items-center gap-3 p-3', isArmed && 'border-accent/70')}>
+              <div className={cn('relative flex size-12 shrink-0 items-center justify-center rounded-xl border', isArmed ? 'border-accent bg-accent/15 text-accent' : 'border-border bg-card text-foreground')}>
+                <Icon className="size-6" />
+                {have > 0 && (
+                  <span className="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-accent font-heading text-xs font-bold text-background ring-2 ring-card" aria-label={`${have} in your kit`}>
+                    {have}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-lg font-bold leading-tight">{booster.name}</p>
+                <p className="text-sm leading-snug text-muted-foreground">{WHAT_IT_DOES[id]}</p>
+                {canUse && (
+                  <div className="mt-1 flex items-center gap-2">
+                    {isArmed && <span className="rounded-full border border-accent/60 px-1.5 py-0.5 font-heading text-[10px] font-bold text-accent">ARMED</span>}
+                    <button type="button" onClick={() => (id === 'decayInhibitor' ? activate() : arm(id))} className="text-sm font-bold text-accent">
+                      {id === 'decayInhibitor' ? 'Activate' : isArmed ? 'Disarm' : 'Arm it'}
+                    </button>
                   </div>
-                  <p className="text-sm text-muted-foreground">{WHAT_IT_DOES[id]}</p>
-                </div>
+                )}
               </div>
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <span className="text-sm text-muted-foreground">
-                  In your kit: <span className="font-heading font-bold text-foreground">{have}</span>
-                  {isArmed && <span className="ml-2 rounded-full border border-accent/60 px-2 py-0.5 font-heading text-xs font-bold text-accent">ARMED</span>}
-                </span>
-                <div className="flex gap-2">
-                  {ARMABLE.includes(id) && have > 0 && (
-                    <button type="button" onClick={() => arm(id)} className={cn('btn-game btn-sm', isArmed ? 'btn-quiet' : 'btn-primary')}>
-                      {isArmed ? 'Disarm' : 'Arm'}
-                    </button>
-                  )}
-                  {id === 'decayInhibitor' && have > 0 && (
-                    <button type="button" onClick={activate} className="btn-game btn-sm btn-primary">
-                      Activate
-                    </button>
-                  )}
-                  <button type="button" onClick={() => buy(id)} disabled={!affordable} className="btn-game btn-sm btn-gold">
-                    <Coin size={18} /> {booster.price}
-                  </button>
-                </div>
-              </div>
+              <button type="button" onClick={() => buy(id)} disabled={!affordable} className="btn-game btn-sm btn-gold shrink-0">
+                <Coin size={18} /> {booster.price}
+              </button>
             </div>
           );
         })}
       </div>
 
       {frozen && (
-        <div className="panel flex items-center gap-3 p-4">
+        <div className="panel flex items-center gap-3 p-3">
           <ShieldOff className="size-6 text-accent" />
           <div>
             <p className="font-heading font-bold">Decay Inhibitor active</p>
