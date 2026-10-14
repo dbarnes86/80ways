@@ -11,7 +11,7 @@ import { useEnergyStore } from '@/stores/energyStore';
 import { useProgressionStore } from '@/stores/progressionStore';
 import { useRaidStore } from '@/stores/raidStore';
 import { useSeasonStore } from '@/stores/seasonStore';
-import { useUserStore, type UserGameData } from '@/stores/userStore';
+import { mergeVoyageLogs, useUserStore, type UserGameData } from '@/stores/userStore';
 import { useMembershipStore } from '@/stores/membershipStore';
 import { useInboxStore } from '@/stores/inboxStore';
 
@@ -132,6 +132,9 @@ const buildGameState = (): GameState => {
       discipline: u.discipline,
       armedBooster: u.armedBooster,
       historyXp: u.historyXp,
+      voyageLog: u.voyageLog,
+      souvenirs: u.souvenirs,
+      departureMinutes: u.departureMinutes,
     },
   };
 };
@@ -147,6 +150,8 @@ const mergeClaims = (raw: Json | undefined) => {
     questsClaimed: union(s.questsClaimed, u.questsClaimed),
     raidRewardsClaimed: union(s.raidRewardsClaimed, u.raidRewardsClaimed),
     raidXpAwarded: union(s.raidXpAwarded, u.raidXpAwarded),
+    souvenirs: union(s.souvenirs, u.souvenirs),
+    voyageLog: mergeVoyageLogs(s.voyageLog, u.voyageLog),
   });
 };
 

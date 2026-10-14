@@ -15,12 +15,15 @@ import { haptic } from '@/lib/native';
 import { DeleteAccount } from '@/features/DeleteAccount';
 import { HealthSetting } from '@/features/health';
 import { Passport, usePassportCount } from '@/game/Passport';
+import { Souvenirs } from '@/game/Souvenirs';
+import { formatDeparture } from '@/game/voyage';
+import { SOUVENIR_COUNT } from '@/data/encounters';
 import { isUnlocked } from '@/game/unlocks';
 import { CrestCircle } from '@/game/art';
 import { floatReward } from '@/game/rewards';
 import { isMuted, play, setMuted } from '@/game/sfx';
 import { toast } from '@/components/toast';
-import { Button, Dialog, Input, Switch, cn } from '@/components/ui';
+import { Button, Dialog, Input, Select, Switch, cn } from '@/components/ui';
 
 const RARITY_RING: Record<string, string> = {
   legendary: 'border-warning shadow-[0_0_16px_hsl(var(--warning)/0.6)]',
@@ -44,7 +47,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const progression = useProgressionStore();
   const activities = useActivityStore((s) => s.activities);
-  const { stats, settings, raidXpAwarded, setUnits, discipline } = useUserStore();
+  const { stats, settings, raidXpAwarded, setUnits, discipline, souvenirs, departureMinutes, setDepartureMinutes } = useUserStore();
   const season = useSeasonStore();
   const hasJoined = useSeasonStore(selectHasJoined);
 
@@ -56,7 +59,7 @@ export default function Profile() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const stamps = usePassportCount();
   const passportOpen = isUnlocked('map', progression.level);
-  const [shelf, setShelf] = useState<'passport' | 'badges'>(passportOpen ? 'passport' : 'badges');
+  const [shelf, setShelf] = useState<'passport' | 'souvenirs' | 'badges'>(passportOpen ? 'passport' : 'badges');
 
   useEffect(() => {
     if (!user) return;
@@ -182,8 +185,8 @@ export default function Profile() {
       {/* One collection at a time: the passport (once the map is open) or the badges. */}
       <section className="space-y-3">
         {passportOpen && (
-          <div className="grid grid-cols-2 rounded-full border border-border p-1" role="tablist" aria-label="Collections">
-            {(['passport', 'badges'] as const).map((k) => (
+          <div className="grid grid-cols-3 rounded-full border border-border p-1" role="tablist" aria-label="Collections">
+            {(['passport', 'souvenirs', 'badges'] as const).map((k) => (
               <button
                 key={k}
                 type="button"
@@ -194,15 +197,21 @@ export default function Profile() {
                   play('tick');
                   setShelf(k);
                 }}
-                className={cn('rounded-full py-2 font-heading text-lg font-bold transition-colors', shelf === k ? 'bg-accent text-background' : 'text-muted-foreground')}
+                className={cn('rounded-full py-2 font-heading text-base font-bold leading-tight transition-colors', shelf === k ? 'bg-accent text-background' : 'text-muted-foreground')}
               >
-                {k === 'passport' ? `Passport ${stamps.count}/${stamps.total}` : `Badges ${earned}/${achievements.length}`}
+                {k === 'passport'
+                  ? `Stamps ${stamps.count}/${stamps.total}`
+                  : k === 'souvenirs'
+                    ? `Keepsakes ${souvenirs.length}/${SOUVENIR_COUNT}`
+                    : `Badges ${earned}/${achievements.length}`}
               </button>
             ))}
           </div>
         )}
         {shelf === 'passport' && passportOpen ? (
           <Passport />
+        ) : shelf === 'souvenirs' && passportOpen ? (
+          <Souvenirs />
         ) : (
           <>
             {!passportOpen && (
@@ -255,6 +264,27 @@ export default function Profile() {
                 if (c) play('chime');
               }}
             />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium">Departure time</p>
+              <p className="text-xs text-muted-foreground">Stoke the boiler within an hour of it for a bonus.</p>
+            </div>
+            <Select
+              aria-label="Departure time"
+              className="w-32 shrink-0"
+              value={departureMinutes}
+              onChange={(e) => {
+                setDepartureMinutes(Number(e.target.value));
+                schedulePush();
+              }}
+            >
+              {Array.from({ length: 96 }, (_, i) => i * 15).map((m) => (
+                <option key={m} value={m}>
+                  {formatDeparture(m)}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="flex items-center justify-between">
             <p className="font-medium">Miles instead of km</p>

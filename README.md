@@ -22,6 +22,12 @@ integration on merge to `main`; Edge Functions deploy from `.github/workflows/de
 2. **Lift Off** (free). Fill a 5 kWh starter meter to reach level 3.
 3. **Membership** unlocks the season. Late joiners start at the leg the calendar has reached.
 4. **Deploy energy** to the current leg. Matching reserves count 100%, related ones 75%, the rest 50%.
+   **The day's departure.** The first stoke of the day deals an encounter card from the leg's story
+   (`src/data/encounters.ts`). Each choice quietly favours one energy type; spending mostly that
+   type is a triumph (+15% toward the leg), some of it is steady going (+5%), none is no bonus.
+   Stoking within an hour of the player's departure time adds +5%. Good encounters bring home
+   souvenirs, three per stop, and a full set pays coins. Home and a daily notification show what
+   the reserves will lose to decay by tomorrow. Rules: `src/game/voyage.ts`.
 5. **Raids**: every 14 days Detective Fix appears as a raid boss for 72 hours. His HP is the
    community goal; the right energy type lands critical hits; beating him pays credits.
 6. **Credits** from activities, the daily mission, legs and raids buy boosters.

@@ -13,9 +13,9 @@ import { EnergyDeployment } from '@/components/EnergyDeployment';
 import { toast } from '@/components/toast';
 import { cn } from '@/components/ui';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
-import { BOOSTERS, ENERGY_TYPES, MAIN_JOURNEY_UNLOCK_LEVEL, STARTER_EVENT } from '@/data/gameConstants';
+import { BOOSTERS, ENERGY_DECAY_RATE, ENERGY_TYPES, MAIN_JOURNEY_UNLOCK_LEVEL, STARTER_EVENT } from '@/data/gameConstants';
 import { getRaidSchedule, getRaidStatus } from '@/data/raids';
-import { getPlayerNarrativeDay } from '@/lib/gameEngine';
+import { getPlayerNarrativeDay, toDayKey } from '@/lib/gameEngine';
 import { needsPass } from '@/lib/gameActions';
 import { isHealthConnected } from '@/services/healthService';
 import { CollectPanel } from '@/game/CollectPanel';
@@ -27,6 +27,7 @@ import { useQuests } from '@/game/questActions';
 import { celebrate } from '@/game/rewards';
 import { play } from '@/game/sfx';
 import { isUnlocked } from '@/game/unlocks';
+import { decayByTomorrow, drawEncounter, formatDeparture, inDepartureWindow } from '@/game/voyage';
 
 /**
  * Home fits one screen, top to bottom: where you are (the voyage), the one thing to do next,
@@ -43,6 +44,9 @@ const Dashboard = () => {
   const inventory = useUserStore((s) => s.inventory);
   const discipline = useUserStore((s) => s.discipline);
   const armed = useUserStore((s) => s.armedBooster === 'energyAmplifier' && s.inventory.energyAmplifier > 0);
+  const departure = useUserStore((s) => s.departureMinutes);
+  const today = useUserStore((s) => s.voyageLog[toDayKey(new Date())]);
+  const frozenUntil = useUserStore((s) => s.effects.decayInhibitorUntil);
   useMembershipStore((s) => s.membership); // re-render when the pass changes
   const { user } = useAuth();
   const quests = useQuests();
@@ -93,6 +97,9 @@ const Dashboard = () => {
     raidsOpen: isUnlocked('raids', progression.level),
     discipline,
     armed,
+    decayTomorrow: decayByTomorrow(totalEnergy, ENERGY_DECAY_RATE, frozenUntil ? new Date(frozenUntil) : null),
+    encounterWaiting: !!participation && !today?.encounter && !!drawEncounter(participation.currentLeg, toDayKey(new Date())),
+    departure: { label: formatDeparture(departure), open: !today?.punctual && inDepartureWindow(new Date(), departure) },
   });
 
   const board = async () => {

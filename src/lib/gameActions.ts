@@ -19,7 +19,13 @@ import {
   XP_PER_LEG_COMPLETED,
   type BoosterId,
   type EnergyType,
-  type Intensity, HISTORY_XP_CAP } from '@/data/gameConstants';
+  type Intensity,
+  HISTORY_XP_CAP,
+  SOUVENIR_SET_CREDITS,
+  type EncounterOutcome,
+} from '@/data/gameConstants';
+import type { Encounter, EncounterChoice, Souvenir } from '@/data/encounters';
+import { bonusRate, drawEncounter, inDepartureWindow, judgeEncounter, nextSouvenir, setComplete } from '@/game/voyage';
 import { JOURNEY_LEGS } from '@/data/journeyLegs';
 import { RAID_XP_FIRST_CONTRIBUTION, type ScheduledRaid } from '@/data/raids';
 import {
@@ -183,9 +189,24 @@ export interface DeployResult extends Rewards {
   journeyComplete: boolean;
   legIndex: number;
   newProgress: number;
+  /** The day's encounter, if this deployment played it. */
+  encounter?: { card: Encounter; choice: EncounterChoice; outcome: EncounterOutcome };
+  /** Stoked inside the departure window, first time today. */
+  punctual: boolean;
+  /** Extra kWh toward the leg from the encounter and punctuality. */
+  bonus: number;
+  souvenir?: Souvenir;
+  /** Coins for finishing this stop's souvenir set (also counted in credits). */
+  souvenirCredits: number;
 }
 
-export async function deployToLeg(selection: Partial<Record<EnergyType, number>>): Promise<DeployResult> {
+/** The encounter the player chose before spending: the day's card and which of its two choices. */
+export interface EncounterPick {
+  id: string;
+  choice: 0 | 1;
+}
+
+export async function deployToLeg(selection: Partial<Record<EnergyType, number>>, pick?: EncounterPick): Promise<DeployResult> {
   const season = useSeasonStore.getState();
   const participation = season.participation;
   if (!participation || !season.activeSeason) throw new Error('Join the expedition first.');
@@ -204,10 +225,36 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   const plan = planDeployment(capped, leg.requiredEnergy.type, remaining);
   if (plan.totalDeployed <= 0) throw new Error('Select some energy to deploy.');
 
+  const now = new Date();
+  const today = toDayKey(now);
   for (const line of plan.lines) energy.deployEnergy(line.type, line.amount);
-  useUserStore.getState().logDeployment(toDayKey(new Date()), plan.totalDeployed);
+  useUserStore.getState().logDeployment(today, plan.totalDeployed);
 
-  const newProgress = Math.min(required, participation.legProgress + plan.totalEffective);
+  // The day's departure: the encounter (once a day, and only the card the day dealt) and leaving on time.
+  const user = useUserStore.getState();
+  const day = user.voyageLog[today] ?? {};
+  const card = pick && !day.encounter ? drawEncounter(legIndex, today) : undefined;
+  const encounter = card && card.id === pick!.id ? { card, choice: card.choices[pick!.choice], outcome: judgeEncounter(plan.lines, card.choices[pick!.choice].favours) } : undefined;
+  const punctual = !day.punctual && inDepartureWindow(now, user.departureMinutes);
+  if (encounter || punctual) {
+    user.logVoyage(today, {
+      ...(encounter && { encounter: { id: encounter.card.id, choice: pick!.choice, outcome: encounter.outcome } }),
+      ...(punctual && { punctual: true }),
+    });
+  }
+  const bonus = plan.totalEffective * bonusRate(encounter?.outcome, punctual);
+
+  let souvenir: Souvenir | undefined;
+  let souvenirCredits = 0;
+  if (encounter && encounter.outcome !== 'setback') {
+    souvenir = nextSouvenir(legIndex, user.souvenirs);
+    if (souvenir) {
+      useUserStore.getState().addSouvenir(souvenir.id);
+      if (setComplete(legIndex, useUserStore.getState().souvenirs)) souvenirCredits = SOUVENIR_SET_CREDITS;
+    }
+  }
+
+  const newProgress = Math.min(required, participation.legProgress + plan.totalEffective + bonus);
   const legCompleted = newProgress >= required - 1e-6;
 
   // Record it before the leg advances: on the last free leg, the server only accepts deployments
@@ -229,7 +276,7 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
   }
 
   let xp = Math.round(plan.totalDeployed * XP_PER_ENERGY_DEPLOYED);
-  let credits = 0;
+  let credits = souvenirCredits;
   let journeyComplete = false;
 
   if (legCompleted) {
@@ -249,7 +296,7 @@ export async function deployToLeg(selection: Partial<Record<EnergyType, number>>
 
   schedulePush();
 
-  return { plan, legCompleted, journeyComplete, legIndex, newProgress, xp, credits, levelUp };
+  return { plan, legCompleted, journeyComplete, legIndex, newProgress, xp, credits, levelUp, encounter, punctual, bonus, souvenir, souvenirCredits };
 }
 
 // ─── Raids ──────────────────────────────────────────────────────

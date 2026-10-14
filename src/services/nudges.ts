@@ -5,12 +5,16 @@
  */
 import { Capacitor } from '@capacitor/core';
 import { getRaidSchedule, type ScheduledRaid } from '@/data/raids';
+import { DEPARTURE_WINDOW_MINUTES, ENERGY_DECAY_RATE, ENERGY_TYPES } from '@/data/gameConstants';
 import { computeStreak, toDayKey } from '@/lib/gameEngine';
+import { decayByTomorrow, formatDeparture } from '@/game/voyage';
 import { useActivityStore } from '@/stores/activityStore';
-import { useSeasonStore } from '@/stores/seasonStore';
+import { useEnergyStore } from '@/stores/energyStore';
+import { selectHasJoined, useSeasonStore } from '@/stores/seasonStore';
+import { useUserStore } from '@/stores/userStore';
 
 const FLAG = 'atw80-nudges';
-const IDS = { streak: 101, quests: 102, raidStart: 103, raidLast: 104, inbox: 105 };
+const IDS = { streak: 101, quests: 102, raidStart: 103, raidLast: 104, inbox: 105, departure: 106 };
 
 export const nudgesSupported = () => Capacitor.isNativePlatform();
 
@@ -48,6 +52,8 @@ export interface NudgeInput {
   workoutDays: Set<string>;
   streak: number;
   season: { startDate: Date; endDate: Date } | null;
+  /** On the voyage: the departure time, whether today's on-time bonus is taken, and the reserves. */
+  departure?: { minutes: number; doneToday: boolean; reserves: number; decay: number };
 }
 
 interface Planned {
@@ -58,7 +64,7 @@ interface Planned {
 }
 
 /** What to schedule, as data so it's testable. */
-export function planNudges({ now, workoutDays, streak, season }: NudgeInput): Planned[] {
+export function planNudges({ now, workoutDays, streak, season, departure }: NudgeInput): Planned[] {
   const out: Planned[] = [];
   const at = (days: number, h: number, m = 0) => {
     const d = new Date(now);
@@ -80,6 +86,22 @@ export function planNudges({ now, workoutDays, streak, season }: NudgeInput): Pl
 
   // Tomorrow morning: fresh quests.
   out.push({ id: IDS.quests, title: 'New quests are in', body: 'Three fresh quests and a chest for finishing them.', at: at(1, 8) });
+
+  // When the departure window opens, if there's energy to spend and today's bonus is still there.
+  if (departure && departure.reserves >= 0.1) {
+    const at = new Date(now);
+    at.setHours(0, departure.minutes - DEPARTURE_WINDOW_MINUTES, 0, 0);
+    if (at <= now || departure.doneToday) at.setDate(at.getDate() + 1);
+    out.push({
+      id: IDS.departure,
+      title: `Departure at ${formatDeparture(departure.minutes)}`,
+      body:
+        departure.decay >= 0.05
+          ? `Your reserves lose ${departure.decay.toFixed(1)} kWh by tomorrow. Leave on time for a bonus.`
+          : 'Leave on time for a bonus, and see what today’s encounter brings.',
+      at,
+    });
+  }
 
   if (season) {
     const raids: ScheduledRaid[] = getRaidSchedule(season.startDate, season.endDate);
@@ -109,11 +131,25 @@ export async function refreshNudges(input: NudgeInput) {
 /** Re-plan from where the player is now. Safe to call any time; does nothing until enabled. */
 export function replanNudges() {
   const dates = useActivityStore.getState().activities.map((a) => a.timestamp);
-  const season = useSeasonStore.getState().activeSeason;
+  const seasonState = useSeasonStore.getState();
+  const season = seasonState.activeSeason;
+  const user = useUserStore.getState();
+  const energy = useEnergyStore.getState();
+  const reserves = ENERGY_TYPES.reduce((t, k) => t + energy[k].current, 0);
+  const sailing = selectHasJoined(seasonState) && seasonState.participation?.status === 'active';
+  const now = new Date();
   void refreshNudges({
-    now: new Date(),
+    now,
     workoutDays: new Set(dates.map(toDayKey)),
     streak: computeStreak(dates),
     season: season ? { startDate: season.startDate, endDate: season.endDate } : null,
+    departure: sailing
+      ? {
+          minutes: user.departureMinutes,
+          doneToday: !!user.voyageLog[toDayKey(now)]?.punctual,
+          reserves,
+          decay: decayByTomorrow(reserves, ENERGY_DECAY_RATE, user.effects.decayInhibitorUntil ? new Date(user.effects.decayInhibitorUntil) : null, now),
+        }
+      : undefined,
   }).catch((e) => console.warn('Couldn’t schedule notifications:', e));
 }
